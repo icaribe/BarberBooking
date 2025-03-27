@@ -19,14 +19,37 @@ const AppointmentPage = () => {
   const params = useParams();
   const [, navigate] = useLocation();
   const serviceId = params.serviceId ? parseInt(params.serviceId) : null;
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  // Check if there's a pending appointment in session storage
+  const checkPendingAppointment = () => {
+    const pendingAppointmentStr = sessionStorage.getItem('pendingAppointment');
+    if (pendingAppointmentStr) {
+      try {
+        const pendingAppointment = JSON.parse(pendingAppointmentStr);
+        if (pendingAppointment.serviceId === serviceId) {
+          return {
+            date: new Date(pendingAppointment.selectedDate),
+            professionalId: pendingAppointment.selectedProfessionalId,
+            time: pendingAppointment.selectedTime
+          };
+        }
+      } catch (e) {
+        console.error('Error parsing pending appointment:', e);
+      }
+    }
+    return null;
+  };
+  
+  const pendingAppointment = checkPendingAppointment();
+  
+  const [selectedDate, setSelectedDate] = useState<Date>(pendingAppointment?.date || new Date());
+  const [selectedTime, setSelectedTime] = useState<string | null>(pendingAppointment?.time || null);
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const { user } = useAuth();
-  const { toast } = useToast();
   
   const { services, isLoadingServices } = useServices();
   const { professionals, isLoadingProfessionals } = useProfessionals();
@@ -35,12 +58,20 @@ const AppointmentPage = () => {
   // Get the service from ID
   const service = services.find(s => s.id === serviceId);
 
-  // Mark today as selected date by default
+  // Restore professional from session storage if it exists
   useEffect(() => {
     if (!selectedDate) {
       setSelectedDate(new Date());
     }
-  }, []);
+    
+    // If we have a pending appointment with a professional ID, select that professional
+    if (pendingAppointment?.professionalId && professionals.length > 0) {
+      const prof = professionals.find(p => p.id === pendingAppointment.professionalId);
+      if (prof) {
+        setSelectedProfessional(prof);
+      }
+    }
+  }, [professionals]);
 
   if (isLoadingServices || isLoadingProfessionals) {
     return (
@@ -102,15 +133,56 @@ const AppointmentPage = () => {
     setSelectedTime(null); // Reset time selection when date changes
   };
 
+  // Fetch appointments for the selected date and professional
+  const { appointments, isLoading: isLoadingAppointments } = useAppointments(
+    undefined,
+    selectedProfessional?.id,
+    selectedDate ? format(selectedDate, 'yyyy-MM-dd') : undefined
+  );
+
   // Generate time slots for selected professional and date
   const generateTimeSlots = () => {
-    // Simple time slot generation for demonstration
-    // In a real application, you would fetch from backend based on professional availability
+    if (!selectedProfessional || !selectedDate) return [];
+    
     const slots = [];
     const startHour = 9;
     const endHour = 18;
     const interval = 15; // minutes
     
+    // Create a Map to track blocked time slots based on existing appointments
+    const blockedTimeSlots = new Map();
+    
+    // Mark blocked time slots from existing appointments
+    if (appointments && appointments.length > 0) {
+      appointments.forEach(appointment => {
+        // For each appointment, block all slots within its duration
+        if (appointment.startTime && appointment.endTime) {
+          const [startHour, startMinute] = appointment.startTime.split(':').map(Number);
+          const [endHour, endMinute] = appointment.endTime.split(':').map(Number);
+          
+          let currentHour = startHour;
+          let currentMinute = startMinute;
+          
+          // Block all slots from start time to end time
+          while (
+            currentHour < endHour || 
+            (currentHour === endHour && currentMinute < endMinute)
+          ) {
+            const timeKey = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+            blockedTimeSlots.set(timeKey, true);
+            
+            // Move to the next slot
+            currentMinute += interval;
+            if (currentMinute >= 60) {
+              currentHour++;
+              currentMinute = 0;
+            }
+          }
+        }
+      });
+    }
+    
+    // Generate all possible time slots
     for (let hour = startHour; hour < endHour; hour++) {
       for (let minute = 0; minute < 60; minute += interval) {
         // Skip lunch time (13:00 - 14:30)
@@ -120,7 +192,46 @@ const AppointmentPage = () => {
         
         const formattedHour = hour.toString().padStart(2, '0');
         const formattedMinute = minute.toString().padStart(2, '0');
-        slots.push(`${formattedHour}:${formattedMinute}`);
+        const timeSlot = `${formattedHour}:${formattedMinute}`;
+        
+        // Check if this slot is available
+        if (!blockedTimeSlots.has(timeSlot)) {
+          // Also need to check if there's enough time for the service before the next blocked slot
+          // or before closing time
+          const slotDate = new Date(selectedDate);
+          slotDate.setHours(hour, minute, 0, 0);
+          
+          const endTime = new Date(slotDate);
+          endTime.setMinutes(endTime.getMinutes() + (service?.durationMinutes || 0));
+          
+          // If the end time is after closing time, skip this slot
+          if (endTime.getHours() >= endHour) {
+            continue;
+          }
+          
+          // Check if the service would overlap with any blocked slots
+          let hasOverlap = false;
+          let currentCheck = new Date(slotDate);
+          
+          while (currentCheck < endTime) {
+            const checkHour = currentCheck.getHours().toString().padStart(2, '0');
+            const checkMinute = currentCheck.getMinutes().toString().padStart(2, '0');
+            const checkKey = `${checkHour}:${checkMinute}`;
+            
+            if (blockedTimeSlots.has(checkKey)) {
+              hasOverlap = true;
+              break;
+            }
+            
+            // Move to the next interval to check
+            currentCheck.setMinutes(currentCheck.getMinutes() + interval);
+          }
+          
+          // If there's no overlap, this slot is available
+          if (!hasOverlap) {
+            slots.push(timeSlot);
+          }
+        }
       }
     }
     
@@ -137,10 +248,27 @@ const AppointmentPage = () => {
       return;
     }
 
-    try {
-      // Using a fixed user ID (1) for demo purposes
-      const userId = 1;
+    // Check if the user is logged in
+    if (!user) {
+      toast({
+        title: "Autenticação necessária",
+        description: "Você precisa fazer login para confirmar o agendamento.",
+      });
+      // Save the current state in session storage for return after login
+      const appointmentState = {
+        serviceId,
+        selectedDate: selectedDate.toISOString(),
+        selectedProfessionalId: selectedProfessional.id,
+        selectedTime
+      };
+      sessionStorage.setItem('pendingAppointment', JSON.stringify(appointmentState));
       
+      // Redirect to auth page
+      navigate('/auth?returnTo=/appointment/' + serviceId);
+      return;
+    }
+
+    try {
       // Format date as YYYY-MM-DD
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       
@@ -155,7 +283,7 @@ const AppointmentPage = () => {
       const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
       
       await createAppointment({
-        userId,
+        userId: user.id,
         professionalId: selectedProfessional.id,
         date: formattedDate,
         startTime: selectedTime,
@@ -169,6 +297,9 @@ const AppointmentPage = () => {
         title: "Agendamento confirmado!",
         description: `Seu agendamento com ${selectedProfessional.name} foi confirmado para ${format(selectedDate, 'dd/MM/yyyy')} às ${selectedTime}.`,
       });
+      
+      // Clear the pending appointment from session storage
+      sessionStorage.removeItem('pendingAppointment');
       
       navigate('/appointments');
     } catch (error) {
@@ -364,7 +495,10 @@ const AppointmentPage = () => {
                 className={`flex flex-col items-center min-w-[80px] ${
                   selectedProfessional?.id === professional.id ? 'text-primary' : 'text-foreground'
                 }`}
-                onClick={() => setSelectedProfessional(professional)}
+                onClick={() => {
+                  setSelectedProfessional(professional);
+                  setSelectedTime(null); // Reset time selection when professional changes
+                }}
               >
                 <div className={`w-16 h-16 rounded-full overflow-hidden mb-1 ${
                   selectedProfessional?.id === professional.id ? 'border-2 border-primary' : 'border border-border'
@@ -385,21 +519,37 @@ const AppointmentPage = () => {
       {selectedProfessional && (
         <div className="p-4 flex-1 overflow-y-auto">
           <h3 className="font-medium mb-3">Horários disponíveis</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {generateTimeSlots().map((time, index) => (
-              <button
-                key={index}
-                className={`py-2 border rounded-md text-sm ${
-                  selectedTime === time
-                    ? 'border-primary text-primary'
-                    : 'border-border text-foreground'
-                }`}
-                onClick={() => setSelectedTime(time)}
-              >
-                {time}
-              </button>
-            ))}
-          </div>
+          
+          {isLoadingAppointments ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <>
+              {generateTimeSlots().length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Não há horários disponíveis para este profissional nesta data.
+                  <p className="mt-2 text-sm">Tente selecionar outra data ou outro profissional.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {generateTimeSlots().map((time, index) => (
+                    <button
+                      key={index}
+                      className={`py-2 border rounded-md text-sm ${
+                        selectedTime === time
+                          ? 'border-primary text-primary'
+                          : 'border-border text-foreground'
+                      }`}
+                      onClick={() => setSelectedTime(time)}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 

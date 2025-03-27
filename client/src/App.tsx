@@ -23,7 +23,7 @@ function App() {
             <ProtectedRoute path="/appointments" component={Appointments} />
             <ProtectedRoute path="/profile" component={Profile} />
             <Route path="/products" component={ProductsPage} />
-            <ProtectedRoute path="/appointment/:serviceId" component={AppointmentPage} />
+            <Route path="/appointment/:serviceId" component={AppointmentPage} />
             <Route component={NotFound} />
           </Switch>
         </div>

@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Scissors, MapPin, Phone, MessageSquare } from "lucide-react";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 
 const loginSchema = z.object({
   username: z.string().min(1, "O nome de usuário é obrigatório"),
@@ -28,6 +28,11 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
+  const [location] = useLocation();
+  
+  // Pegando o parâmetro returnTo da URL, se existir
+  const params = new URLSearchParams(location.split('?')[1] || '');
+  const returnTo = params.get('returnTo');
   
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -56,138 +61,153 @@ export default function AuthPage() {
     registerMutation.mutate(data);
   }
 
-  // Redirecionar para a página principal se já estiver autenticado
+  // Redirecionar se já estiver autenticado
   if (user) {
-    return <Redirect to="/" />;
+    // Se tiver um parâmetro de redirecionamento, redirecionar para ele, senão para a página principal
+    if (returnTo) {
+      return <Redirect to={returnTo} />;
+    } else {
+      return <Redirect to="/" />;
+    }
   }
 
   return (
     <div className="flex min-h-screen">
       {/* Formulário de login/cadastro */}
       <div className="w-full md:w-1/2 p-4 flex items-center justify-center">
-        <Tabs defaultValue="login" className="w-full max-w-md">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Entrar</TabsTrigger>
-            <TabsTrigger value="register">Cadastrar</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="login">
-            <Card>
-              <CardHeader>
-                <CardTitle>Faça login</CardTitle>
-                <CardDescription>Entre com sua conta para agendar serviços e comprar produtos.</CardDescription>
-              </CardHeader>
-              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Nome de usuário</Label>
-                    <Input 
-                      id="username" 
-                      {...loginForm.register("username")}
-                    />
-                    {loginForm.formState.errors.username && (
-                      <p className="text-sm text-red-500">{loginForm.formState.errors.username.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Senha</Label>
-                    <Input 
-                      id="password" 
-                      type="password" 
-                      {...loginForm.register("password")}
-                    />
-                    {loginForm.formState.errors.password && (
-                      <p className="text-sm text-red-500">{loginForm.formState.errors.password.message}</p>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={loginMutation.isPending}
-                  >
-                    {loginMutation.isPending ? "Entrando..." : "Entrar"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="register">
-            <Card>
-              <CardHeader>
-                <CardTitle>Criar uma conta</CardTitle>
-                <CardDescription>Crie sua conta para gerenciar agendamentos e compras.</CardDescription>
-              </CardHeader>
-              <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="registerUsername">Nome de usuário</Label>
-                    <Input 
-                      id="registerUsername" 
-                      {...registerForm.register("username")}
-                    />
-                    {registerForm.formState.errors.username && (
-                      <p className="text-sm text-red-500">{registerForm.formState.errors.username.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="registerPassword">Senha</Label>
-                    <Input 
-                      id="registerPassword" 
-                      type="password" 
-                      {...registerForm.register("password")}
-                    />
-                    {registerForm.formState.errors.password && (
-                      <p className="text-sm text-red-500">{registerForm.formState.errors.password.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome completo</Label>
-                    <Input 
-                      id="name" 
-                      {...registerForm.register("name")}
-                    />
-                    {registerForm.formState.errors.name && (
-                      <p className="text-sm text-red-500">{registerForm.formState.errors.name.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      {...registerForm.register("email")}
-                    />
-                    {registerForm.formState.errors.email && (
-                      <p className="text-sm text-red-500">{registerForm.formState.errors.email.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input 
-                      id="phone" 
-                      {...registerForm.register("phone")}
-                    />
-                    {registerForm.formState.errors.phone && (
-                      <p className="text-sm text-red-500">{registerForm.formState.errors.phone.message}</p>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={registerMutation.isPending}
-                  >
-                    {registerMutation.isPending ? "Criando conta..." : "Criar Conta"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        <div className="w-full max-w-md">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mb-4" 
+            onClick={() => window.history.back()}
+          >
+            ← Voltar
+          </Button>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Entrar</TabsTrigger>
+              <TabsTrigger value="register">Cadastrar</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="login">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Faça login</CardTitle>
+                  <CardDescription>Entre com sua conta para agendar serviços e comprar produtos.</CardDescription>
+                </CardHeader>
+                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)}>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="username">Nome de usuário</Label>
+                      <Input 
+                        id="username" 
+                        {...loginForm.register("username")}
+                      />
+                      {loginForm.formState.errors.username && (
+                        <p className="text-sm text-red-500">{loginForm.formState.errors.username.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Senha</Label>
+                      <Input 
+                        id="password" 
+                        type="password" 
+                        {...loginForm.register("password")}
+                      />
+                      {loginForm.formState.errors.password && (
+                        <p className="text-sm text-red-500">{loginForm.formState.errors.password.message}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={loginMutation.isPending}
+                    >
+                      {loginMutation.isPending ? "Entrando..." : "Entrar"}
+                    </Button>
+                  </CardFooter>
+                </form>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="register">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Criar uma conta</CardTitle>
+                  <CardDescription>Crie sua conta para gerenciar agendamentos e compras.</CardDescription>
+                </CardHeader>
+                <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)}>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="registerUsername">Nome de usuário</Label>
+                      <Input 
+                        id="registerUsername" 
+                        {...registerForm.register("username")}
+                      />
+                      {registerForm.formState.errors.username && (
+                        <p className="text-sm text-red-500">{registerForm.formState.errors.username.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="registerPassword">Senha</Label>
+                      <Input 
+                        id="registerPassword" 
+                        type="password" 
+                        {...registerForm.register("password")}
+                      />
+                      {registerForm.formState.errors.password && (
+                        <p className="text-sm text-red-500">{registerForm.formState.errors.password.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nome completo</Label>
+                      <Input 
+                        id="name" 
+                        {...registerForm.register("name")}
+                      />
+                      {registerForm.formState.errors.name && (
+                        <p className="text-sm text-red-500">{registerForm.formState.errors.name.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        {...registerForm.register("email")}
+                      />
+                      {registerForm.formState.errors.email && (
+                        <p className="text-sm text-red-500">{registerForm.formState.errors.email.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Telefone</Label>
+                      <Input 
+                        id="phone" 
+                        {...registerForm.register("phone")}
+                      />
+                      {registerForm.formState.errors.phone && (
+                        <p className="text-sm text-red-500">{registerForm.formState.errors.phone.message}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={registerMutation.isPending}
+                    >
+                      {registerMutation.isPending ? "Criando conta..." : "Criar Conta"}
+                    </Button>
+                  </CardFooter>
+                </form>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
       
       {/* Informações sobre a barbearia */}

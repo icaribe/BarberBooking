@@ -15,7 +15,7 @@ const Header = ({ title, showBackButton }: HeaderProps) => {
   return (
     <header className="px-4 py-3 flex justify-between items-center bg-background shadow-md sticky top-0 z-30">
       {showBackButton ? (
-        <Button variant="ghost" size="icon" className="text-foreground" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" className="text-foreground" onClick={() => window.history.back()}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
       ) : (
@@ -28,9 +28,9 @@ const Header = ({ title, showBackButton }: HeaderProps) => {
             <img 
               src={logoPath} 
               alt="Los Barbeiros Logo" 
-              className="h-10 w-10 mr-2 rounded-full object-cover" 
+              className="h-8 w-8 mr-2 rounded-full object-cover" 
             />
-            <h1 className="font-montserrat font-bold text-xl text-primary">Los Barbeiros</h1>
+            <h1 className="font-montserrat font-bold text-xl text-[#FFC107]">LOS BARBEIROS CBS</h1>
           </>
         ) : (
           <h1 className="font-montserrat font-semibold text-lg">{title}</h1>
@@ -76,9 +76,9 @@ const SidebarMenu = () => {
             <img 
               src={logoPath} 
               alt="Los Barbeiros Logo" 
-              className="h-12 w-12 mr-3 rounded-full object-cover" 
+              className="h-10 w-10 mr-3 rounded-full object-cover" 
             />
-            <h2 className="font-montserrat font-bold text-lg text-primary">Los Barbeiros</h2>
+            <h2 className="font-montserrat font-bold text-lg text-[#FFC107]">LOS BARBEIROS CBS</h2>
           </div>
           
           <nav>

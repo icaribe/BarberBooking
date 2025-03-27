@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import ProductCard from '@/components/products/ProductCard';
-import ServiceCategoryFilter from '@/components/services/ServiceCategoryFilter';
+import { Button } from '@/components/ui/button';
+import { ShoppingCart } from 'lucide-react';
 import { useProducts } from '@/lib/hooks/useProducts';
 import type { Product } from '@/lib/types';
 
@@ -33,12 +33,25 @@ const ProductsTab = () => {
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className="overflow-x-auto py-2 -mx-4 px-4">
-            <ServiceCategoryFilter
-              categories={categories}
-              selectedCategoryId={selectedCategoryId}
-              onSelectCategory={setSelectedCategoryId}
-            />
+          <div className="overflow-x-auto py-2 flex flex-wrap gap-2">
+            <Button
+              variant={selectedCategoryId === null ? "default" : "secondary"}
+              className="rounded-full whitespace-nowrap font-medium text-sm px-4"
+              onClick={() => setSelectedCategoryId(null)}
+            >
+              Todos
+            </Button>
+            
+            {categories.map(category => (
+              <Button
+                key={category.id}
+                variant={selectedCategoryId === category.id ? "default" : "secondary"}
+                className="rounded-full whitespace-nowrap font-medium text-sm px-4"
+                onClick={() => setSelectedCategoryId(category.id)}
+              >
+                {category.name}
+              </Button>
+            ))}
           </div>
         )}
       </div>
@@ -62,11 +75,24 @@ const ProductsTab = () => {
               </h3>
               <div className="divide-y divide-border">
                 {filteredProducts.map(product => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onAddToCart={handleAddToCart}
-                  />
+                  <div key={product.id} className="py-3 flex justify-between items-center">
+                    <div>
+                      <h4 className="font-medium">{product.name}</h4>
+                      <p className="text-sm text-muted-foreground">{product.description}</p>
+                      <p className="font-medium text-primary mt-1">
+                        {(product.price / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={() => handleAddToCart(product)} 
+                      variant="secondary" 
+                      size="sm"
+                      className="ml-2"
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-1" />
+                      Adicionar
+                    </Button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -85,11 +111,24 @@ const ProductsTab = () => {
                 </h3>
                 <div className="divide-y divide-border">
                   {productsInCategory.map(product => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onAddToCart={handleAddToCart}
-                    />
+                    <div key={product.id} className="py-3 flex justify-between items-center">
+                      <div>
+                        <h4 className="font-medium">{product.name}</h4>
+                        <p className="text-sm text-muted-foreground">{product.description}</p>
+                        <p className="font-medium text-primary mt-1">
+                          {(product.price / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </p>
+                      </div>
+                      <Button 
+                        onClick={() => handleAddToCart(product)} 
+                        variant="secondary" 
+                        size="sm"
+                        className="ml-2"
+                      >
+                        <ShoppingCart className="h-4 w-4 mr-1" />
+                        Adicionar
+                      </Button>
+                    </div>
                   ))}
                 </div>
               </div>
