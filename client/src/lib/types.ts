@@ -105,7 +105,7 @@ export interface LoyaltyReward {
   id: number;
   name: string;
   description: string | null;
-  pointsCost: number;
+  pointsRequired: number;
   icon: string | null;
   isActive: boolean;
 }

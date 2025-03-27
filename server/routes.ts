@@ -19,6 +19,9 @@ import { z } from "zod";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configurar autenticação
   setupAuth(app);
+  
+  // Inicializar dados de demonstração
+  await storage.initializeDemoData();
   // User routes
   app.get("/api/users/:id", async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
