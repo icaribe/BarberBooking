@@ -8,6 +8,7 @@ import Home from "@/pages/Home";
 import Appointments from "@/pages/Appointments";
 import Profile from "@/pages/Profile";
 import AppointmentPage from "@/pages/AppointmentPage";
+import ProductsPage from "@/pages/ProductsPage";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
             <Route path="/" component={Home} />
             <Route path="/appointments" component={Appointments} />
             <Route path="/profile" component={Profile} />
+            <Route path="/products" component={ProductsPage} />
             <Route path="/appointment/:serviceId" component={AppointmentPage} />
             <Route component={NotFound} />
           </Switch>

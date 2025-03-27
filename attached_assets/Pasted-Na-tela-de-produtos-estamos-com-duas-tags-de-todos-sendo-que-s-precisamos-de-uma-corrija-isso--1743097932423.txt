@@ -1,0 +1,16 @@
+Na tela de produtos, estamos com duas tags de "todos", sendo que só precisamos de uma, corrija isso por favor.
+
+Também não quero a visualização na forma de cards, e sim na forma de lista, e não precisa e por enquato não precisa de imagens, por não terei como trocar as imagens por imagens corretas, já que por enquanto não tenho acesso ao banco de dados aqui no rork.
+
+Outra coisa é que está faltando um mecanismo de adicionar os produtos desejados no carrinho, cuide disso.
+
+Outra coisa, diminua um pouco o tamanho da imagem principal para que ela esteja mais visível... e troque a cor da letra do título "LOS BARBEIROS CBS" para a cor amarela padrão do app...
+
+
+E mais importante de tudo, ainda não voltou a funcionar a abertura dos horários disponíveis após a seleção do profissional, na tela de agendamento... corrija isso...
+
+
+Também ressalto a importância de garantir que quando um serviço for agendado, cada serviço tem seu próprio tempo né, então aquele período todo do tempo daquele serviço agendado deve bloquear a agenda do profissional selecionado por toda a extensão do tempo do serviço já agendado (há serviços que levam 30 min, outros 1h, etc). E esse bloqueio deve refletir na agenda global desse profissional no dia em questão, de modo que qualquer outro usuario que vá fazer agendamento naquele dia deve ver esses horários como bloqueados (ou simplesmente faça os horários bloqueados desaparecerem da agenda do profissional no dia em questão).
+
+Há sim só mais um comentário eu quero que o site ele abra o app ele abra sempre né é sem um login de demo associado um login de demonstração associado eu não quero um perfil pré-determinado associado ao site porque porque a gente vai entrar em modo de produção é vou mandar isso para o cliente que vai ver esse site e eu quero que qualquer pessoa que abra o site possa fazer o seu próprio login né e obter a persistência dos seus dados quando ela voltar a abrir o app então ele o app volta a poder carregar e login dela e ela pode fazer o logout etc mas quando a pessoa abrir pela primeira vez o app tá eu não quero que ele já carregue um perfil de demonstração quero que haja nenhum perfil pré-determinado associado ao nosso site nosso nosso app eu quero que ele esteja nesse sentido cru né limpo para que haja uma interação a partir do zero com cada usuário que vier abrir o site certo e aí uma vez que se usuário começa a interagir faz seu login ou tenta fazer um momento e para isso ele vai precisar fazer o login lembra que isso é importante aí no segundo momento que ele abriu app aí sim é um web já se ele tiver ali os dados em cash ou de outra forma a gente pode cuidar dessa questão do armazenamento dessas informações é de login do usuário né informação do usuário obviamente ela vai estar na nuvem né é hospedada no banco de no nosso background mas é importante eu quero que tem o usuário também possa fazer o login né de forma facilitada depois que já tiver feito algum cadastro mas no primeiro momento insisto é importante que uma vez que eu abro por exemplo uma janela anônima é o site e ele então abra sem está associado a nenhum perfil entendeu
+

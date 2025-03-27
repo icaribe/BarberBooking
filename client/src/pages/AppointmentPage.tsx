@@ -6,11 +6,13 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { format, addDays, isSameDay, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { useAppointments } from '@/lib/hooks/useAppointments';
 import { useProfessionals } from '@/lib/hooks/useProfessionals';
 import { useServices } from '@/lib/hooks/useServices';
 import { formatCurrency } from '@/lib/utils/format';
 import { DAYS_OF_WEEK } from '@/lib/constants';
+import AppointmentConfirmation from '@/components/appointment/AppointmentConfirmation';
 import type { Professional } from '@/lib/types';
 
 const AppointmentPage = () => {
@@ -22,6 +24,8 @@ const AppointmentPage = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
   
   const { services, isLoadingServices } = useServices();
@@ -403,13 +407,26 @@ const AppointmentPage = () => {
         <Button
           className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-6"
           disabled={!selectedProfessional || !selectedDate || !selectedTime || isCreating}
-          onClick={handleConfirmAppointment}
+          onClick={() => setShowConfirmation(true)}
         >
-          {isCreating ? 'Confirmando...' : 'Confirmar Agendamento'}
+          {isCreating ? 'Confirmando...' : 'Revisar Agendamento'}
         </Button>
       </div>
 
       {renderCalendarDialog()}
+      
+      {showConfirmation && selectedProfessional && selectedTime && service && (
+        <AppointmentConfirmation
+          date={selectedDate}
+          time={selectedTime}
+          professional={selectedProfessional}
+          service={service}
+          notes={notes}
+          onNotesChange={setNotes}
+          onClose={() => setShowConfirmation(false)}
+          onConfirm={handleConfirmAppointment}
+        />
+      )}
     </div>
   );
 };

@@ -1,38 +1,62 @@
 import { useState } from 'react';
-import { Link } from 'wouter';
-import { Menu, MapPin, Heart, User, Instagram, Facebook, Phone } from 'lucide-react';
+import { Link, useLocation } from 'wouter';
+import { Menu, MapPin, Heart, User, Instagram, Facebook, Phone, ArrowLeft } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import logoPath from '@/assets/logo.jpeg';
 
-const Header = () => {
+interface HeaderProps {
+  title?: string;
+  showBackButton?: boolean;
+}
+
+const Header = ({ title, showBackButton }: HeaderProps) => {
+  const [, navigate] = useLocation();
   return (
     <header className="px-4 py-3 flex justify-between items-center bg-background shadow-md sticky top-0 z-30">
-      <SidebarMenu />
+      {showBackButton ? (
+        <Button variant="ghost" size="icon" className="text-foreground" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+      ) : (
+        <SidebarMenu />
+      )}
+      
       <div className="flex items-center">
-        <img 
-          src={logoPath} 
-          alt="Los Barbeiros Logo" 
-          className="h-10 w-10 mr-2 rounded-full object-cover" 
-        />
-        <h1 className="font-montserrat font-bold text-xl text-primary">Los Barbeiros</h1>
+        {!title ? (
+          <>
+            <img 
+              src={logoPath} 
+              alt="Los Barbeiros Logo" 
+              className="h-10 w-10 mr-2 rounded-full object-cover" 
+            />
+            <h1 className="font-montserrat font-bold text-xl text-primary">Los Barbeiros</h1>
+          </>
+        ) : (
+          <h1 className="font-montserrat font-semibold text-lg">{title}</h1>
+        )}
       </div>
+      
       <div className="flex items-center space-x-1">
-        <Button variant="ghost" size="icon" className="text-foreground" asChild>
-          <Link href="/location">
-            <MapPin className="h-5 w-5" />
-          </Link>
-        </Button>
-        <Button variant="ghost" size="icon" className="text-foreground" asChild>
-          <Link href="/favorites">
-            <Heart className="h-5 w-5" />
-          </Link>
-        </Button>
-        <Button variant="ghost" size="icon" className="text-foreground" asChild>
-          <Link href="/profile">
-            <User className="h-5 w-5" />
-          </Link>
-        </Button>
+        {!showBackButton && (
+          <>
+            <Button variant="ghost" size="icon" className="text-foreground" asChild>
+              <Link href="/location">
+                <MapPin className="h-5 w-5" />
+              </Link>
+            </Button>
+            <Button variant="ghost" size="icon" className="text-foreground" asChild>
+              <Link href="/favorites">
+                <Heart className="h-5 w-5" />
+              </Link>
+            </Button>
+            <Button variant="ghost" size="icon" className="text-foreground" asChild>
+              <Link href="/profile">
+                <User className="h-5 w-5" />
+              </Link>
+            </Button>
+          </>
+        )}
       </div>
     </header>
   );
