@@ -10,6 +10,14 @@ import {
   Product, InsertProduct,
   LoyaltyReward, InsertLoyaltyReward
 } from "@shared/schema";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { db } from "./db";
+import pg from "pg";
+import { sql, eq } from "drizzle-orm";
+import * as schema from "@shared/schema";
+
+const { Pool } = pg;
 
 export interface IStorage {
   // User methods
@@ -66,6 +74,9 @@ export interface IStorage {
   
   // Initialize demo data
   initializeDemoData(): Promise<void>;
+  
+  // Session store
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
@@ -91,6 +102,8 @@ export class MemStorage implements IStorage {
   private productIdCounter: number;
   private loyaltyRewardIdCounter: number;
   
+  sessionStore: session.Store;
+  
   constructor() {
     this.users = new Map();
     this.serviceCategories = new Map();
@@ -113,6 +126,12 @@ export class MemStorage implements IStorage {
     this.productCategoryIdCounter = 1;
     this.productIdCounter = 1;
     this.loyaltyRewardIdCounter = 1;
+    
+    // Criar uma memoria para sessões
+    const MemoryStore = require('memorystore')(session);
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // limpar sessões expiradas a cada 24h
+    });
     
     // Initialize demo data
     this.initializeDemoData();
@@ -1520,35 +1539,35 @@ export class MemStorage implements IStorage {
         { 
           name: "Corte Grátis", 
           description: "Um corte masculino grátis", 
-          pointsCost: 200, 
+          pointsRequired: 200, 
           icon: "cut",
           isActive: true 
         },
         { 
           name: "15% de Desconto", 
           description: "15% de desconto em qualquer serviço", 
-          pointsCost: 100, 
+          pointsRequired: 100, 
           icon: "percentage",
           isActive: true 
         },
         { 
           name: "Cerveja Grátis", 
           description: "Uma cerveja long neck grátis", 
-          pointsCost: 50, 
+          pointsRequired: 50, 
           icon: "beer",
           isActive: true 
         },
         { 
           name: "Barba Grátis", 
           description: "Um serviço de barba grátis", 
-          pointsCost: 150, 
+          pointsRequired: 150, 
           icon: "razor",
           isActive: true 
         },
         { 
           name: "Produto com 20% OFF", 
           description: "20% de desconto em qualquer produto", 
-          pointsCost: 75, 
+          pointsRequired: 75, 
           icon: "tag",
           isActive: true 
         }
@@ -1561,4 +1580,423 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// PostgreSQL Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  private pool: any;
+  sessionStore: session.Store;
+
+  constructor() {
+    this.pool = new Pool({
+      connectionString: process.env.DATABASE_URL
+    });
+    
+    const PostgresSessionStore = connectPg(session);
+    this.sessionStore = new PostgresSessionStore({
+      pool: this.pool,
+      createTableIfMissing: true
+    });
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const result = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.id, id)
+    });
+    return result || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.username, username)
+    });
+    return result || undefined;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [result] = await db.insert(schema.users)
+      .values({
+        ...user,
+        loyaltyPoints: 0,
+        name: user.name || null,
+        email: user.email || null,
+        phone: user.phone || null
+      })
+      .returning();
+    return result;
+  }
+
+  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    const [result] = await db.update(schema.users)
+      .set(userData)
+      .where(eq(schema.users.id, id))
+      .returning();
+    return result || undefined;
+  }
+
+  // Service Category methods
+  async getServiceCategories(): Promise<ServiceCategory[]> {
+    return await db.query.serviceCategories.findMany();
+  }
+
+  async getServiceCategory(id: number): Promise<ServiceCategory | undefined> {
+    const result = await db.query.serviceCategories.findFirst({
+      where: (serviceCategories, { eq }) => eq(serviceCategories.id, id)
+    });
+    return result || undefined;
+  }
+
+  async createServiceCategory(category: InsertServiceCategory): Promise<ServiceCategory> {
+    const [result] = await db.insert(schema.serviceCategories)
+      .values(category)
+      .returning();
+    return result;
+  }
+
+  // Service methods
+  async getServices(): Promise<Service[]> {
+    return await db.query.services.findMany();
+  }
+
+  async getService(id: number): Promise<Service | undefined> {
+    const result = await db.query.services.findFirst({
+      where: (services, { eq }) => eq(services.id, id)
+    });
+    return result || undefined;
+  }
+
+  async getServicesByCategory(categoryId: number): Promise<Service[]> {
+    return await db.query.services.findMany({
+      where: (services, { eq }) => eq(services.categoryId, categoryId)
+    });
+  }
+
+  async createService(service: InsertService): Promise<Service> {
+    const [result] = await db.insert(schema.services)
+      .values({
+        ...service,
+        price: service.price ?? null,
+        priceType: service.priceType ?? null,
+        description: service.description ?? null
+      })
+      .returning();
+    return result;
+  }
+
+  // Professional methods
+  async getProfessionals(): Promise<Professional[]> {
+    return await db.query.professionals.findMany();
+  }
+
+  async getProfessional(id: number): Promise<Professional | undefined> {
+    const result = await db.query.professionals.findFirst({
+      where: (professionals, { eq }) => eq(professionals.id, id)
+    });
+    return result || undefined;
+  }
+
+  async createProfessional(professional: InsertProfessional): Promise<Professional> {
+    const [result] = await db.insert(schema.professionals)
+      .values({
+        ...professional,
+        reviewCount: 0,
+        avatar: professional.avatar ?? null,
+        rating: professional.rating ?? null,
+        specialties: professional.specialties ?? null,
+        bio: professional.bio ?? null
+      })
+      .returning();
+    return result;
+  }
+
+  // Schedule methods
+  async getSchedules(professionalId: number): Promise<Schedule[]> {
+    return await db.query.schedules.findMany({
+      where: (schedules, { eq }) => eq(schedules.professionalId, professionalId)
+    });
+  }
+
+  async createSchedule(schedule: InsertSchedule): Promise<Schedule> {
+    const [result] = await db.insert(schema.schedules)
+      .values({
+        ...schedule,
+        isAvailable: schedule.isAvailable ?? null
+      })
+      .returning();
+    return result;
+  }
+
+  // Appointment methods
+  async getAppointments(userId?: number, professionalId?: number, date?: string): Promise<Appointment[]> {
+    let query = db.query.appointments.findMany();
+
+    // Aplicar filtros se necessário
+    if (userId !== undefined || professionalId !== undefined || date !== undefined) {
+      query = db.query.appointments.findMany({
+        where: (appointments, { eq, and }) => {
+          const conditions = [];
+          if (userId !== undefined) conditions.push(eq(appointments.userId, userId));
+          if (professionalId !== undefined) conditions.push(eq(appointments.professionalId, professionalId));
+          if (date !== undefined) conditions.push(eq(appointments.date, date));
+          return and(...conditions);
+        }
+      });
+    }
+
+    return await query;
+  }
+
+  async getAppointment(id: number): Promise<Appointment | undefined> {
+    const result = await db.query.appointments.findFirst({
+      where: (appointments, { eq }) => eq(appointments.id, id)
+    });
+    return result || undefined;
+  }
+
+  async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
+    const [result] = await db.insert(schema.appointments)
+      .values({
+        ...appointment,
+        createdAt: new Date(),
+        status: appointment.status ?? null,
+        notes: appointment.notes ?? null
+      })
+      .returning();
+    return result;
+  }
+
+  async updateAppointmentStatus(id: number, status: string): Promise<Appointment | undefined> {
+    const [result] = await db.update(schema.appointments)
+      .set({ status })
+      .where(eq(schema.appointments.id, id))
+      .returning();
+    return result || undefined;
+  }
+
+  // Appointment Service methods
+  async getAppointmentServices(appointmentId: number): Promise<AppointmentService[]> {
+    return await db.query.appointmentServices.findMany({
+      where: (appointmentServices, { eq }) => eq(appointmentServices.appointmentId, appointmentId)
+    });
+  }
+
+  async createAppointmentService(appointmentService: InsertAppointmentService): Promise<AppointmentService> {
+    const [result] = await db.insert(schema.appointmentServices)
+      .values(appointmentService)
+      .returning();
+    return result;
+  }
+
+  // Product Category methods
+  async getProductCategories(): Promise<ProductCategory[]> {
+    return await db.query.productCategories.findMany();
+  }
+
+  async getProductCategory(id: number): Promise<ProductCategory | undefined> {
+    const result = await db.query.productCategories.findFirst({
+      where: (productCategories, { eq }) => eq(productCategories.id, id)
+    });
+    return result || undefined;
+  }
+
+  async createProductCategory(category: InsertProductCategory): Promise<ProductCategory> {
+    const [result] = await db.insert(schema.productCategories)
+      .values(category)
+      .returning();
+    return result;
+  }
+
+  // Product methods
+  async getProducts(): Promise<Product[]> {
+    return await db.query.products.findMany();
+  }
+
+  async getProduct(id: number): Promise<Product | undefined> {
+    const result = await db.query.products.findFirst({
+      where: (products, { eq }) => eq(products.id, id)
+    });
+    return result || undefined;
+  }
+
+  async getProductsByCategory(categoryId: number): Promise<Product[]> {
+    return await db.query.products.findMany({
+      where: (products, { eq }) => eq(products.categoryId, categoryId)
+    });
+  }
+
+  async createProduct(product: InsertProduct): Promise<Product> {
+    const [result] = await db.insert(schema.products)
+      .values({
+        ...product,
+        description: product.description ?? null,
+        imageUrl: product.imageUrl ?? null,
+        inStock: product.inStock ?? null
+      })
+      .returning();
+    return result;
+  }
+
+  // Loyalty Reward methods
+  async getLoyaltyRewards(): Promise<LoyaltyReward[]> {
+    return await db.query.loyaltyRewards.findMany();
+  }
+
+  async getLoyaltyReward(id: number): Promise<LoyaltyReward | undefined> {
+    const result = await db.query.loyaltyRewards.findFirst({
+      where: (loyaltyRewards, { eq }) => eq(loyaltyRewards.id, id)
+    });
+    return result || undefined;
+  }
+
+  async createLoyaltyReward(reward: InsertLoyaltyReward): Promise<LoyaltyReward> {
+    const [result] = await db.insert(schema.loyaltyRewards)
+      .values({
+        ...reward,
+        icon: reward.icon ?? null,
+        description: reward.description ?? null,
+        isActive: reward.isActive ?? null
+      })
+      .returning();
+    return result;
+  }
+
+  // Initialize demo data
+  async initializeDemoData(): Promise<void> {
+    try {
+      // Verificar se já existem dados
+      const userCount = await db.select({ count: sql<number>`count(*)` }).from(schema.users);
+      if (userCount[0].count > 0) {
+        console.log('Dados já existem, pulando inicialização de dados de demonstração');
+        return;
+      }
+
+      // Create demo user
+      const [user] = await db.insert(schema.users)
+        .values({
+          username: "demo",
+          password: "password",
+          name: "Demo User",
+          email: "demo@example.com",
+          phone: "123-456-7890",
+          loyaltyPoints: 125
+        })
+        .returning();
+
+      // Create service categories
+      const categoryData = [
+        { name: "Cortes", icon: "cut" },
+        { name: "Barba e Acabamentos", icon: "razor" },
+        { name: "Tratamentos Faciais", icon: "spa" },
+        { name: "Sobrancelha", icon: "eye" },
+        { name: "Serviços Capilares", icon: "pump-soap" },
+        { name: "Coloração e Tratamentos Especiais", icon: "paint-brush" }
+      ];
+
+      const categories = await db.insert(schema.serviceCategories)
+        .values(categoryData)
+        .returning();
+
+      // Criar serviços
+      const servicesData = [
+        // Cortes
+        { name: "Corte Masculino", price: 3000, priceType: "fixed", durationMinutes: 30, categoryId: 1, description: "Corte masculino completo" },
+        { name: "Corte + Barba", price: 5000, priceType: "fixed", durationMinutes: 60, categoryId: 1, description: "Corte masculino com barba" },
+        { name: "Corte + Barba + Sobrancelha na Navalha", price: null, priceType: "variable", durationMinutes: 60, categoryId: 1, description: "Corte, barba e sobrancelha" },
+        // Mais serviços podem ser adicionados aqui...
+      ];
+      
+      await db.insert(schema.services).values(servicesData);
+
+      // Criar profissionais
+      const professionalsData = [
+        { 
+          name: "Carlos", 
+          avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80", 
+          rating: 48, 
+          reviewCount: 124, 
+          specialties: ["Cortes", "Barba"], 
+          bio: "Especialista em cortes modernos e barba tradicional." 
+        },
+        { 
+          name: "Ricardo", 
+          avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80", 
+          rating: 49, 
+          reviewCount: 89, 
+          specialties: ["Degradê", "Coloração"], 
+          bio: "Especialista em cortes degradê e técnicas de coloração." 
+        }
+        // Mais profissionais podem ser adicionados aqui...
+      ];
+      
+      await db.insert(schema.professionals).values(professionalsData);
+
+      // Criar categorias de produtos
+      const productCategoriesData = [
+        { name: "Barba e Cabelo", icon: "scissors" },
+        { name: "Pomadas", icon: "disc" },
+        { name: "Bebidas Alcoólicas", icon: "wine" },
+        { name: "Bebidas Não Alcoólicas", icon: "coffee" },
+        { name: "Lanches", icon: "burger" },
+        { name: "Acessórios", icon: "tool" }
+      ];
+      
+      await db.insert(schema.productCategories).values(productCategoriesData);
+
+      // Criar produtos
+      const productsData = [
+        { 
+          name: "Pomada Modeladora", 
+          price: 4500, 
+          categoryId: 2, 
+          description: "Pomada modeladora de fixação forte", 
+          imageUrl: "https://images.unsplash.com/photo-1581084349663-9c6d4d866e39?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80", 
+          inStock: true 
+        },
+        { 
+          name: "Óleo para Barba", 
+          price: 3500, 
+          categoryId: 1, 
+          description: "Óleo hidratante para barba", 
+          imageUrl: "https://images.unsplash.com/photo-1621607512292-08572ed1e481?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80", 
+          inStock: true 
+        }
+        // Mais produtos podem ser adicionados aqui...
+      ];
+      
+      await db.insert(schema.products).values(productsData);
+
+      // Criar recompensas de fidelidade
+      const loyaltyRewardsData = [
+        { 
+          name: "Corte Gratuito", 
+          pointsRequired: 500, 
+          description: "Um corte de cabelo gratuito", 
+          icon: "cut", 
+          isActive: true 
+        },
+        { 
+          name: "Barba Gratuita", 
+          pointsRequired: 300, 
+          description: "Um serviço de barba gratuito", 
+          icon: "razor", 
+          isActive: true 
+        },
+        { 
+          name: "Desconto de 15%", 
+          pointsRequired: 200, 
+          description: "15% de desconto em qualquer serviço", 
+          icon: "percent", 
+          isActive: true 
+        }
+      ];
+      
+      await db.insert(schema.loyaltyRewards).values(loyaltyRewardsData);
+
+      console.log('Dados de demonstração inicializados com sucesso!');
+    } catch (error) {
+      console.error('Erro ao inicializar dados de demonstração:', error);
+    }
+  }
+}
+
+// Usar DatabaseStorage em vez de MemStorage para armazenamento permanente
+export const storage = new DatabaseStorage();

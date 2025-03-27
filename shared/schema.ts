@@ -1,5 +1,6 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, foreignKey, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { relations } from "drizzle-orm";
 import { z } from "zod";
 
 // User schema
@@ -162,7 +163,7 @@ export const loyaltyRewards = pgTable("loyalty_rewards", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  pointsCost: integer("points_cost").notNull(),
+  pointsRequired: integer("points_required").notNull(),
   icon: text("icon"),
   isActive: boolean("is_active").default(true),
 });
@@ -170,10 +171,73 @@ export const loyaltyRewards = pgTable("loyalty_rewards", {
 export const insertLoyaltyRewardSchema = createInsertSchema(loyaltyRewards).pick({
   name: true,
   description: true,
-  pointsCost: true,
+  pointsRequired: true,
   icon: true,
   isActive: true,
 });
+
+// Relações entre tabelas
+export const usersRelations = relations(users, ({ many }) => ({
+  appointments: many(appointments),
+}));
+
+export const serviceCategoriesRelations = relations(serviceCategories, ({ many }) => ({
+  services: many(services),
+}));
+
+export const servicesRelations = relations(services, ({ one, many }) => ({
+  category: one(serviceCategories, {
+    fields: [services.categoryId],
+    references: [serviceCategories.id],
+  }),
+  appointmentServices: many(appointmentServices),
+}));
+
+export const professionalsRelations = relations(professionals, ({ many }) => ({
+  schedules: many(schedules),
+  appointments: many(appointments),
+}));
+
+export const schedulesRelations = relations(schedules, ({ one }) => ({
+  professional: one(professionals, {
+    fields: [schedules.professionalId],
+    references: [professionals.id],
+  }),
+}));
+
+export const appointmentsRelations = relations(appointments, ({ one, many }) => ({
+  user: one(users, {
+    fields: [appointments.userId],
+    references: [users.id],
+  }),
+  professional: one(professionals, {
+    fields: [appointments.professionalId],
+    references: [professionals.id],
+  }),
+  appointmentServices: many(appointmentServices),
+}));
+
+export const appointmentServicesRelations = relations(appointmentServices, ({ one }) => ({
+  appointment: one(appointments, {
+    fields: [appointmentServices.appointmentId],
+    references: [appointments.id],
+  }),
+  service: one(services, {
+    fields: [appointmentServices.serviceId],
+    references: [services.id],
+  }),
+}));
+
+export const productCategoriesRelations = relations(productCategories, ({ many }) => ({
+  products: many(products),
+}));
+
+export const productsRelations = relations(products, ({ one }) => ({
+  category: one(productCategories, {
+    fields: [products.categoryId],
+    references: [productCategories.id],
+  }),
+}));
 
 // Types export
 export type User = typeof users.$inferSelect;
