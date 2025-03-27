@@ -1,0 +1,262 @@
+# Aplicativo Los Barbeiros CBS - Descrição Completa
+
+## Visão Geral
+
+O aplicativo Los Barbeiros CBS é uma solução digital completa para a barbearia localizada em Brasília/DF (Quadra 5 lote 48, 48 - 71693-006 Vila São José). Esta plataforma oferece uma experiência integrada para os clientes, permitindo agendamento de serviços, visualização de produtos disponíveis e interação com a barbearia, tudo em uma interface moderna com tema escuro que transmite sofisticação.
+
+## Estrutura do Aplicativo
+
+A navegação é organizada em cinco abas principais:
+- SERVIÇOS
+- DETALHES
+- PROFISSIONAIS
+- PRODUTOS
+- FIDELIDADE
+
+## Catálogo de Serviços
+
+### Cortes
+- Corte Masculino: R$ 30,00 - 30 min
+- Corte + Barba: R$ 50,00 - 60 min
+- Corte + Barba + Sobrancelha na Navalha: R$ Consultar - 60 min
+- Corte + Barba + Sobrancelha na Pinça: R$ Consultar - 60 min
+- Corte + Pigmentação: R$ 60,00 - 60 min
+- Corte + Sobrancelha na Navalha: R$ Consultar - 30 min
+- Corte + Sobrancelha na Pinça: R$ 45,00 - 60 min
+- Corte 1 e 2 pente: R$ 20,00 - 15 min
+
+### Barba e Acabamentos
+- Barba: R$ 25,00 - 30 min
+- Barba + Pezinho: R$ 32,00 - 30 min
+- Acabamento (Pezinho): R$ 7,00 - 15 min
+
+### Tratamentos Faciais
+- Hidratação: R$ 20,00 - 15 min
+- BOTOX: R$ 40,00 - 30 min
+- Depilação Nasal: R$ 10,00 - 15 min
+
+### Sobrancelha
+- Sobrancelha Navalha: R$ 10,00 - 15 min
+- Sobrancelha Pinça: R$ 10,00 - 15 min
+
+### Serviços Capilares
+- Lavagem + Penteado: A partir de R$ 20,00 - 15 min
+- Relaxamento Capilar: R$ 20,00 - 15 min
+- Relaxamento Capilar (Graxa): R$ 20,00 - 30 min
+- Relaxamento Capilar + Hidratação: R$ 30,00 - 30 min
+- Pigmentação: A partir de R$ 30,00 - 15 min
+- Pintura: A partir de R$ 30,00 - 15 min
+
+### Coloração e Tratamentos Especiais
+- Progressiva: R$ 50,00 - 30 min
+- Selagem: R$ 50,00 - 30 min
+- Platinado: A partir de R$ 140,00 - 30 min
+- Luzes: A partir de R$ 140,00 - 30 min
+
+## Equipe de Profissionais
+
+A barbearia conta com sete barbeiros profissionais:
+- Carlos
+- Iuri
+- Johnata
+- Jorran
+- Mikael
+- Oséias
+- Rodrigo
+
+## Regras de Negócio e Funcionamento do App
+
+### Sistema de Agendamento
+
+1. **Horário de Funcionamento**:
+   - Segunda a Sábado: 9:00 às 19:30
+   - Intervalo para almoço: 13:00 às 14:30
+   - Domingos e feriados: Verificar disponibilidade especial
+
+2. **Intervalos de Agendamento**:
+   - Slots de 15 minutos
+   - Duração do serviço determina quantos slots são bloqueados
+   - Sistema impede sobreposição de horários para o mesmo profissional
+
+3. **Política de Cancelamento**:
+   - Cancelamentos com até 2 horas de antecedência: sem penalidade
+   - Cancelamentos com menos de 2 horas: possível cobrança de taxa
+   - Três faltas sem aviso: possível bloqueio temporário no sistema
+
+4. **Reservas Múltiplas**:
+   - Cliente pode adicionar vários serviços ao carrinho
+   - Sistema verifica compatibilidade de horários
+   - Possibilidade de agendar serviços sequenciais com o mesmo profissional
+
+5. **Confirmação e Lembretes**:
+   - Confirmação automática por e-mail/SMS após agendamento
+   - Lembrete 24 horas antes do horário marcado
+   - Opção de confirmar presença pelo app
+
+6. **Disponibilidade em Tempo Real**:
+   - Atualização instantânea de horários disponíveis
+   - Visualização diferenciada para dias com poucos horários disponíveis
+   - Possibilidade de entrar em lista de espera para cancelamentos
+
+## Fluxo de Agendamento
+
+1. **Seleção de serviço** - Cliente escolhe entre os diversos serviços disponíveis
+2. **Seleção de profissional** - Visualização dos barbeiros disponíveis com suas fotos
+3. **Seleção de data** - Calendário mensal para escolha do dia
+4. **Seleção de horário** - Horários disponíveis em intervalos de 15 minutos
+5. **Confirmação do agendamento** - Resumo do serviço, profissional, data, horário e campo para observações
+6. **Opções de finalização** - "Confirmar agendamento" ou "Adicionar ao carrinho"
+
+## Catálogo Completo de Produtos
+
+### Produtos para Barba e Cabelo
+- Foxidil minoxidil para barba (fox) 120 ml: R$ 90,00
+- Bal fox: R$ 40,00
+- Balm B.URB para barba: R$ 35,00
+- Balm Red Nek para barba: R$ 35,00
+- Derma Roller: R$ 40,00
+- Condicionador 3 em 1: R$ 30,00
+- Condicionador Ice Fresh Fox 240ml: R$ 25,00
+- Escova anti estática: R$ 45,00
+- Esponja de Nudred: R$ 30,00
+- Loção Hidratante Balm Barba 4 em 1: R$ 35,00
+- Loção Spray Pós Barba Lenhador: R$ 30,00
+- Maquina Itan: R$ 60,00
+- Minoxidil Kirkland Signature 05% 60ml: R$ 90,00
+- Navalha: R$ 30,00
+- Óleo de Barba Lenhador Kerafyto: R$ 30,00
+- Pente: R$ 25,00
+- Pente de mão: R$ 3,00
+- Perfume de barba: R$ 25,00
+- Perfumes: R$ 30,00
+- Shampoo 3 em 1: R$ 30,00
+- Shampoo anti-caspa: R$ 30,00
+- Shampoo com minoxidill: R$ 30,00
+- Shampoo Ice Fresh Fox 240ml: R$ 25,00
+- Shampoo preto: R$ 30,00
+- Tonico capilar: R$ 30,00
+
+### Pomadas e Produtos para Estilização
+- Cera Red Neck Cinza: R$ 20,00
+- Cera Red Neck Laranja: R$ 20,00
+- Cera Red Neck Roxa: R$ 20,00
+- Cera Red Neck Verde: R$ 20,00
+- Cera Red Neck Vermelho: R$ 20,00
+- Pomada efeito teia lenhador 120g: R$ 30,00
+- Pomada fox verde 120g: R$ 30,00
+- Pomada 60g Pequena (Máxima e Lenhador): R$ 20,00
+- Pomada black Fox 120g: R$ 30,00
+- Pomada black lenhador 120g: R$ 30,00
+- Pomada caramelo fox 120g: R$ 30,00
+- Pomada Conhaque: R$ 30,00
+- Pomada Efeito teia Fox 120g: R$ 30,00
+- Pomada em pó: R$ 30,00
+- Pomada hair fox laranja 120g: R$ 30,00
+- Pomada matte lenhador 120g: R$ 30,00
+- Pomada Modeladora Caramelo: R$ 30,00
+- Pomada pequena CREAM: R$ 25,00
+- Pomada Pequnea: R$ 20,00
+- Pomada toque seco fox 120g: R$ 30,00
+- Pomada Tradicional lenhador 120g: R$ 30,00
+
+### Bebidas Alcoólicas
+- BUDWEISER LONG NECK: R$ 7,00
+- Campari: R$ 6,00
+- CORONA LONG NECK: R$ 8,00
+- Coronita: R$ 7,00
+- DOSE ALAMBIQUE MURICI: R$ 2,00
+- DOSE CACHAÇA 51: R$ 4,00
+- DOSE CORTEZANO: R$ 2,00
+- DOSE MONTILLA: R$ 3,00
+- DOSE OLD PARR 12 ANOS: R$ 18,00
+- DOSE ORLOFF VODKA: R$ 6,00
+- DOSE PARATUDO: R$ 5,00
+- DOSE SÃO JOÃO DA BARRA: R$ 4,00
+- DOSE SELETA: R$ 5,00
+- DOSE TEQUILA OURO (JOSE CUERVO): R$ 10,00
+- DOSE TEQUILA PRATA (JOSE CUERVO): R$ 9,00
+- DOSE VELHO BARREIRO: R$ 4,00
+- DOSE VODKA SKYY: R$ 8,00
+- DOSE Vodka SMIRNOFFF: R$ 7,00
+- DOSE WHISKEY BLACK LABEL: R$ 18,00
+- DOSE WHISKEY CHIVAS 12 ANOS: R$ 18,00
+- DOSE WHISKEY JACK DANIELS: R$ 16,00
+- DOSE WHISKEY RED LABEL: R$ 11,00
+- DOSE WHITE HORSE: R$ 10,00
+- MONSTER ABSOLUT: R$ 10,00
+- RIBEIRAO COLORADO LONG NECK: R$ 10,00
+- SPATEN 600ML: R$ 13,00
+- SPATEN LONG NECK: R$ 7,00
+- STELLA ARTOIS LONG NECK 330ml: R$ 7,00
+- Patagônia IPA 355ml: R$ 8,00
+
+### Bebidas Não Alcoólicas
+- AGUA COM GAS: R$ 3,50
+- Agua com gas + Limão: R$ 3,50
+- AGUA MINERAL: R$ 3,00
+- Antarctica Lata: R$ 3,50
+- ANTARCTICA ORIGINAL 600ml: R$ 13,00
+- APPIA COLORADO 300ML: R$ 7,00
+- Chopp Stadt: R$ 6,00
+- COCA 310ML: R$ 4,50
+- COCA ZERO LATA 310ML: R$ 4,00
+- COCA-COLA KS: R$ 5,00
+- HEINEKEN ZERO ALCOOL 330ml: R$ 7,00
+- Monster de goiaba: R$ 10,00
+- Monster de Laranja: R$ 10,00
+- MONSTER MANGO LOKO: R$ 10,00
+- Monster Melancia: R$ 10,00
+- Monster Tradicional 473ml: R$ 10,00
+- GATORADE (MoRANGO): R$ 6,00
+- GATOREDE(limão): R$ 6,00
+- GATOREDE(MARACUJA): R$ 6,00
+- POWERADE SABORES 500ML: R$ 5,00
+- RED BULL ENERGETICO: R$ 10,00
+- Suco de Manga: R$ 4,50
+- Suco de maracuja: R$ 4,50
+- SUCO GOIABA 290ML: R$ 4,50
+- SUCO UVA 290 ML: R$ 4,50
+
+### Lanches e Snacks
+- Barra de Cereal: R$ 2,50
+- Barra de cereal banana: R$ 3,00
+- Barra de cereal coco + frutas: R$ 3,00
+- Chocolate 5 Star 40g: R$ 4,00
+- Chocolate branco Laka 34g: R$ 4,00
+- Chocolate Diamante Negro 34g: R$ 4,00
+- Chocolate Lacta ao leite 34g: R$ 4,00
+- Trident (cereja) 8g: R$ 3,00
+- Trident (Intense Black) 8g: R$ 3,00
+- Trident (menta verde) 8g: R$ 3,00
+- Trident (morango) 8g: R$ 3,00
+- TRIDENT (senses blueberry) 8g: R$ 3,00
+- Trident melancia 8g: R$ 3,00
+- Trident(tutti fruiti)8g: R$ 3,00
+
+### Acessórios e Outros
+- CARTEIRA PAIOL OURO: R$ 18,00
+- CARTEIRA TRADICIONAL E MAMA CADELA: R$ 15,00
+- Tabaco: R$ 2,00
+- UND PAIOL OURO: R$ 1,50
+- UND PAIOL TRADICIONAL E MAMA CADELA: R$ 1,00
+
+## Formas de Pagamento
+
+O estabelecimento aceita diversas formas de pagamento:
+- Dinheiro
+- Cartão de Crédito
+- Cartão de Débito
+- Pix
+- Permuta
+- Stone Débito
+- Stone Crédito
+
+## Comodidades do Estabelecimento
+
+A barbearia oferece:
+- Wi-Fi
+- Acessibilidade
+- Estacionamento
+- Outras comodidades (verificar no local)
+
+O aplicativo Los Barbeiros CBS se destaca por oferecer uma experiência completa que vai além do simples agendamento de serviços. A integração entre serviços, produtos e profissionais cria um ecossistema digital que reflete a experiência física da barbearia, transformando-a em um espaço de convivência e bem-estar masculino.
