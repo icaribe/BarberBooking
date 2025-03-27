@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import { Menu, MapPin, Heart, User, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import logoPath from '@/assets/logo.svg';
 
 const Header = () => {
   return (
@@ -10,7 +11,7 @@ const Header = () => {
       <SidebarMenu />
       <div className="flex items-center">
         <img 
-          src="/assets/logo.svg" 
+          src={logoPath} 
           alt="Los Barbeiros Logo" 
           className="h-8 mr-2" 
         />
@@ -49,7 +50,7 @@ const SidebarMenu = () => {
         <div className="p-4 border-b border-border">
           <div className="flex items-center mb-6">
             <img 
-              src="/assets/logo.svg" 
+              src={logoPath} 
               alt="Los Barbeiros Logo" 
               className="h-10 mr-3" 
             />
