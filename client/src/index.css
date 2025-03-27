@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 97%;
+    
+    --card: 0 0% 16%;
+    --card-foreground: 0 0% 97%;
+    
+    --popover: 0 0% 16%;
+    --popover-foreground: 0 0% 97%;
+    
+    --primary: 35 91% 55%;
+    --primary-foreground: 0 0% 7%;
+    
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 97%;
+    
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 63%;
+    
+    --accent: 35 91% 55%;
+    --accent-foreground: 0 0% 7%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 97%;
+    
+    --border: 0 0% 23%;
+    --input: 0 0% 12%;
+    --ring: 35 91% 55%;
+    
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-inter antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-montserrat;
+  }
+}
+
+/* Custom classes */
+@layer components {
+  .tab-active {
+    @apply text-primary border-b-2 border-primary;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-1.5 h-1.5;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-sm;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary;
+  }
+}
