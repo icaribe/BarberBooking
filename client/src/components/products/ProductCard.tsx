@@ -1,4 +1,4 @@
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils/format';
 import type { Product } from '@/lib/types';
@@ -9,27 +9,29 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
-  const { name, price, imageUrl } = product;
+  const { name, price, description, inStock } = product;
   
   return (
-    <div className="bg-card rounded-lg overflow-hidden h-full flex flex-col">
-      <div className="h-36 bg-secondary">
-        <img 
-          src={imageUrl || '/product-placeholder.png'} 
-          alt={name} 
-          className="w-full h-full object-cover" 
-        />
-      </div>
-      <div className="p-3 flex flex-col flex-grow">
-        <h3 className="font-montserrat font-medium text-sm mb-1 line-clamp-2">{name}</h3>
-        <p className="text-primary font-semibold mt-auto">{formatCurrency(price)}</p>
+    <div className="border-b border-border py-3">
+      <div className="flex justify-between items-center">
+        <div className="flex-1 pr-3">
+          <h3 className="font-montserrat font-medium text-sm">{name}</h3>
+          <div className="flex justify-between items-baseline mt-1">
+            <p className="text-primary font-semibold">{formatCurrency(price)}</p>
+            {!inStock && <span className="text-xs text-red-500">Indisponível</span>}
+          </div>
+          {description && (
+            <p className="text-muted-foreground text-xs mt-1 line-clamp-1">{description}</p>
+          )}
+        </div>
         <Button 
-          variant="secondary"
-          size="sm"
-          className="mt-2 w-full hover:bg-primary hover:text-primary-foreground transition-colors duration-200"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-full hover:bg-primary/10 text-primary"
           onClick={() => onAddToCart(product)}
+          disabled={!inStock}
         >
-          <ShoppingCart className="w-4 h-4 mr-1" /> Adicionar
+          <PlusCircle className="w-5 h-5" />
         </Button>
       </div>
     </div>

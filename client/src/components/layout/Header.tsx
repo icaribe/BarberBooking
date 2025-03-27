@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
-import { Menu, MapPin, Heart, User, X } from 'lucide-react';
+import { Menu, MapPin, Heart, User, Instagram, Facebook, Phone } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import logoPath from '@/assets/logo.jpeg';
@@ -109,6 +109,14 @@ const SidebarMenu = () => {
             <div>
               <h4 className="font-medium mb-1">Localização</h4>
               <p className="text-muted-foreground text-xs">Quadra 5 lote 48, 48 - 71693-006 Vila São José</p>
+              <a 
+                href="https://www.google.com/maps/search/?api=1&query=-15.91295338%2C-47.76993942" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center text-primary text-xs mt-1 hover:underline"
+              >
+                <MapPin className="w-3 h-3 mr-1" /> Ver no Google Maps
+              </a>
             </div>
             <div>
               <h4 className="font-medium mb-1">Horário de Funcionamento</h4>
@@ -117,7 +125,35 @@ const SidebarMenu = () => {
             </div>
             <div>
               <h4 className="font-medium mb-1">Contato</h4>
-              <p className="text-muted-foreground text-xs">Tel: (61) 99999-9999</p>
+              <a 
+                href="https://api.whatsapp.com/send?phone=5561985533103" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center text-muted-foreground text-xs hover:text-primary"
+              >
+                <Phone className="w-3 h-3 mr-1" /> (61) 98553-3103
+              </a>
+            </div>
+            <div>
+              <h4 className="font-medium mb-1">Redes Sociais</h4>
+              <div className="flex flex-wrap gap-2 mt-1">
+                <a 
+                  href="https://www.instagram.com/losbarbeiroscbs/" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="inline-flex items-center text-muted-foreground text-xs hover:text-primary"
+                >
+                  <Instagram className="w-3 h-3 mr-1" /> Instagram
+                </a>
+                <a 
+                  href="https://www.facebook.com/losbarbeirosdf" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="inline-flex items-center text-muted-foreground text-xs hover:text-primary ml-2"
+                >
+                  <Facebook className="w-3 h-3 mr-1" /> Facebook
+                </a>
+              </div>
             </div>
           </div>
         </div>

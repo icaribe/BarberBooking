@@ -15,11 +15,11 @@ const TabNavigation = ({ activeTab, onTabChange }: TabNavigationProps) => {
   ];
 
   return (
-    <div className="flex text-center text-sm border-b border-border bg-background sticky top-14 z-20 shadow-sm">
+    <div className="flex justify-between text-center text-sm border-b border-border bg-background sticky top-14 z-20 shadow-sm px-4">
       {tabs.map(tab => (
         <button
           key={tab.id}
-          className={`flex-1 py-4 font-montserrat font-medium flex items-center justify-center ${
+          className={`py-4 px-3 font-montserrat font-medium flex items-center justify-center mx-2 ${
             activeTab === tab.id 
               ? 'tab-active' 
               : 'text-muted-foreground'
@@ -27,7 +27,7 @@ const TabNavigation = ({ activeTab, onTabChange }: TabNavigationProps) => {
           onClick={() => onTabChange(tab.id)}
         >
           {tab.icon}
-          {tab.label}
+          <span className="ml-1">{tab.label}</span>
         </button>
       ))}
     </div>

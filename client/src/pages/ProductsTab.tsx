@@ -43,7 +43,7 @@ const ProductsTab = () => {
         )}
       </div>
       
-      {/* Products Grid */}
+      {/* Products List */}
       {isLoadingProducts ? (
         <div className="flex justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -53,14 +53,48 @@ const ProductsTab = () => {
           Nenhum produto disponível nesta categoria
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
-          {filteredProducts.map(product => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onAddToCart={handleAddToCart}
-            />
-          ))}
+        <div>
+          {/* Se uma categoria específica foi selecionada */}
+          {selectedCategoryId !== null && (
+            <div className="mb-5">
+              <h3 className="font-montserrat font-medium text-lg mb-2">
+                {categories.find(cat => cat.id === selectedCategoryId)?.name || "Produtos"}
+              </h3>
+              <div className="divide-y divide-border">
+                {filteredProducts.map(product => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={handleAddToCart}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Se nenhuma categoria foi selecionada, agrupar por categoria */}
+          {selectedCategoryId === null && categories.map(category => {
+            const productsInCategory = products.filter(product => product.categoryId === category.id);
+            if (productsInCategory.length === 0) return null;
+            
+            return (
+              <div key={category.id} className="mb-5">
+                <h3 className="font-montserrat font-medium text-lg mb-2 flex items-center">
+                  {category.icon && <span className="mr-2">{category.icon}</span>}
+                  {category.name}
+                </h3>
+                <div className="divide-y divide-border">
+                  {productsInCategory.map(product => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onAddToCart={handleAddToCart}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
