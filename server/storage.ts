@@ -546,10 +546,18 @@ export class MemStorage implements IStorage {
       const productsList = [
         // Produtos para Barba e Cabelo
         { 
-          name: "Foxidil minoxidil para barba (fox) 120 ml", 
+          name: "Foxidil minoxidil para barba (fox) 120ml", 
           price: 9000, 
           description: "Minoxidil para crescimento de barba", 
           imageUrl: "https://images.unsplash.com/photo-1669155309185-9d61617694ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Bal fox", 
+          price: 4000, 
+          description: "Balm para hidratação de barba", 
+          imageUrl: "https://images.unsplash.com/photo-1597852075234-fd721ac361d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
           categoryId: 1,
           inStock: true 
         },
@@ -562,6 +570,94 @@ export class MemStorage implements IStorage {
           inStock: true 
         },
         { 
+          name: "Balm Red Nek para barba", 
+          price: 3500, 
+          description: "Balm para hidratação de barba", 
+          imageUrl: "https://images.unsplash.com/photo-1664478711535-fd3cc5d1a99a?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Derma Roller", 
+          price: 4000, 
+          description: "Estimulador de crescimento de barba", 
+          imageUrl: "https://images.unsplash.com/photo-1571875257727-256c39da42af?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Condicionador 3 em 1", 
+          price: 3000, 
+          description: "Condicionador multiuso para cabelo", 
+          imageUrl: "https://images.unsplash.com/photo-1594125312188-408748807de5?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Condicionador Ice Fresh Fox 240ml", 
+          price: 2500, 
+          description: "Condicionador refrescante para cabelo", 
+          imageUrl: "https://images.unsplash.com/photo-1526947425960-945c6e72858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Escova anti estática", 
+          price: 4500, 
+          description: "Escova que reduz o frizz e estática", 
+          imageUrl: "https://images.unsplash.com/photo-1576520709426-23faee40a4b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Esponja de Nudred", 
+          price: 3000, 
+          description: "Esponja para modelar cabelo", 
+          imageUrl: "https://images.unsplash.com/photo-1531579929639-cc31ff9359a5?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Loção Hidratante Balm Barba 4 em 1", 
+          price: 3500, 
+          description: "Loção multiuso para hidratação", 
+          imageUrl: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Loção Spray Pós Barba Lenhador", 
+          price: 3000, 
+          description: "Loção para aplicar após fazer a barba", 
+          imageUrl: "https://images.unsplash.com/photo-1521731978332-9e9e714bdd20?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Maquina Itan", 
+          price: 6000, 
+          description: "Máquina de cortar cabelo profissional", 
+          imageUrl: "https://images.unsplash.com/photo-1621607512022-6aecc4fed814?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Minoxidil Kirkland Signature 05% 60ml", 
+          price: 9000, 
+          description: "Minoxidil para crescimento de barba e cabelo", 
+          imageUrl: "https://images.unsplash.com/photo-1669155309185-9d61617694ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Navalha", 
+          price: 3000, 
+          description: "Navalha para barbear", 
+          imageUrl: "https://images.unsplash.com/photo-1518019671582-55004f1bc9ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
           name: "Óleo de Barba Lenhador Kerafyto", 
           price: 3000, 
           description: "Óleo para barba com aroma amadeirado", 
@@ -569,13 +665,125 @@ export class MemStorage implements IStorage {
           categoryId: 1,
           inStock: true 
         },
+        { 
+          name: "Pente", 
+          price: 2500, 
+          description: "Pente profissional para cabelo", 
+          imageUrl: "https://images.unsplash.com/photo-1621607512495-5e76ff6a53a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Pente de mão", 
+          price: 300, 
+          description: "Pente pequeno portátil", 
+          imageUrl: "https://images.unsplash.com/photo-1635368563577-257a39bb00c9?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Perfume de barba", 
+          price: 2500, 
+          description: "Perfume específico para barba", 
+          imageUrl: "https://images.unsplash.com/photo-1541643600914-78b084683601?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Perfumes", 
+          price: 3000, 
+          description: "Perfumes variados masculinos", 
+          imageUrl: "https://images.unsplash.com/photo-1543422655-ac1c6ca993ed?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Shampoo 3 em 1", 
+          price: 3000, 
+          description: "Shampoo multiuso para cabelo", 
+          imageUrl: "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Shampoo anti-caspa", 
+          price: 3000, 
+          description: "Shampoo para controle de caspa", 
+          imageUrl: "https://images.unsplash.com/photo-1607242792481-37f27e1901b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Shampoo com minoxidill", 
+          price: 3000, 
+          description: "Shampoo com minoxidil para fortalecimento", 
+          imageUrl: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Shampoo Ice Fresh Fox 240ml", 
+          price: 2500, 
+          description: "Shampoo refrescante para cabelo", 
+          imageUrl: "https://images.unsplash.com/photo-1526947425960-945c6e72858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Shampoo preto", 
+          price: 3000, 
+          description: "Shampoo com pigmento para cabelos escuros", 
+          imageUrl: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
+        { 
+          name: "Tonico capilar", 
+          price: 3000, 
+          description: "Tônico para estimular o couro cabeludo", 
+          imageUrl: "https://images.unsplash.com/photo-1634643836960-c345569c4d08?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 1,
+          inStock: true 
+        },
         
         // Pomadas e Produtos para Estilização
         { 
-          name: "Pomada Modeladora Caramelo", 
-          price: 3000, 
-          description: "Pomada modeladora com acabamento natural", 
-          imageUrl: "https://images.unsplash.com/photo-1631112426993-460fa457c4d6?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          name: "Cera Red Neck Cinza", 
+          price: 2000, 
+          description: "Cera modeladora cinza", 
+          imageUrl: "https://images.unsplash.com/photo-1626784215021-2e39ccf641a6?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Cera Red Neck Laranja", 
+          price: 2000, 
+          description: "Cera modeladora laranja", 
+          imageUrl: "https://images.unsplash.com/photo-1626784215021-2e39ccf641a6?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Cera Red Neck Roxa", 
+          price: 2000, 
+          description: "Cera modeladora roxa", 
+          imageUrl: "https://images.unsplash.com/photo-1626784215021-2e39ccf641a6?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Cera Red Neck Verde", 
+          price: 2000, 
+          description: "Cera modeladora verde", 
+          imageUrl: "https://images.unsplash.com/photo-1626784215021-2e39ccf641a6?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Cera Red Neck Vermelha", 
+          price: 2000, 
+          description: "Cera modeladora vermelha", 
+          imageUrl: "https://images.unsplash.com/photo-1626784215021-2e39ccf641a6?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
           categoryId: 2,
           inStock: true 
         },
@@ -588,10 +796,122 @@ export class MemStorage implements IStorage {
           inStock: true 
         },
         { 
-          name: "Cera Red Neck Vermelha", 
+          name: "Pomada fox verde 120g", 
+          price: 3000, 
+          description: "Pomada modeladora verde", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada 60g Pequena (Máxima e Lenhador)", 
           price: 2000, 
-          description: "Cera modeladora com fixação média", 
-          imageUrl: "https://images.unsplash.com/photo-1626784215021-2e39ccf641a6?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          description: "Pomada modeladora tamanho pequeno", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada black Fox 120g", 
+          price: 3000, 
+          description: "Pomada black fosca", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada black lenhador 120g", 
+          price: 3000, 
+          description: "Pomada black fosca", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada caramelo fox 120g", 
+          price: 3000, 
+          description: "Pomada modeladora caramelo", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada Conhaque", 
+          price: 3000, 
+          description: "Pomada modeladora conhaque", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada Efeito teia Fox 120g", 
+          price: 3000, 
+          description: "Pomada com efeito teia", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada em pó", 
+          price: 3000, 
+          description: "Pomada em pó para volume", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada hair fox laranja 120g", 
+          price: 3000, 
+          description: "Pomada modeladora laranja", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada matte lenhador 120g", 
+          price: 3000, 
+          description: "Pomada com acabamento matte", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada Modeladora Caramelo", 
+          price: 3000, 
+          description: "Pomada modeladora com acabamento natural", 
+          imageUrl: "https://images.unsplash.com/photo-1631112426993-460fa457c4d6?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada pequena CREAM", 
+          price: 2500, 
+          description: "Pomada modeladora cream tamanho pequeno", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada Pequena", 
+          price: 2000, 
+          description: "Pomada modeladora tamanho pequeno", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada toque seco fox 120g", 
+          price: 3000, 
+          description: "Pomada com toque seco", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 2,
+          inStock: true 
+        },
+        { 
+          name: "Pomada Tradicional lenhador 120g", 
+          price: 3000, 
+          description: "Pomada modeladora tradicional", 
+          imageUrl: "https://images.unsplash.com/photo-1627798133922-271e43e6e1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
           categoryId: 2,
           inStock: true 
         },
@@ -606,6 +926,158 @@ export class MemStorage implements IStorage {
           inStock: true 
         },
         { 
+          name: "Campari", 
+          price: 600, 
+          description: "Dose de Campari", 
+          imageUrl: "https://images.unsplash.com/photo-1599021456807-1d9407298761?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "CORONA LONG NECK", 
+          price: 800, 
+          description: "Cerveja Corona Long Neck 330ml", 
+          imageUrl: "https://images.unsplash.com/photo-1607644536940-6c300b5784c1?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "Coronita", 
+          price: 700, 
+          description: "Cerveja Corona pequena", 
+          imageUrl: "https://images.unsplash.com/photo-1622748055122-5402bcb0be3d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE ALAMBIQUE MURICI", 
+          price: 200, 
+          description: "Dose de cachaça artesanal", 
+          imageUrl: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE CACHAÇA 51", 
+          price: 400, 
+          description: "Dose de cachaça 51", 
+          imageUrl: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE CORTEZANO", 
+          price: 200, 
+          description: "Dose de cachaça Cortezano", 
+          imageUrl: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE MONTILLA", 
+          price: 300, 
+          description: "Dose de conhaque Montilla", 
+          imageUrl: "https://images.unsplash.com/photo-1583873483341-e80a48dae5ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE OLD PARR 12 ANOS", 
+          price: 1800, 
+          description: "Dose de whiskey Old Parr 12 anos", 
+          imageUrl: "https://images.unsplash.com/photo-1541975902809-3f494f095b59?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE ORLOFF VODKA", 
+          price: 600, 
+          description: "Dose de vodka Orloff", 
+          imageUrl: "https://images.unsplash.com/photo-1594096412531-6b041c96d6b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE PARATUDO", 
+          price: 500, 
+          description: "Dose de cachaça Paratudo", 
+          imageUrl: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE SÃO JOÃO DA BARRA", 
+          price: 400, 
+          description: "Dose de cachaça São João da Barra", 
+          imageUrl: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE SELETA", 
+          price: 500, 
+          description: "Dose de cachaça Seleta", 
+          imageUrl: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE TEQUILA OURO (JOSE CUERVO)", 
+          price: 1000, 
+          description: "Dose de tequila ouro José Cuervo", 
+          imageUrl: "https://images.unsplash.com/photo-1622349906830-3ea9aeca57e1?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE TEQUILA PRATA (JOSE CUERVO)", 
+          price: 900, 
+          description: "Dose de tequila prata José Cuervo", 
+          imageUrl: "https://images.unsplash.com/photo-1622349861342-f5b942646c17?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE VELHO BARREIRO", 
+          price: 400, 
+          description: "Dose de cachaça Velho Barreiro", 
+          imageUrl: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE VODKA SKYY", 
+          price: 800, 
+          description: "Dose de vodka Skyy", 
+          imageUrl: "https://images.unsplash.com/photo-1594096412531-6b041c96d6b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE Vodka SMIRNOFFF", 
+          price: 700, 
+          description: "Dose de vodka Smirnoff", 
+          imageUrl: "https://images.unsplash.com/photo-1594096412531-6b041c96d6b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE WHISKEY BLACK LABEL", 
+          price: 1800, 
+          description: "Dose de whiskey Black Label", 
+          imageUrl: "https://images.unsplash.com/photo-1541795795328-f073b763494e?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE WHISKEY CHIVAS 12 ANOS", 
+          price: 1800, 
+          description: "Dose de whiskey Chivas 12 anos", 
+          imageUrl: "https://images.unsplash.com/photo-1523008985256-62f119de1f40?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
           name: "DOSE WHISKEY JACK DANIELS", 
           price: 1600, 
           description: "Dose de whiskey Jack Daniel's", 
@@ -613,57 +1085,425 @@ export class MemStorage implements IStorage {
           categoryId: 3,
           inStock: true 
         },
+        { 
+          name: "DOSE WHISKEY RED LABEL", 
+          price: 1100, 
+          description: "Dose de whiskey Red Label", 
+          imageUrl: "https://images.unsplash.com/photo-1541795795328-f073b763494e?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "DOSE WHITE HORSE", 
+          price: 1000, 
+          description: "Dose de whiskey White Horse", 
+          imageUrl: "https://images.unsplash.com/photo-1541795795328-f073b763494e?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "MONSTER ABSOLUT", 
+          price: 1000, 
+          description: "Energético Monster com Absolut", 
+          imageUrl: "https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "RIBEIRAO COLORADO LONG NECK", 
+          price: 1000, 
+          description: "Cerveja Colorado long neck", 
+          imageUrl: "https://images.unsplash.com/photo-1612528443702-f6741f70a049?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "SPATEN 600ML", 
+          price: 1300, 
+          description: "Cerveja Spaten 600ml", 
+          imageUrl: "https://images.unsplash.com/photo-1618885472179-5e474019f2a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "SPATEN LONG NECK", 
+          price: 700, 
+          description: "Cerveja Spaten long neck", 
+          imageUrl: "https://images.unsplash.com/photo-1618885472179-5e474019f2a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "STELLA ARTOIS LONG NECK 330ml", 
+          price: 700, 
+          description: "Cerveja Stella Artois long neck", 
+          imageUrl: "https://images.unsplash.com/photo-1613902564622-276a034d0102?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
+        { 
+          name: "Patagônia IPA 355ml", 
+          price: 800, 
+          description: "Cerveja Patagônia IPA long neck", 
+          imageUrl: "https://images.unsplash.com/photo-1617666623842-bd554a3a5c13?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 3,
+          inStock: true 
+        },
         
         // Bebidas Não Alcoólicas
         { 
-          name: "Monster Tradicional 473ml", 
-          price: 1000, 
-          description: "Energético Monster sabor tradicional", 
-          imageUrl: "https://images.unsplash.com/photo-1622543925917-763c34d1a86e?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          name: "AGUA COM GAS", 
+          price: 350, 
+          description: "Água mineral com gás 500ml", 
+          imageUrl: "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
           categoryId: 4,
           inStock: true 
         },
         { 
-          name: "COCA-COLA LATA 310ML", 
+          name: "Agua com gas + Limão", 
+          price: 350, 
+          description: "Água com gás e limão 500ml", 
+          imageUrl: "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "AGUA MINERAL", 
+          price: 300, 
+          description: "Água mineral sem gás 500ml", 
+          imageUrl: "https://images.unsplash.com/photo-1606168094336-48f8f3302a2c?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "Antarctica Lata", 
+          price: 350, 
+          description: "Refrigerante Antarctica lata", 
+          imageUrl: "https://images.unsplash.com/photo-1622766815178-641bef2b4630?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "ANTARCTICA ORIGINAL 600ml", 
+          price: 1300, 
+          description: "Cerveja Antarctica Original 600ml", 
+          imageUrl: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "APPIA COLORADO 300ML", 
+          price: 700, 
+          description: "Cerveja Colorado Appia 300ml", 
+          imageUrl: "https://images.unsplash.com/photo-1612528443702-f6741f70a049?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "Chopp Stadt", 
+          price: 600, 
+          description: "Chopp Stadt", 
+          imageUrl: "https://images.unsplash.com/photo-1583744515834-2ce2a528d5d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "COCA 310ML", 
           price: 450, 
-          description: "Refrigerante Coca-Cola em lata", 
-          imageUrl: "https://images.unsplash.com/photo-1629654613528-5d0a2e4223e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          description: "Coca-Cola lata 310ml", 
+          imageUrl: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "COCA ZERO LATA 310ML", 
+          price: 400, 
+          description: "Coca-Cola Zero lata 310ml", 
+          imageUrl: "https://images.unsplash.com/photo-1570526427001-9d80d114054d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "COCA-COLA KS", 
+          price: 500, 
+          description: "Coca-Cola garrafa 290ml", 
+          imageUrl: "https://images.unsplash.com/photo-1554866585-cd94860890b7?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "HEINEKEN ZERO ALCOOL 330ml", 
+          price: 700, 
+          description: "Cerveja Heineken sem álcool 330ml", 
+          imageUrl: "https://images.unsplash.com/photo-1613733895930-4ce5f8a1bb8d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "Monster de goiaba", 
+          price: 1000, 
+          description: "Energético Monster sabor goiaba", 
+          imageUrl: "https://images.unsplash.com/photo-1605548218558-bebb534edab9?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "Monster de Laranja", 
+          price: 1000, 
+          description: "Energético Monster sabor laranja", 
+          imageUrl: "https://images.unsplash.com/photo-1605548218558-bebb534edab9?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "MONSTER MANGO LOKO", 
+          price: 1000, 
+          description: "Energético Monster sabor manga", 
+          imageUrl: "https://images.unsplash.com/photo-1605548218558-bebb534edab9?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "Monster Melancia", 
+          price: 1000, 
+          description: "Energético Monster sabor melancia", 
+          imageUrl: "https://images.unsplash.com/photo-1605548218558-bebb534edab9?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "Monster Tradicional 473ml", 
+          price: 1000, 
+          description: "Energético Monster sabor tradicional", 
+          imageUrl: "https://images.unsplash.com/photo-1581684322015-5a833940f714?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "GATORADE (MoRANGO)", 
+          price: 600, 
+          description: "Isotônico Gatorade sabor morango", 
+          imageUrl: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "GATOREDE(limão)", 
+          price: 600, 
+          description: "Isotônico Gatorade sabor limão", 
+          imageUrl: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "GATOREDE(MARACUJA)", 
+          price: 600, 
+          description: "Isotônico Gatorade sabor maracujá", 
+          imageUrl: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "POWERADE SABORES 500ML", 
+          price: 500, 
+          description: "Isotônico Powerade 500ml", 
+          imageUrl: "https://images.unsplash.com/photo-1567710845236-e3a90b61ca63?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "RED BULL ENERGETICO", 
+          price: 1000, 
+          description: "Energético Red Bull", 
+          imageUrl: "https://images.unsplash.com/photo-1613476798408-0f495bfd8058?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "Suco de Manga", 
+          price: 450, 
+          description: "Suco de manga 290ml", 
+          imageUrl: "https://images.unsplash.com/photo-1546173159-315724a31696?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "Suco de maracuja", 
+          price: 450, 
+          description: "Suco de maracujá 290ml", 
+          imageUrl: "https://images.unsplash.com/photo-1546173159-315724a31696?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "SUCO GOIABA 290ML", 
+          price: 450, 
+          description: "Suco de goiaba 290ml", 
+          imageUrl: "https://images.unsplash.com/photo-1546173159-315724a31696?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 4,
+          inStock: true 
+        },
+        { 
+          name: "SUCO UVA 290 ML", 
+          price: 450, 
+          description: "Suco de uva 290ml", 
+          imageUrl: "https://images.unsplash.com/photo-1546173159-315724a31696?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
           categoryId: 4,
           inStock: true 
         },
         
         // Lanches e Snacks
         { 
+          name: "Barra de Cereal", 
+          price: 250, 
+          description: "Barra de cereal variados sabores", 
+          imageUrl: "https://images.unsplash.com/photo-1590005354167-6da97870c757?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 5,
+          inStock: true 
+        },
+        { 
+          name: "Barra de cereal banana", 
+          price: 300, 
+          description: "Barra de cereal sabor banana", 
+          imageUrl: "https://images.unsplash.com/photo-1590005354167-6da97870c757?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 5,
+          inStock: true 
+        },
+        { 
+          name: "Barra de cereal coco + frutas", 
+          price: 300, 
+          description: "Barra de cereal coco com frutas", 
+          imageUrl: "https://images.unsplash.com/photo-1590005354167-6da97870c757?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 5,
+          inStock: true 
+        },
+        { 
+          name: "Chocolate 5 Star 40g", 
+          price: 400, 
+          description: "Chocolate 5 Star 40g", 
+          imageUrl: "https://images.unsplash.com/photo-1621437806128-2993fece3e95?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 5,
+          inStock: true 
+        },
+        { 
+          name: "Chocolate branco Laka 34g", 
+          price: 400, 
+          description: "Chocolate branco Lacta 34g", 
+          imageUrl: "https://images.unsplash.com/photo-1621437806128-2993fece3e95?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 5,
+          inStock: true 
+        },
+        { 
+          name: "Chocolate Diamante Negro 34g", 
+          price: 400, 
+          description: "Chocolate meio amargo 34g", 
+          imageUrl: "https://images.unsplash.com/photo-1621437806128-2993fece3e95?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 5,
+          inStock: true 
+        },
+        { 
           name: "Chocolate Lacta ao leite 34g", 
           price: 400, 
-          description: "Chocolate ao leite em barra", 
-          imageUrl: "https://images.unsplash.com/photo-1621424093419-eeadd568272b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          description: "Barra de chocolate ao leite", 
+          imageUrl: "https://images.unsplash.com/photo-1600146278955-c3252aefd006?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 5,
+          inStock: true 
+        },
+        { 
+          name: "Trident (cereja) 8g", 
+          price: 300, 
+          description: "Goma de mascar sabor cereja", 
+          imageUrl: "https://images.unsplash.com/photo-1576377402254-9617d7a55eeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 5,
+          inStock: true 
+        },
+        { 
+          name: "Trident (Intense Black) 8g", 
+          price: 300, 
+          description: "Goma de mascar sabor black", 
+          imageUrl: "https://images.unsplash.com/photo-1576377402254-9617d7a55eeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
           categoryId: 5,
           inStock: true 
         },
         { 
           name: "Trident (menta verde) 8g", 
           price: 300, 
-          description: "Chiclete sabor menta", 
-          imageUrl: "https://images.unsplash.com/photo-1582389435979-5933765215db?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          description: "Goma de mascar sabor menta", 
+          imageUrl: "https://images.unsplash.com/photo-1576377402254-9617d7a55eeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 5,
+          inStock: true 
+        },
+        { 
+          name: "Trident (morango) 8g", 
+          price: 300, 
+          description: "Goma de mascar sabor morango", 
+          imageUrl: "https://images.unsplash.com/photo-1576377402254-9617d7a55eeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 5,
+          inStock: true 
+        },
+        { 
+          name: "TRIDENT (senses blueberry) 8g", 
+          price: 300, 
+          description: "Goma de mascar sabor blueberry", 
+          imageUrl: "https://images.unsplash.com/photo-1576377402254-9617d7a55eeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 5,
+          inStock: true 
+        },
+        { 
+          name: "Trident melancia 8g", 
+          price: 300, 
+          description: "Goma de mascar sabor melancia", 
+          imageUrl: "https://images.unsplash.com/photo-1576377402254-9617d7a55eeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 5,
+          inStock: true 
+        },
+        { 
+          name: "Trident(tutti fruiti)8g", 
+          price: 300, 
+          description: "Goma de mascar sabor tutti frutti", 
+          imageUrl: "https://images.unsplash.com/photo-1576377402254-9617d7a55eeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
           categoryId: 5,
           inStock: true 
         },
         
         // Acessórios e Outros
         { 
-          name: "Navalha", 
-          price: 3000, 
-          description: "Navalha profissional", 
-          imageUrl: "https://images.unsplash.com/photo-1617792945864-4a5cb3b3c6e3?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          name: "CARTEIRA PAIOL OURO", 
+          price: 1800, 
+          description: "Carteira de tabaco premium", 
+          imageUrl: "https://images.unsplash.com/photo-1589829545856-4cc9ef138be4?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
           categoryId: 6,
           inStock: true 
         },
         { 
-          name: "Pente", 
-          price: 2500, 
-          description: "Pente profissional para cabelo", 
-          imageUrl: "https://images.unsplash.com/photo-1635368675936-8f126a662fb2?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          name: "CARTEIRA TRADICIONAL E MAMA CADELA", 
+          price: 1500, 
+          description: "Carteira de tabaco tradicional", 
+          imageUrl: "https://images.unsplash.com/photo-1589829545856-4cc9ef138be4?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 6,
+          inStock: true 
+        },
+        { 
+          name: "Tabaco", 
+          price: 200, 
+          description: "Tabaco a granel", 
+          imageUrl: "https://images.unsplash.com/photo-1594465919760-441fe5908ab0?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 6,
+          inStock: true 
+        },
+        { 
+          name: "UND PAIOL OURO", 
+          price: 150, 
+          description: "Unidade de paiol ouro", 
+          imageUrl: "https://images.unsplash.com/photo-1594465919760-441fe5908ab0?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
+          categoryId: 6,
+          inStock: true 
+        },
+        { 
+          name: "UND PAIOL TRADICIONAL E MAMA CADELA", 
+          price: 100, 
+          description: "Unidade de paiol tradicional", 
+          imageUrl: "https://images.unsplash.com/photo-1594465919760-441fe5908ab0?ixlib=rb-4.0.3&auto=format&fit=crop&w=300", 
           categoryId: 6,
           inStock: true 
         }

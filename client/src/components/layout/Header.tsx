@@ -3,7 +3,7 @@ import { Link } from 'wouter';
 import { Menu, MapPin, Heart, User, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import logoPath from '@/assets/logo.svg';
+import logoPath from '@/assets/logo.jpeg';
 
 const Header = () => {
   return (
@@ -13,7 +13,7 @@ const Header = () => {
         <img 
           src={logoPath} 
           alt="Los Barbeiros Logo" 
-          className="h-8 mr-2" 
+          className="h-10 w-10 mr-2 rounded-full object-cover" 
         />
         <h1 className="font-montserrat font-bold text-xl text-primary">Los Barbeiros</h1>
       </div>
@@ -52,7 +52,7 @@ const SidebarMenu = () => {
             <img 
               src={logoPath} 
               alt="Los Barbeiros Logo" 
-              className="h-10 mr-3" 
+              className="h-12 w-12 mr-3 rounded-full object-cover" 
             />
             <h2 className="font-montserrat font-bold text-lg text-primary">Los Barbeiros</h2>
           </div>
