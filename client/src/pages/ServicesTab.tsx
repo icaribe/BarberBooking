@@ -1,18 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Search } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
 import ServiceCard from '@/components/services/ServiceCard';
 import ServiceCategoryFilter from '@/components/services/ServiceCategoryFilter';
-import AppointmentModal from '@/components/appointment/AppointmentModal';
 import { useServices } from '@/lib/hooks/useServices';
-import { useProfessionals } from '@/lib/hooks/useProfessionals';
 import type { Service } from '@/lib/types';
 
 const ServicesTab = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [, navigate] = useLocation();
   
   const { 
     services, 
@@ -20,8 +18,6 @@ const ServicesTab = () => {
     isLoadingServices, 
     isLoadingCategories 
   } = useServices();
-  
-  const { professionals, isLoadingProfessionals } = useProfessionals();
 
   // Filter services by category and search term
   const filteredServices = services.filter(service => {
@@ -33,13 +29,7 @@ const ServicesTab = () => {
   });
 
   const handleScheduleService = (service: Service) => {
-    setSelectedService(service);
-    setIsAppointmentModalOpen(true);
-  };
-
-  const handleCloseAppointmentModal = () => {
-    setIsAppointmentModalOpen(false);
-    setSelectedService(null);
+    navigate(`/appointment/${service.id}`);
   };
 
   return (
@@ -93,14 +83,6 @@ const ServicesTab = () => {
           ))
         )}
       </div>
-
-      {/* Appointment Modal */}
-      <AppointmentModal
-        isOpen={isAppointmentModalOpen}
-        onClose={handleCloseAppointmentModal}
-        service={selectedService}
-        professionals={professionals}
-      />
     </div>
   );
 };

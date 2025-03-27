@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Appointments from "@/pages/Appointments";
 import Profile from "@/pages/Profile";
+import AppointmentPage from "@/pages/AppointmentPage";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
             <Route path="/" component={Home} />
             <Route path="/appointments" component={Appointments} />
             <Route path="/profile" component={Profile} />
+            <Route path="/appointment/:serviceId" component={AppointmentPage} />
             <Route component={NotFound} />
           </Switch>
         </div>

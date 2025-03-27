@@ -15,11 +15,11 @@ const TabNavigation = ({ activeTab, onTabChange }: TabNavigationProps) => {
   ];
 
   return (
-    <div className="flex justify-between text-center text-sm border-b border-border bg-background sticky top-14 z-20 shadow-sm px-4">
+    <div className="flex overflow-x-auto no-scrollbar text-center text-sm border-b border-border bg-background sticky top-14 z-20 shadow-sm px-4 max-w-screen">
       {tabs.map(tab => (
         <button
           key={tab.id}
-          className={`py-4 px-3 font-montserrat font-medium flex items-center justify-center mx-2 ${
+          className={`py-4 px-2 font-montserrat font-medium flex-shrink-0 flex items-center justify-center mx-1 ${
             activeTab === tab.id 
               ? 'tab-active' 
               : 'text-muted-foreground'
