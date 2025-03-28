@@ -26,7 +26,10 @@ async function populateTables() {
         .from('users')
         .upsert(supabaseUsers);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao migrar usuários:', error);
+        throw error;
+      }
       console.log(`✅ ${users.length} usuários migrados com sucesso.`);
     } else {
       console.log('Nenhum usuário encontrado para migrar.');
@@ -41,7 +44,10 @@ async function populateTables() {
         .from('service_categories')
         .upsert(serviceCategories);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao migrar categorias de serviços:', error);
+        throw error;
+      }
       console.log(`✅ ${serviceCategories.length} categorias de serviços migradas com sucesso.`);
     } else {
       console.log('Nenhuma categoria de serviço encontrada para migrar.');
@@ -56,7 +62,10 @@ async function populateTables() {
         .from('services')
         .upsert(services);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao migrar serviços:', error);
+        throw error;
+      }
       console.log(`✅ ${services.length} serviços migrados com sucesso.`);
     } else {
       console.log('Nenhum serviço encontrado para migrar.');
@@ -71,7 +80,10 @@ async function populateTables() {
         .from('professionals')
         .upsert(professionals);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao migrar profissionais:', error);
+        throw error;
+      }
       console.log(`✅ ${professionals.length} profissionais migrados com sucesso.`);
     } else {
       console.log('Nenhum profissional encontrado para migrar.');
@@ -86,7 +98,10 @@ async function populateTables() {
         .from('schedules')
         .upsert(schedules);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao migrar horários:', error);
+        throw error;
+      }
       console.log(`✅ ${schedules.length} horários migrados com sucesso.`);
     } else {
       console.log('Nenhum horário encontrado para migrar.');
@@ -101,7 +116,10 @@ async function populateTables() {
         .from('appointments')
         .upsert(appointments);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao migrar agendamentos:', error);
+        throw error;
+      }
       console.log(`✅ ${appointments.length} agendamentos migrados com sucesso.`);
     } else {
       console.log('Nenhum agendamento encontrado para migrar.');
@@ -116,7 +134,10 @@ async function populateTables() {
         .from('appointment_services')
         .upsert(appointmentServices);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao migrar serviços de agendamento:', error);
+        throw error;
+      }
       console.log(`✅ ${appointmentServices.length} serviços de agendamento migrados com sucesso.`);
     } else {
       console.log('Nenhum serviço de agendamento encontrado para migrar.');
@@ -131,7 +152,10 @@ async function populateTables() {
         .from('product_categories')
         .upsert(productCategories);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao migrar categorias de produtos:', error);
+        throw error;
+      }
       console.log(`✅ ${productCategories.length} categorias de produtos migradas com sucesso.`);
     } else {
       console.log('Nenhuma categoria de produto encontrada para migrar.');
@@ -146,7 +170,10 @@ async function populateTables() {
         .from('products')
         .upsert(products);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao migrar produtos:', error);
+        throw error;
+      }
       console.log(`✅ ${products.length} produtos migrados com sucesso.`);
     } else {
       console.log('Nenhum produto encontrado para migrar.');
@@ -161,7 +188,10 @@ async function populateTables() {
         .from('loyalty_rewards')
         .upsert(loyaltyRewards);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao migrar recompensas de fidelidade:', error);
+        throw error;
+      }
       console.log(`✅ ${loyaltyRewards.length} recompensas de fidelidade migradas com sucesso.`);
     } else {
       console.log('Nenhuma recompensa de fidelidade encontrada para migrar.');
@@ -176,6 +206,9 @@ async function populateTables() {
     }
     if (error.code) {
       console.error('Código de erro:', error.code);
+    }
+    if (error.details) {
+      console.error('Detalhes do erro:', error.details);
     }
   }
 }

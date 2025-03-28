@@ -7,15 +7,12 @@
     "dev": "npm run dev:backend & npm run dev:frontend",
     "dev:frontend": "vite",
     "dev:backend": "tsx watch --env-file=.env server/index.ts",
-    "migrate:supabase": "tsx scripts/migrate-to-supabase.ts",
-    "check:supabase": "tsx scripts/check-supabase-tables.ts",
     "build": "vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-    "create:supabase-tables": "supabase db dump -f supabase_tables.sql",
-    "use:supabase": "cross-env USE_SUPABASE=true tsx watch --env-file=.env server/index.ts",
-    "populate:supabase": "tsx scripts/populate-supabase.ts",
-    "debug:supabase": "tsx scripts/debug-supabase-connection.ts"
+    "start": "node dist/server/index.js",
+    "check:supabase": "tsx scripts/check-supabase-tables.ts",
+    "check:local": "tsx scripts/check-local-db.ts",
+    "debug:supabase": "tsx scripts/debug-supabase-connection.ts",
+    "populate:supabase": "tsx scripts/populate-supabase.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

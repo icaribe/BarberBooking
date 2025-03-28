@@ -1,9 +1,12 @@
+
 import { supabase } from '../server/supabase';
 
 async function testSupabaseConnection() {
   console.log('Testando conexão com o Supabase...');
+  console.log('URL do Supabase:', process.env.SUPABASE_URL || 'Usando valor padrão');
 
   try {
+    // Verificar conexão básica
     const { data, error } = await supabase.from('users').select('id').limit(1);
 
     if (error) throw error;
@@ -18,7 +21,8 @@ async function testSupabaseConnection() {
       if (columnsError) {
         console.log('❌ Erro ao verificar colunas da tabela users:', columnsError);
       } else {
-        console.log('Colunas da tabela users:', userColumns.map(col => col.column_name).join(', '));
+        console.log('Colunas da tabela users:');
+        console.log(userColumns.map(col => col.column_name).join(', '));
       }
     } catch (err) {
       console.log('❌ Erro ao verificar colunas da tabela users:', err);
@@ -31,7 +35,22 @@ async function testSupabaseConnection() {
 
       if (tablesError) throw tablesError;
 
-      console.log('Tabelas disponíveis:', tables.map(t => t.table_name).join(', '));
+      console.log('Tabelas disponíveis:');
+      console.log(tables.map(t => t.table_name).join(', '));
+      
+      // Verificar dados na tabela users
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('*');
+        
+      if (usersError) {
+        console.log('❌ Erro ao verificar dados na tabela users:', usersError);
+      } else {
+        console.log(`Dados na tabela users: ${usersData.length} registros`);
+        if (usersData.length > 0) {
+          console.log('Primeiro registro:', JSON.stringify(usersData[0], null, 2));
+        }
+      }
     } catch (err) {
       console.log('❌ Erro ao listar tabelas:', err);
     }
