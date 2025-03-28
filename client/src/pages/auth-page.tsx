@@ -222,7 +222,7 @@ export default function AuthPage() {
             </div>
             <div className="flex items-center gap-3">
               <MapPin className="w-5 h-5" />
-              <span>Localizado em Sobradinho, Brasília-DF</span>
+              <span>Qd 05 Lt 48 loja 01 São José - São Sebastião DF</span>
             </div>
             <div className="flex items-center gap-3">
               <Phone className="w-5 h-5" />

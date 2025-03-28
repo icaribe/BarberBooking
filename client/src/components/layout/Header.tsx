@@ -136,7 +136,7 @@ const SidebarMenu = () => {
           <div className="text-sm space-y-4">
             <div>
               <h4 className="font-medium mb-1">Localização</h4>
-              <p className="text-muted-foreground text-xs">Quadra 5 lote 48, 48 - 71693-006 Vila São José</p>
+              <p className="text-muted-foreground text-xs">Qd 05 Lt 48 loja 01 São José - São Sebastião DF</p>
               <a 
                 href="https://www.google.com/maps/search/?api=1&query=-15.91295338%2C-47.76993942" 
                 target="_blank" 

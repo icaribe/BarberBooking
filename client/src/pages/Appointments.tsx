@@ -10,6 +10,7 @@ import { Calendar, Clock, User, XCircle, CheckCircle } from 'lucide-react';
 import { useAppointments } from '@/lib/hooks/useAppointments';
 import { useServices } from '@/lib/hooks/useServices';
 import { useProfessionals } from '@/lib/hooks/useProfessionals';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { APPOINTMENT_STATUS } from '@/lib/constants';
 import { formatDate } from '@/lib/utils/date';
@@ -17,10 +18,9 @@ import type { Appointment } from '@/lib/types';
 
 const AppointmentsPage = () => {
   const [tabValue, setTabValue] = useState("upcoming");
-  // Using a fixed user ID (1) for demo purposes
-  const userId = 1;
+  const { user } = useAuth();
   
-  const { appointments, isLoading, updateAppointmentStatus } = useAppointments(userId);
+  const { appointments, isLoading, updateAppointmentStatus } = useAppointments(user?.id);
   const { getServiceById } = useServices();
   const { getProfessionalById } = useProfessionals();
   const { toast } = useToast();

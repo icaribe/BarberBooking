@@ -376,19 +376,7 @@ export class MemStorage implements IStorage {
 
   // Initialize demo data
   async initializeDemoData(): Promise<void> {
-    // Create demo user
-    if (this.users.size === 0) {
-      await this.createUser({
-        username: "demo",
-        password: "password",
-        name: "Demo User",
-        email: "demo@example.com",
-        phone: "123-456-7890"
-      });
-
-      // Update user with loyalty points
-      await this.updateUser(1, { loyaltyPoints: 125 });
-    }
+    // Não criar usuário de demonstração
 
     // Create service categories
     if (this.serviceCategories.size === 0) {
