@@ -1,20 +1,30 @@
-import { useState } from 'react';
+import { useState, ChangeEvent } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Search, Scissors, Disc, Wine, Coffee, Utensils, ShoppingBag } from 'lucide-react';
 import { useProducts } from '@/lib/hooks/useProducts';
 import ProductCategoryFilter from '@/components/products/ProductCategoryFilter';
 import type { Product } from '@/lib/types';
+import { Input } from '@/components/ui/input';
 
 const ProductsTab = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
   const { products, categories, isLoadingProducts, isLoadingCategories } = useProducts();
 
-  // Filter products by category
-  const filteredProducts = selectedCategoryId === null 
-    ? products 
-    : products.filter(product => product.categoryId === selectedCategoryId);
+  // Filtrar produtos por termo de busca e categoria
+  const filteredProducts = products
+    .filter(product => 
+      (selectedCategoryId === null || product.categoryId === selectedCategoryId) &&
+      (searchTerm === '' || 
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())))
+    );
+    
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
 
   const handleAddToCart = (product: Product) => {
     toast({
@@ -23,10 +33,47 @@ const ProductsTab = () => {
     });
   };
 
+  // Função para renderizar ícone com base no nome do ícone da categoria
+  const renderCategoryIcon = (iconName: string | null) => {
+    if (!iconName) return null;
+    
+    switch (iconName) {
+      case 'scissors': return <Scissors className="h-5 w-5" />;
+      case 'disc': return <Disc className="h-5 w-5" />;
+      case 'wine': return <Wine className="h-5 w-5" />;
+      case 'coffee': return <Coffee className="h-5 w-5" />;
+      case 'burger': return <Utensils className="h-5 w-5" />;
+      case 'shopping-bag': return <ShoppingBag className="h-5 w-5" />;
+      default: return null;
+    }
+  };
+  
   return (
     <div className="px-4 py-4">
       <div className="mb-4">
         <h2 className="font-montserrat font-semibold text-xl mb-2">Produtos</h2>
+        
+        {/* Barra de Pesquisa */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            type="text"
+            placeholder="Pesquisar produtos..."
+            className="pl-10 bg-card"
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+              onClick={() => setSearchTerm('')}
+            >
+              ×
+            </Button>
+          )}
+        </div>
         
         {/* Categories Filter */}
         {isLoadingCategories ? (
@@ -92,7 +139,7 @@ const ProductsTab = () => {
             return (
               <div key={category.id} className="mb-5">
                 <h3 className="font-montserrat font-medium text-lg mb-2 flex items-center">
-                  {category.icon && <span className="mr-2">{category.icon}</span>}
+                  {category.icon && <span className="mr-2">{renderCategoryIcon(category.icon)}</span>}
                   {category.name}
                 </h3>
                 <div className="divide-y divide-border">
