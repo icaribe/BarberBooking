@@ -15,12 +15,17 @@ const ProductsTab = () => {
 
   // Filtrar produtos por termo de busca e categoria
   const filteredProducts = products
-    .filter(product => 
-      (selectedCategoryId === null || product.categoryId === selectedCategoryId) &&
-      (searchTerm === '' || 
+    .filter(product => {
+      // Filtro por categoria
+      const matchesCategory = selectedCategoryId === null || product.categoryId === selectedCategoryId;
+      
+      // Filtro por termo de busca
+      const matchesSearch = searchTerm === '' || 
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())))
-    );
+        (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      return matchesCategory && matchesSearch;
+    });
     
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -133,7 +138,10 @@ const ProductsTab = () => {
           
           {/* Se nenhuma categoria foi selecionada, agrupar por categoria */}
           {selectedCategoryId === null && categories.map(category => {
-            const productsInCategory = products.filter(product => product.categoryId === category.id);
+            // Usar os produtos já filtrados pelo termo de busca
+            const productsInCategory = searchTerm
+              ? filteredProducts.filter(product => product.categoryId === category.id)
+              : products.filter(product => product.categoryId === category.id);
             if (productsInCategory.length === 0) return null;
             
             return (
