@@ -28,7 +28,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   
   // Pegando o parâmetro returnTo da URL, se existir
   const params = new URLSearchParams(location.split('?')[1] || '');
@@ -80,7 +80,7 @@ export default function AuthPage() {
             variant="ghost" 
             size="sm" 
             className="mb-4" 
-            onClick={() => window.history.back()}
+            onClick={() => setLocation("/")}
           >
             ← Voltar
           </Button>
