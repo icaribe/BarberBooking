@@ -14,9 +14,12 @@ async function populateTables() {
     if (users.length > 0) {
       // Transformar dados para corresponder às colunas da tabela no Supabase
       const supabaseUsers = users.map(user => {
-        // Remover campos que não existem na tabela do Supabase
+        // Mapear loyaltyPoints para loyalty_points (nome correto no Supabase)
         const { loyaltyPoints, ...userData } = user;
-        return userData;
+        return {
+          ...userData,
+          loyalty_points: loyaltyPoints
+        };
       });
       
       const { error } = await supabase
