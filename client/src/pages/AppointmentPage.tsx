@@ -22,30 +22,9 @@ const AppointmentPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Check if there's a pending appointment in session storage
-  const checkPendingAppointment = () => {
-    const pendingAppointmentStr = sessionStorage.getItem('pendingAppointment');
-    if (pendingAppointmentStr) {
-      try {
-        const pendingAppointment = JSON.parse(pendingAppointmentStr);
-        if (pendingAppointment.serviceId === serviceId) {
-          return {
-            date: new Date(pendingAppointment.selectedDate),
-            professionalId: pendingAppointment.selectedProfessionalId,
-            time: pendingAppointment.selectedTime
-          };
-        }
-      } catch (e) {
-        console.error('Error parsing pending appointment:', e);
-      }
-    }
-    return null;
-  };
-  
-  const pendingAppointment = checkPendingAppointment();
-  
-  const [selectedDate, setSelectedDate] = useState<Date>(pendingAppointment?.date || new Date());
-  const [selectedTime, setSelectedTime] = useState<string | null>(pendingAppointment?.time || null);
+  // Inicializa estados com valores padrão
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
   const [notes, setNotes] = useState('');
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
@@ -58,20 +37,42 @@ const AppointmentPage = () => {
   // Get the service from ID
   const service = services.find(s => s.id === serviceId);
 
-  // Restore professional from session storage if it exists
+  // Load pendingAppointment from sessionStorage on mount
   useEffect(() => {
-    if (!selectedDate) {
-      setSelectedDate(new Date());
-    }
-    
-    // If we have a pending appointment with a professional ID, select that professional
-    if (pendingAppointment?.professionalId && professionals.length > 0) {
-      const prof = professionals.find(p => p.id === pendingAppointment.professionalId);
-      if (prof) {
-        setSelectedProfessional(prof);
+    // Only try to restore if we have professionals loaded and a serviceId
+    if (professionals.length > 0 && serviceId) {
+      const pendingAppointmentStr = sessionStorage.getItem('pendingAppointment');
+      
+      if (pendingAppointmentStr) {
+        try {
+          const pendingAppointment = JSON.parse(pendingAppointmentStr);
+          
+          // Only restore if for the same service
+          if (pendingAppointment.serviceId === serviceId) {
+            // Restore date
+            if (pendingAppointment.selectedDate) {
+              setSelectedDate(new Date(pendingAppointment.selectedDate));
+            }
+            
+            // Restore time
+            if (pendingAppointment.selectedTime) {
+              setSelectedTime(pendingAppointment.selectedTime);
+            }
+            
+            // Restore professional
+            if (pendingAppointment.selectedProfessionalId) {
+              const prof = professionals.find(p => p.id === pendingAppointment.selectedProfessionalId);
+              if (prof) {
+                setSelectedProfessional(prof);
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing pending appointment:', e);
+        }
       }
     }
-  }, [professionals]);
+  }, [professionals, serviceId]);
 
   if (isLoadingServices || isLoadingProfessionals) {
     return (
@@ -423,6 +424,19 @@ const AppointmentPage = () => {
     );
   };
 
+  // Show confirmation dialog
+  const handleShowConfirmation = () => {
+    if (!selectedProfessional || !selectedTime) {
+      toast({
+        title: "Informações incompletas",
+        description: "Por favor, selecione profissional e horário.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setShowConfirmation(true);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="flex items-center justify-between p-4 bg-background border-b border-border">
@@ -467,18 +481,16 @@ const AppointmentPage = () => {
               const dayName = format(date, 'EEE', { locale: ptBR });
               
               return (
-                <button
+                <div 
                   key={index}
-                  className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] ${
-                    isSelected 
-                      ? 'bg-primary text-primary-foreground border-2 border-primary' 
-                      : 'bg-secondary text-foreground'
-                  }`}
                   onClick={() => handleDateClick(date)}
+                  className={`flex flex-col items-center justify-center w-12 h-16 rounded-lg cursor-pointer ${
+                    isSelected ? 'bg-primary text-primary-foreground' : 'border border-border hover:bg-secondary'
+                  }`}
                 >
-                  <span className="text-xs uppercase">{dayName}</span>
+                  <span className="text-xs">{dayName}</span>
                   <span className="text-lg font-medium">{dayNumber}</span>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -486,65 +498,63 @@ const AppointmentPage = () => {
       </div>
 
       <div className="p-4 border-b border-border">
-        <h3 className="font-medium mb-3">Selecione o profissional</h3>
-        <div className="overflow-x-auto no-scrollbar -mx-4 px-4">
-          <div className="flex space-x-3">
-            {professionals.map((professional) => (
-              <button
-                key={professional.id}
-                className={`flex flex-col items-center min-w-[80px] ${
-                  selectedProfessional?.id === professional.id ? 'text-primary' : 'text-foreground'
-                }`}
-                onClick={() => {
-                  setSelectedProfessional(professional);
-                  setSelectedTime(null); // Reset time selection when professional changes
-                }}
-              >
-                <div className={`w-16 h-16 rounded-full overflow-hidden mb-1 ${
-                  selectedProfessional?.id === professional.id ? 'border-2 border-primary' : 'border border-border'
-                }`}>
-                  <img
-                    src={professional.avatar || "https://via.placeholder.com/100"}
-                    alt={professional.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <span className="text-sm">{professional.name}</span>
-              </button>
-            ))}
-          </div>
+        <h3 className="font-medium mb-2">Escolha o profissional</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {professionals.map(professional => (
+            <div 
+              key={professional.id}
+              onClick={() => setSelectedProfessional(professional)}
+              className={`rounded-lg p-3 cursor-pointer ${
+                selectedProfessional?.id === professional.id 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'border border-border hover:bg-secondary'
+              }`}
+            >
+              <div className="flex flex-col items-center space-y-1">
+                {professional.imageUrl ? (
+                  <div className="w-16 h-16 rounded-full overflow-hidden mb-1">
+                    <img src={professional.imageUrl} alt={professional.name} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-1">
+                    <span className="text-2xl uppercase">{professional.name.charAt(0)}</span>
+                  </div>
+                )}
+                <span className="font-medium text-center">{professional.name}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
       {selectedProfessional && (
-        <div className="p-4 flex-1 overflow-y-auto">
-          <h3 className="font-medium mb-3">Horários disponíveis</h3>
+        <div className="p-4 border-b border-border">
+          <h3 className="font-medium mb-2">Escolha o horário</h3>
           
           {isLoadingAppointments ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="flex justify-center py-6">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
             </div>
           ) : (
             <>
               {generateTimeSlots().length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-4 text-muted-foreground">
                   Não há horários disponíveis para este profissional nesta data.
-                  <p className="mt-2 text-sm">Tente selecionar outra data ou outro profissional.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
-                  {generateTimeSlots().map((time, index) => (
-                    <button
+                  {generateTimeSlots().map((timeSlot, index) => (
+                    <div 
                       key={index}
-                      className={`py-2 border rounded-md text-sm ${
-                        selectedTime === time
-                          ? 'border-primary text-primary'
-                          : 'border-border text-foreground'
+                      onClick={() => setSelectedTime(timeSlot)}
+                      className={`rounded-lg py-2 text-center cursor-pointer ${
+                        selectedTime === timeSlot 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'border border-border hover:bg-secondary'
                       }`}
-                      onClick={() => setSelectedTime(time)}
                     >
-                      {time}
-                    </button>
+                      {timeSlot}
+                    </div>
                   ))}
                 </div>
               )}
@@ -553,30 +563,88 @@ const AppointmentPage = () => {
         </div>
       )}
 
-      <div className="p-4 border-t border-border">
-        <Button
-          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-6"
-          disabled={!selectedProfessional || !selectedDate || !selectedTime || isCreating}
-          onClick={() => setShowConfirmation(true)}
+      {selectedTime && (
+        <div className="p-4 border-b border-border">
+          <h3 className="font-medium mb-2">Observações (opcional)</h3>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Alguma observação adicional para o profissional?"
+            className="w-full p-2 border border-border rounded-md h-24 resize-none"
+          />
+        </div>
+      )}
+
+      <div className="p-4 mt-auto">
+        <Button 
+          onClick={handleShowConfirmation} 
+          className="w-full"
+          disabled={!selectedProfessional || !selectedTime || isCreating}
         >
-          {isCreating ? 'Confirmando...' : 'Revisar Agendamento'}
+          {isCreating ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+              Confirmando...
+            </>
+          ) : (
+            'Confirmar Agendamento'
+          )}
         </Button>
       </div>
 
-      {renderCalendarDialog()}
-      
-      {showConfirmation && selectedProfessional && selectedTime && service && (
-        <AppointmentConfirmation
-          date={selectedDate}
-          time={selectedTime}
-          professional={selectedProfessional}
-          service={service}
-          notes={notes}
-          onNotesChange={setNotes}
-          onClose={() => setShowConfirmation(false)}
-          onConfirm={handleConfirmAppointment}
-        />
+      {/* Confirmation Dialog */}
+      {showConfirmation && (
+        <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+          <DialogContent className="sm:max-w-md">
+            <div className="p-4">
+              <h2 className="text-xl font-semibold mb-4 text-center">Confirmação de Agendamento</h2>
+              
+              <div className="space-y-4">
+                <div className="border-b pb-2">
+                  <h3 className="font-medium">Serviço</h3>
+                  <p>{service.name}</p>
+                  <p className="text-sm text-muted-foreground">{service.durationMinutes} min</p>
+                </div>
+                
+                <div className="border-b pb-2">
+                  <h3 className="font-medium">Profissional</h3>
+                  <p>{selectedProfessional?.name}</p>
+                </div>
+                
+                <div className="border-b pb-2">
+                  <h3 className="font-medium">Data e Horário</h3>
+                  <p>{format(selectedDate, 'dd/MM/yyyy')} às {selectedTime}</p>
+                </div>
+                
+                {notes && (
+                  <div className="border-b pb-2">
+                    <h3 className="font-medium">Observações</h3>
+                    <p className="text-sm">{notes}</p>
+                  </div>
+                )}
+                
+                <div className="border-b pb-2">
+                  <h3 className="font-medium">Valor</h3>
+                  <p className="text-primary font-semibold">
+                    {service.priceType === 'fixed' ? formatCurrency(service.price || 0) : 'Consultar'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-between mt-6 space-x-2">
+                <Button variant="outline" onClick={() => setShowConfirmation(false)} className="flex-1">
+                  Cancelar
+                </Button>
+                <Button onClick={handleConfirmAppointment} className="flex-1">
+                  Confirmar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
+      
+      {renderCalendarDialog()}
     </div>
   );
 };
