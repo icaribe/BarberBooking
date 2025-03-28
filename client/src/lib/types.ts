@@ -1,72 +1,53 @@
-// User related types
+// Definindo interfaces para os tipos de dados utilizados no aplicativo
+
 export interface User {
   id: number;
   username: string;
-  name: string | null;
-  email: string | null;
-  phone: string | null;
-  loyaltyPoints: number;
-}
-
-export interface UserRegistration {
-  username: string;
-  password: string;
-  name?: string;
-  email?: string;
+  name: string;
+  email: string;
   phone?: string;
+  points: number;
+  loyaltyPoints: number; // Alias para points para compatibilidade
 }
 
-// Service related types
 export interface ServiceCategory {
   id: number;
   name: string;
-  icon: string;
+  icon: string | null;
+  description?: string;
 }
 
 export interface Service {
   id: number;
   name: string;
-  price: number | null;
-  priceType: string; // "fixed" or "variable"
+  description: string;
+  price: number;
+  priceType: string;
   durationMinutes: number;
   categoryId: number;
-  description: string | null;
+  category?: ServiceCategory;
 }
 
-// Professional related types
 export interface Professional {
   id: number;
   name: string;
-  avatar: string | null;
-  rating: number;
-  reviewCount: number;
   specialties: string[];
-  bio: string | null;
+  avatar: string;
+  bio?: string;
+  rating?: number;
+  reviewCount?: number;
 }
 
 export interface Schedule {
   id: number;
   professionalId: number;
-  dayOfWeek: number; // 0-6 for Sunday-Saturday
-  startTime: string; // HH:MM format
-  endTime: string; // HH:MM format
-  isAvailable: boolean;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
 }
 
-// Appointment related types
 export interface Appointment {
   id: number;
-  userId: number;
-  professionalId: number;
-  date: string; // YYYY-MM-DD format
-  startTime: string; // HH:MM format
-  endTime: string; // HH:MM format
-  status: string; // scheduled, completed, cancelled
-  notes: string | null;
-  createdAt: Date;
-}
-
-export interface AppointmentCreation {
   userId: number;
   professionalId: number;
   date: string;
@@ -74,44 +55,40 @@ export interface AppointmentCreation {
   endTime: string;
   status: string;
   notes?: string;
-  services?: number[];
+  professional?: Professional;
+  user?: User;
 }
 
 export interface AppointmentService {
   id: number;
   appointmentId: number;
   serviceId: number;
+  service?: Service;
 }
 
-// Product related types
 export interface ProductCategory {
   id: number;
   name: string;
-  icon: string;
+  icon: string | null;
+  description?: string;
 }
 
 export interface Product {
   id: number;
   name: string;
+  description: string;
   price: number;
-  description: string | null;
-  imageUrl: string | null;
+  stockQuantity: number;
   categoryId: number;
-  inStock: boolean;
+  imageUrl?: string;
+  category?: ProductCategory;
 }
 
-// Loyalty related types
 export interface LoyaltyReward {
   id: number;
   name: string;
-  description: string | null;
-  pointsRequired: number;
-  icon: string | null;
+  description: string;
+  pointsCost: number;
   isActive: boolean;
-}
-
-// Time slot type for appointment booking
-export interface TimeSlot {
-  time: string;
-  available: boolean;
+  imageUrl?: string;
 }

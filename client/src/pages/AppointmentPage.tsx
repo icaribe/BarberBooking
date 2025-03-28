@@ -7,7 +7,7 @@ import { format, addDays, isSameDay, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useAppointments } from '@/lib/hooks/useAppointments';
+import { useAppointments } from '@/hooks/useAppointments';
 import { useProfessionals } from '@/lib/hooks/useProfessionals';
 import { useServices } from '@/lib/hooks/useServices';
 import { formatCurrency } from '@/lib/utils/format';
