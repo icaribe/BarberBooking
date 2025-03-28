@@ -5,157 +5,25 @@ import * as schema from '../shared/schema';
 
 async function createTables() {
   console.log('Criando tabelas no Supabase...');
-
+  console.log('⚠️ Nota: Este método não funciona, use o script SQL do arquivo create-tables.sql no SQL Editor do Supabase');
+  
   try {
-    // Criar tabela users
-    const { error: usersError } = await supabase.query(`
-      CREATE TABLE IF NOT EXISTS public.users (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL,
-        role TEXT NOT NULL DEFAULT 'client',
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-    `);
-    if (usersError) console.error('Erro ao criar tabela users:', usersError);
-    else console.log('✅ Tabela users criada');
-
-    // Criar tabela service_categories
-    const { error: serviceCategoriesError } = await supabase.query(`
-      CREATE TABLE IF NOT EXISTS public.service_categories (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-    `);
-    if (serviceCategoriesError) console.error('Erro ao criar tabela service_categories:', serviceCategoriesError);
-    else console.log('✅ Tabela service_categories criada');
-
-    // Criar tabela services
-    const { error: servicesError } = await supabase.query(`
-      CREATE TABLE IF NOT EXISTS public.services (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        description TEXT,
-        price DECIMAL(10, 2) NOT NULL,
-        duration INTEGER NOT NULL,
-        image TEXT,
-        categoryId INTEGER REFERENCES public.service_categories(id),
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-    `);
-    if (servicesError) console.error('Erro ao criar tabela services:', servicesError);
-    else console.log('✅ Tabela services criada');
-
-    // Criar tabela professionals
-    const { error: professionalsError } = await supabase.query(`
-      CREATE TABLE IF NOT EXISTS public.professionals (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        bio TEXT,
-        avatar TEXT,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-    `);
-    if (professionalsError) console.error('Erro ao criar tabela professionals:', professionalsError);
-    else console.log('✅ Tabela professionals criada');
-
-    // Criar tabela schedules
-    const { error: schedulesError } = await supabase.query(`
-      CREATE TABLE IF NOT EXISTS public.schedules (
-        id SERIAL PRIMARY KEY,
-        professionalId INTEGER REFERENCES public.professionals(id),
-        dayOfWeek INTEGER NOT NULL,
-        startTime TIME NOT NULL,
-        endTime TIME NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-    `);
-    if (schedulesError) console.error('Erro ao criar tabela schedules:', schedulesError);
-    else console.log('✅ Tabela schedules criada');
-
-    // Criar tabela appointments
-    const { error: appointmentsError } = await supabase.query(`
-      CREATE TABLE IF NOT EXISTS public.appointments (
-        id SERIAL PRIMARY KEY,
-        userId INTEGER REFERENCES public.users(id),
-        professionalId INTEGER REFERENCES public.professionals(id),
-        date DATE NOT NULL,
-        startTime TIME NOT NULL,
-        endTime TIME NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending',
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-    `);
-    if (appointmentsError) console.error('Erro ao criar tabela appointments:', appointmentsError);
-    else console.log('✅ Tabela appointments criada');
-
-    // Criar tabela appointment_services
-    const { error: appointmentServicesError } = await supabase.query(`
-      CREATE TABLE IF NOT EXISTS public.appointment_services (
-        id SERIAL PRIMARY KEY,
-        appointmentId INTEGER REFERENCES public.appointments(id),
-        serviceId INTEGER REFERENCES public.services(id),
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-    `);
-    if (appointmentServicesError) console.error('Erro ao criar tabela appointment_services:', appointmentServicesError);
-    else console.log('✅ Tabela appointment_services criada');
-
-    // Criar tabela product_categories
-    const { error: productCategoriesError } = await supabase.query(`
-      CREATE TABLE IF NOT EXISTS public.product_categories (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-    `);
-    if (productCategoriesError) console.error('Erro ao criar tabela product_categories:', productCategoriesError);
-    else console.log('✅ Tabela product_categories criada');
-
-    // Criar tabela products
-    const { error: productsError } = await supabase.query(`
-      CREATE TABLE IF NOT EXISTS public.products (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        description TEXT,
-        price DECIMAL(10, 2) NOT NULL,
-        image TEXT,
-        categoryId INTEGER REFERENCES public.product_categories(id),
-        stock INTEGER NOT NULL DEFAULT 0,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-    `);
-    if (productsError) console.error('Erro ao criar tabela products:', productsError);
-    else console.log('✅ Tabela products criada');
-
-    // Criar tabela loyalty_rewards
-    const { error: loyaltyRewardsError } = await supabase.query(`
-      CREATE TABLE IF NOT EXISTS public.loyalty_rewards (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        description TEXT,
-        pointsRequired INTEGER NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-    `);
-    if (loyaltyRewardsError) console.error('Erro ao criar tabela loyalty_rewards:', loyaltyRewardsError);
-    else console.log('✅ Tabela loyalty_rewards criada');
-
-    console.log('Criação de tabelas concluída!');
+    // Verificar se as tabelas existem
+    const { data: tables, error } = await supabase.from('pg_tables')
+      .select('tablename')
+      .eq('schemaname', 'public');
+      
+    if (error) {
+      console.error('Erro ao verificar tabelas existentes:', error);
+      return;
+    }
+    
+    const tableNames = tables?.map(t => t.tablename) || [];
+    console.log('Tabelas existentes:', tableNames.join(', ') || 'Nenhuma');
+    
+    console.log('Para criar as tabelas, use o script SQL em scripts/create-tables.sql');
   } catch (error) {
-    console.error('Erro durante a criação das tabelas:', error);
+    console.error('Erro durante a verificação das tabelas:', error);
   }
 }
 
