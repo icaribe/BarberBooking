@@ -41,9 +41,13 @@ const Header = ({ title, showBackButton }: HeaderProps) => {
         {!showBackButton && (
           <>
             <Button variant="ghost" size="icon" className="text-foreground" asChild>
-              <Link href="/location">
+              <a 
+                href="https://www.google.com/maps/search/?api=1&query=-15.91295338%2C-47.76993942" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
                 <MapPin className="h-5 w-5" />
-              </Link>
+              </a>
             </Button>
             <Button variant="ghost" size="icon" className="text-foreground" asChild>
               <Link href="/favorites">
