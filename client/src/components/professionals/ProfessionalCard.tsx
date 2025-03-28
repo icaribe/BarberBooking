@@ -15,37 +15,44 @@ const ProfessionalCard = ({ professional, onViewSchedule }: ProfessionalCardProp
   const hasHalfStar = (rating % 10) >= 5;
   
   return (
-    <div className="bg-card rounded-lg p-4 mb-4 flex items-center">
-      <div className="w-16 h-16 rounded-full overflow-hidden mr-4 flex-shrink-0">
-        <img 
-          src={avatar || '/default-avatar.png'} 
-          className="w-full h-full object-cover" 
-          alt={`Barbeiro ${name}`} 
-        />
-      </div>
-      <div className="flex-1">
-        <h3 className="font-montserrat font-semibold text-lg">{name}</h3>
-        <div className="flex items-center text-sm">
-          <div className="flex text-primary">
-            {[...Array(fullStars)].map((_, i) => (
-              <Star key={`star-${i}`} className="w-4 h-4 fill-primary" />
-            ))}
-            {hasHalfStar && <StarHalf className="w-4 h-4 fill-primary" />}
+    <div className="bg-card rounded-lg p-4 mb-4">
+      <div className="flex flex-col sm:flex-row">
+        <div className="flex mb-3 sm:mb-0">
+          <div className="w-16 h-16 rounded-full overflow-hidden mr-4 flex-shrink-0">
+            <img 
+              src={avatar || '/default-avatar.png'} 
+              className="w-full h-full object-cover" 
+              alt={`Barbeiro ${name}`} 
+            />
           </div>
-          <span className="text-muted-foreground ml-2">
-            {(rating / 10).toFixed(1)} ({reviewCount} avaliações)
-          </span>
+          <div className="flex-1">
+            <h3 className="font-montserrat font-semibold text-lg">{name}</h3>
+            <div className="flex items-center text-sm">
+              <div className="flex text-primary">
+                {[...Array(fullStars)].map((_, i) => (
+                  <Star key={`star-${i}`} className="w-4 h-4 fill-primary" />
+                ))}
+                {hasHalfStar && <StarHalf className="w-4 h-4 fill-primary" />}
+              </div>
+              <span className="text-muted-foreground ml-2">
+                {(rating / 10).toFixed(1)} ({reviewCount} avaliações)
+              </span>
+            </div>
+            <p className="text-muted-foreground text-sm mt-1">{bio}</p>
+          </div>
         </div>
-        <p className="text-muted-foreground text-sm mt-1">{bio}</p>
       </div>
-      <Button 
-        variant="secondary"
-        className="hover:bg-primary hover:text-primary-foreground transition-colors duration-200"
-        onClick={() => onViewSchedule(id)}
-      >
-        <Calendar className="w-4 h-4 mr-1" /> 
-        Ver agenda
-      </Button>
+      <div className="flex justify-end mt-3">
+        <Button 
+          variant="secondary"
+          size="sm"
+          className="hover:bg-primary hover:text-primary-foreground transition-colors duration-200"
+          onClick={() => onViewSchedule(id)}
+        >
+          <Calendar className="w-4 h-4 mr-1" /> 
+          Ver agenda
+        </Button>
+      </div>
     </div>
   );
 };
