@@ -140,6 +140,15 @@ async function migrateData() {
     console.log('Migração concluída com sucesso!');
   } catch (error) {
     console.error('Erro durante a migração:', error);
+    if (error.message) {
+      console.error('Mensagem de erro:', error.message);
+    }
+    if (error.code) {
+      console.error('Código de erro:', error.code);
+    }
+    if (error.details) {
+      console.error('Detalhes do erro:', error.details);
+    }
   }
 }
 
