@@ -511,9 +511,9 @@ const AppointmentPage = () => {
               }`}
             >
               <div className="flex flex-col items-center space-y-1">
-                {professional.imageUrl ? (
+                {professional.avatar ? (
                   <div className="w-16 h-16 rounded-full overflow-hidden mb-1">
-                    <img src={professional.imageUrl} alt={professional.name} className="w-full h-full object-cover" />
+                    <img src={professional.avatar} alt={professional.name} className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-1">

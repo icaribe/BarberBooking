@@ -15,7 +15,7 @@ const Header = ({ title, showBackButton }: HeaderProps) => {
   return (
     <header className="px-4 py-3 flex justify-between items-center bg-background shadow-md sticky top-0 z-30">
       {showBackButton ? (
-        <Button variant="ghost" size="icon" className="text-foreground" onClick={() => window.history.back()}>
+        <Button variant="ghost" size="icon" className="text-foreground" onClick={() => navigate('/')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
       ) : (
@@ -85,42 +85,42 @@ const SidebarMenu = () => {
             <ul className="space-y-3">
               <li>
                 <Link href="/">
-                  <a className="flex items-center py-2 px-3 rounded-md hover:bg-secondary text-foreground">
+                  <div className="flex items-center py-2 px-3 rounded-md hover:bg-secondary text-foreground">
                     <span className="mr-3">🏠</span>
                     <span>Início</span>
-                  </a>
+                  </div>
                 </Link>
               </li>
               <li>
                 <Link href="/appointments">
-                  <a className="flex items-center py-2 px-3 rounded-md hover:bg-secondary text-foreground">
+                  <div className="flex items-center py-2 px-3 rounded-md hover:bg-secondary text-foreground">
                     <span className="mr-3">📅</span>
                     <span>Minhas Reservas</span>
-                  </a>
+                  </div>
                 </Link>
               </li>
               <li>
                 <Link href="/profile">
-                  <a className="flex items-center py-2 px-3 rounded-md hover:bg-secondary text-foreground">
+                  <div className="flex items-center py-2 px-3 rounded-md hover:bg-secondary text-foreground">
                     <span className="mr-3">👤</span>
                     <span>Meu Perfil</span>
-                  </a>
+                  </div>
                 </Link>
               </li>
               <li>
                 <Link href="/products">
-                  <a className="flex items-center py-2 px-3 rounded-md hover:bg-secondary text-foreground">
+                  <div className="flex items-center py-2 px-3 rounded-md hover:bg-secondary text-foreground">
                     <span className="mr-3">🛍️</span>
                     <span>Produtos</span>
-                  </a>
+                  </div>
                 </Link>
               </li>
               <li>
                 <Link href="/loyalty">
-                  <a className="flex items-center py-2 px-3 rounded-md hover:bg-secondary text-foreground">
+                  <div className="flex items-center py-2 px-3 rounded-md hover:bg-secondary text-foreground">
                     <span className="mr-3">🏆</span>
                     <span>Fidelidade</span>
-                  </a>
+                  </div>
                 </Link>
               </li>
             </ul>

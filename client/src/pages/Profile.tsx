@@ -113,10 +113,10 @@ const ProfilePage = () => {
   
   return (
     <div className="flex flex-col min-h-screen bg-secondary pb-16">
-      <Header />
+      <Header showBackButton title="Meu Perfil" />
       
       <main className="flex-1 p-4">
-        <h1 className="font-montserrat font-bold text-2xl mb-4">Meu Perfil</h1>
+
         
         {isLoading ? (
           <div className="flex justify-center py-8">
