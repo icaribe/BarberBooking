@@ -12,9 +12,16 @@ async function populateTables() {
     const users = await db.select().from(schema.users);
     
     if (users.length > 0) {
+      // Transformar dados para corresponder às colunas da tabela no Supabase
+      const supabaseUsers = users.map(user => {
+        // Remover campos que não existem na tabela do Supabase
+        const { loyaltyPoints, ...userData } = user;
+        return userData;
+      });
+      
       const { error } = await supabase
         .from('users')
-        .upsert(users);
+        .upsert(supabaseUsers);
       
       if (error) throw error;
       console.log(`✅ ${users.length} usuários migrados com sucesso.`);
@@ -67,8 +74,8 @@ async function populateTables() {
       console.log('Nenhum profissional encontrado para migrar.');
     }
 
-    // 5. Migrar agendas
-    console.log('Migrando agendas...');
+    // 5. Migrar horários
+    console.log('Migrando horários...');
     const schedules = await db.select().from(schema.schedules);
     
     if (schedules.length > 0) {
@@ -77,9 +84,9 @@ async function populateTables() {
         .upsert(schedules);
       
       if (error) throw error;
-      console.log(`✅ ${schedules.length} agendas migradas com sucesso.`);
+      console.log(`✅ ${schedules.length} horários migrados com sucesso.`);
     } else {
-      console.log('Nenhuma agenda encontrada para migrar.');
+      console.log('Nenhum horário encontrado para migrar.');
     }
 
     // 6. Migrar agendamentos
@@ -97,8 +104,8 @@ async function populateTables() {
       console.log('Nenhum agendamento encontrado para migrar.');
     }
 
-    // 7. Migrar serviços de agendamentos
-    console.log('Migrando serviços de agendamentos...');
+    // 7. Migrar serviços de agendamento
+    console.log('Migrando serviços de agendamento...');
     const appointmentServices = await db.select().from(schema.appointmentServices);
     
     if (appointmentServices.length > 0) {
@@ -107,7 +114,7 @@ async function populateTables() {
         .upsert(appointmentServices);
       
       if (error) throw error;
-      console.log(`✅ ${appointmentServices.length} serviços de agendamentos migrados com sucesso.`);
+      console.log(`✅ ${appointmentServices.length} serviços de agendamento migrados com sucesso.`);
     } else {
       console.log('Nenhum serviço de agendamento encontrado para migrar.');
     }
@@ -157,20 +164,18 @@ async function populateTables() {
       console.log('Nenhuma recompensa de fidelidade encontrada para migrar.');
     }
 
-    console.log('✅ Migração de dados concluída com sucesso!');
+    console.log('✅ Migração concluída com sucesso!');
   } catch (error) {
     console.error('❌ Erro durante a migração de dados:', error);
+    // Exibir mensagem de erro mais detalhada
     if (error.message) {
       console.error('Mensagem de erro:', error.message);
     }
     if (error.code) {
       console.error('Código de erro:', error.code);
     }
-    if (error.details) {
-      console.error('Detalhes do erro:', error.details);
-    }
   }
 }
 
-// Executar população de dados
+// Executar função de migração
 populateTables();
