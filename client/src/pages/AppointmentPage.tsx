@@ -32,7 +32,16 @@ const AppointmentPage = () => {
   
   const { services, isLoadingServices } = useServices();
   const { professionals, isLoadingProfessionals } = useProfessionals();
-  const { createAppointment, isCreating } = useAppointments();
+  const { 
+    createAppointment, 
+    isCreating,
+    appointments,
+    isLoading: isLoadingAppointments 
+  } = useAppointments(
+    undefined,
+    selectedProfessional?.id,
+    selectedDate ? format(selectedDate, 'yyyy-MM-dd') : undefined
+  );
 
   // Get the service from ID
   const service = services.find(s => s.id === serviceId);
@@ -134,12 +143,7 @@ const AppointmentPage = () => {
     setSelectedTime(null); // Reset time selection when date changes
   };
 
-  // Fetch appointments for the selected date and professional
-  const { appointments, isLoading: isLoadingAppointments } = useAppointments(
-    undefined,
-    selectedProfessional?.id,
-    selectedDate ? format(selectedDate, 'yyyy-MM-dd') : undefined
-  );
+  // Appointments são obtidos no início do componente
 
   // Generate time slots for selected professional and date
   const generateTimeSlots = () => {
