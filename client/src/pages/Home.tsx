@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import Header from '@/components/layout/Header';
-import BottomNav from '@/components/layout/BottomNav';
 import TabNavigation from '@/components/layout/TabNavigation';
 import ServicesTab from '@/pages/ServicesTab';
 import DetailsTab from '@/pages/DetailsTab';
@@ -12,7 +11,7 @@ const Home = () => {
   const [activeTab, setActiveTab] = useState('services');
 
   return (
-    <div className="flex flex-col min-h-screen bg-secondary pb-16">
+    <div className="flex flex-col min-h-screen bg-secondary">
       <Header />
       
       <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
@@ -24,8 +23,6 @@ const Home = () => {
         {activeTab === 'products' && <ProductsTab />}
         {activeTab === 'loyalty' && <LoyaltyTab />}
       </main>
-      
-      <BottomNav />
     </div>
   );
 };

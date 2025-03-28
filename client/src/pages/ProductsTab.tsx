@@ -3,6 +3,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
 import { useProducts } from '@/lib/hooks/useProducts';
+import ProductCategoryFilter from '@/components/products/ProductCategoryFilter';
 import type { Product } from '@/lib/types';
 
 const ProductsTab = () => {
@@ -25,7 +26,7 @@ const ProductsTab = () => {
   return (
     <div className="px-4 py-4">
       <div className="mb-4">
-        <h2 className="font-montserrat font-semibold text-xl mb-4">Produtos</h2>
+        <h2 className="font-montserrat font-semibold text-xl mb-2">Produtos</h2>
         
         {/* Categories Filter */}
         {isLoadingCategories ? (
@@ -33,26 +34,11 @@ const ProductsTab = () => {
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className="overflow-x-auto py-2 flex flex-wrap gap-2">
-            <Button
-              variant={selectedCategoryId === null ? "default" : "secondary"}
-              className="rounded-full whitespace-nowrap font-medium text-sm px-4"
-              onClick={() => setSelectedCategoryId(null)}
-            >
-              Todos
-            </Button>
-            
-            {categories.map(category => (
-              <Button
-                key={category.id}
-                variant={selectedCategoryId === category.id ? "default" : "secondary"}
-                className="rounded-full whitespace-nowrap font-medium text-sm px-4"
-                onClick={() => setSelectedCategoryId(category.id)}
-              >
-                {category.name}
-              </Button>
-            ))}
-          </div>
+          <ProductCategoryFilter
+            categories={categories}
+            selectedCategoryId={selectedCategoryId}
+            onSelectCategory={setSelectedCategoryId}
+          />
         )}
       </div>
       
