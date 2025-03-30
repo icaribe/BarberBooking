@@ -12,7 +12,8 @@
     "check:supabase": "tsx scripts/check-supabase-tables.ts",
     "check:local": "tsx scripts/check-local-db.ts",
     "debug:supabase": "tsx scripts/debug-supabase-connection.ts",
-    "populate:supabase": "tsx scripts/populate-supabase.ts"
+    "populate:supabase": "tsx scripts/populate-supabase.ts",
+    "vercel-build": "vite build && tsc -p tsconfig.json --skipLibCheck"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
