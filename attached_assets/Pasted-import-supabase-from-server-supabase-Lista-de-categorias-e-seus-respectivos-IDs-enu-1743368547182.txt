@@ -1,0 +1,143 @@
+import { supabase } from '../server/supabase';
+
+// Lista de categorias e seus respectivos IDs
+enum ProductCategory {
+  BarbaECabelo = 1,
+  Pomadas = 2,
+  BebidasAlcoolicas = 3,
+  BebidasNaoAlcoolicas = 4,
+  Lanches = 5,
+  Acessorios = 6
+}
+
+// Função para converter preço de formato R$ XX,XX para centavos (inteiro)
+const priceToInt = (priceString: string): number => {
+  // Remove "R$ " e converte para número
+  const numericPrice = parseFloat(priceString.replace('R$ ', '').replace(',', '.'));
+  // Converte para centavos
+  return Math.round(numericPrice * 100);
+};
+
+// Função para adicionar campos de timestamp
+const addTimestamps = (data: any) => {
+  const now = new Date().toISOString();
+  return {
+    ...data,
+    created_at: now,
+    updated_at: now
+  };
+};
+
+// Categorias e seus produtos
+const productsByCategory = {
+  // Produtos para Barba e Cabelo
+  [ProductCategory.BarbaECabelo]: [
+    { name: "Foxidil minoxidil para barba (fox) 120 ml", price: priceToInt("R$ 90,00"), description: "Minoxidil para crescimento da barba", inStock: true },
+    { name: "Bal fox", price: priceToInt("R$ 40,00"), description: "Bálsamo para barba da Fox", inStock: true },
+    { name: "Balm B.URB para barba", price: priceToInt("R$ 35,00"), description: "Bálsamo para barba da marca B.URB", inStock: true },
+    { name: "Balm Red Nek para barba", price: priceToInt("R$ 35,00"), description: "Bálsamo para barba da marca Red Nek", inStock: true },
+    { name: "Derma Roller", price: priceToInt("R$ 40,00"), description: "Equipamento para microagulhamento capilar", inStock: true },
+    { name: "Condicionador 3 em 1", price: priceToInt("R$ 30,00"), description: "Condicionador multifuncional 3 em 1", inStock: true },
+    { name: "Condicionador Ice Fresh Fox 240ml", price: priceToInt("R$ 25,00"), description: "Condicionador refrescante", inStock: true },
+    { name: "Escova anti estática", price: priceToInt("R$ 45,00"), description: "Escova especial anti estática", inStock: true },
+    { name: "Esponja de Nudred", price: priceToInt("R$ 30,00"), description: "Esponja para cabelo crespo", inStock: true },
+    { name: "Loção Hidratante Balm Barba 4 em 1", price: priceToInt("R$ 35,00"), description: "Loção multifuncional para barba", inStock: true },
+    { name: "Loção Spray Pós Barba Lenhador", price: priceToInt("R$ 30,00"), description: "Loção pós-barba refrescante", inStock: true },
+    { name: "Maquina Itan", price: priceToInt("R$ 60,00"), description: "Máquina de corte profissional", inStock: true },
+    { name: "Minoxidil Kirkland Signature 05% 60ml", price: priceToInt("R$ 90,00"), description: "Minoxidil importado para crescimento capilar", inStock: true },
+    { name: "Navalha", price: priceToInt("R$ 30,00"), description: "Navalha para barbear profissional", inStock: true },
+    { name: "Óleo de Barba Lenhador Kerafyto", price: priceToInt("R$ 30,00"), description: "Óleo hidratante para barba", inStock: true },
+    { name: "Pente", price: priceToInt("R$ 25,00"), description: "Pente para cabelo", inStock: true },
+    { name: "Pente de mão", price: priceToInt("R$ 3,00"), description: "Pente portátil pequeno", inStock: true },
+    { name: "Perfume de barba", price: priceToInt("R$ 25,00"), description: "Perfume específico para barba", inStock: true },
+    { name: "Perfumes", price: priceToInt("R$ 30,00"), description: "Perfumes variados", inStock: true },
+    { name: "Shampoo 3 em 1", price: priceToInt("R$ 30,00"), description: "Shampoo multifuncional", inStock: true },
+    { name: "Shampoo anti-caspa", price: priceToInt("R$ 30,00"), description: "Shampoo para combate à caspa", inStock: true },
+    { name: "Shampoo com minoxidill", price: priceToInt("R$ 30,00"), description: "Shampoo com minoxidil para crescimento capilar", inStock: true },
+    { name: "Shampoo Ice Fresh Fox 240ml", price: priceToInt("R$ 25,00"), description: "Shampoo refrescante Fox", inStock: true },
+    { name: "Shampoo preto", price: priceToInt("R$ 30,00"), description: "Shampoo tonalizante preto", inStock: true },
+    { name: "Tonico capilar", price: priceToInt("R$ 30,00"), description: "Tônico para fortalecimento capilar", inStock: true }
+  ],
+  
+  // Pomadas e Produtos para Estilização
+  [ProductCategory.Pomadas]: [
+    { name: "Cera Red Neck Cinza", price: priceToInt("R$ 20,00"), description: "Cera de fixação média, acabamento matte", inStock: true },
+    { name: "Cera Red Neck Laranja", price: priceToInt("R$ 20,00"), description: "Cera de fixação forte, acabamento brilhante", inStock: true },
+    { name: "Cera Red Neck Roxa", price: priceToInt("R$ 20,00"), description: "Cera de fixação forte, acabamento matte", inStock: true },
+    { name: "Cera Red Neck Verde", price: priceToInt("R$ 20,00"), description: "Cera de fixação média, acabamento brilhante", inStock: true },
+    { name: "Cera Red Neck Vermelho", price: priceToInt("R$ 20,00"), description: "Cera de fixação extra forte, acabamento matte", inStock: true },
+    { name: "Pomada efeito teia lenhador 120g", price: priceToInt("R$ 30,00"), description: "Pomada com textura para efeito teia", inStock: true },
+    { name: "Pomada fox verde 120g", price: priceToInt("R$ 30,00"), description: "Pomada da Fox com acabamento médio", inStock: true },
+    { name: "Pomada 60g Pequena (Máxima e Lenhador)", price: priceToInt("R$ 20,00"), description: "Pomada pequena de alto desempenho", inStock: true },
+    { name: "Pomada black Fox 120g", price: priceToInt("R$ 30,00"), description: "Pomada Black da Fox, alta fixação", inStock: true },
+    { name: "Pomada black lenhador 120g", price: priceToInt("R$ 30,00"), description: "Pomada Black Lenhador, alta fixação", inStock: true },
+    { name: "Pomada caramelo fox 120g", price: priceToInt("R$ 30,00"), description: "Pomada Fox caramelo, fixação média", inStock: true },
+    { name: "Pomada Conhaque", price: priceToInt("R$ 30,00"), description: "Pomada com aroma de conhaque, fixação média", inStock: true },
+    { name: "Pomada Efeito teia Fox 120g", price: priceToInt("R$ 30,00"), description: "Pomada Fox com efeito teia", inStock: true },
+    { name: "Pomada em pó", price: priceToInt("R$ 30,00"), description: "Pomada em pó para volume e textura", inStock: true },
+    { name: "Pomada hair fox laranja 120g", price: priceToInt("R$ 30,00"), description: "Pomada Fox laranja, fixação forte", inStock: true },
+    { name: "Pomada matte lenhador 120g", price: priceToInt("R$ 30,00"), description: "Pomada matte acabamento seco", inStock: true },
+    { name: "Pomada Modeladora Caramelo", price: priceToInt("R$ 30,00"), description: "Pomada modeladora coloração caramelo", inStock: true },
+    { name: "Pomada pequena CREAM", price: priceToInt("R$ 25,00"), description: "Pomada pequena cremosa", inStock: true },
+    { name: "Pomada Pequnea", price: priceToInt("R$ 20,00"), description: "Pomada pequena para uso diário", inStock: true },
+    { name: "Pomada toque seco fox 120g", price: priceToInt("R$ 30,00"), description: "Pomada com acabamento seco Fox", inStock: true },
+    { name: "Pomada Tradicional lenhador 120g", price: priceToInt("R$ 30,00"), description: "Pomada tradicional Lenhador", inStock: true }
+  ],
+  
+  // Bebidas Alcoólicas
+  [ProductCategory.BebidasAlcoolicas]: [
+    { name: "BUDWEISER LONG NECK", price: priceToInt("R$ 7,00"), description: "Cerveja Budweiser Long Neck", inStock: true },
+    { name: "Campari", price: priceToInt("R$ 6,00"), description: "Dose de Campari", inStock: true },
+    { name: "CORONA LONG NECK", price: priceToInt("R$ 8,00"), description: "Cerveja Corona Long Neck", inStock: true },
+    { name: "Coronita", price: priceToInt("R$ 7,00"), description: "Cerveja Coronita", inStock: true },
+    { name: "DOSE ALAMBIQUE MURICI", price: priceToInt("R$ 2,00"), description: "Dose de cachaça artesanal", inStock: true },
+    { name: "DOSE CACHAÇA 51", price: priceToInt("R$ 4,00"), description: "Dose de cachaça 51", inStock: true },
+    { name: "DOSE CORTEZANO", price: priceToInt("R$ 2,00"), description: "Dose de Cortezano", inStock: true },
+    { name: "DOSE MONTILLA", price: priceToInt("R$ 3,00"), description: "Dose de Montilla", inStock: true },
+    { name: "DOSE OLD PARR 12 ANOS", price: priceToInt("R$ 18,00"), description: "Dose de whisky Old Parr 12 anos", inStock: true },
+    { name: "DOSE ORLOFF VODKA", price: priceToInt("R$ 6,00"), description: "Dose de vodka Orloff", inStock: true },
+    { name: "DOSE PARATUDO", price: priceToInt("R$ 5,00"), description: "Dose de cachaça Paratudo", inStock: true },
+    { name: "DOSE SÃO JOÃO DA BARRA", price: priceToInt("R$ 4,00"), description: "Dose de cachaça São João da Barra", inStock: true },
+    { name: "DOSE SELETA", price: priceToInt("R$ 5,00"), description: "Dose de cachaça Seleta", inStock: true },
+    { name: "DOSE TEQUILA OURO (JOSE CUERVO)", price: priceToInt("R$ 10,00"), description: "Dose de tequila ouro José Cuervo", inStock: true },
+    { name: "DOSE TEQUILA PRATA (JOSE CUERVO)", price: priceToInt("R$ 9,00"), description: "Dose de tequila prata José Cuervo", inStock: true },
+    { name: "DOSE VELHO BARREIRO", price: priceToInt("R$ 4,00"), description: "Dose de cachaça Velho Barreiro", inStock: true },
+    { name: "DOSE VODKA SKYY", price: priceToInt("R$ 8,00"), description: "Dose de vodka Skyy", inStock: true },
+    { name: "DOSE Vodka SMIRNOFFF", price: priceToInt("R$ 7,00"), description: "Dose de vodka Smirnoff", inStock: true },
+    { name: "DOSE WHISKEY BLACK LABEL", price: priceToInt("R$ 18,00"), description: "Dose de whisky Johnnie Walker Black Label", inStock: true },
+    { name: "DOSE WHISKEY CHIVAS 12 ANOS", price: priceToInt("R$ 18,00"), description: "Dose de whisky Chivas Regal 12 anos", inStock: true },
+    { name: "DOSE WHISKEY JACK DANIELS", price: priceToInt("R$ 16,00"), description: "Dose de whisky Jack Daniel's", inStock: true },
+    { name: "DOSE WHISKEY RED LABEL", price: priceToInt("R$ 11,00"), description: "Dose de whisky Johnnie Walker Red Label", inStock: true },
+    { name: "DOSE WHITE HORSE", price: priceToInt("R$ 10,00"), description: "Dose de whisky White Horse", inStock: true },
+    { name: "MONSTER ABSOLUT", price: priceToInt("R$ 10,00"), description: "Drink Monster com vodka Absolut", inStock: true },
+    { name: "RIBEIRAO COLORADO LONG NECK", price: priceToInt("R$ 10,00"), description: "Cerveja Colorado Ribeirão Lager", inStock: true },
+    { name: "SPATEN 600ML", price: priceToInt("R$ 13,00"), description: "Cerveja Spaten 600ml", inStock: true },
+    { name: "SPATEN LONG NECK", price: priceToInt("R$ 7,00"), description: "Cerveja Spaten Long Neck", inStock: true },
+    { name: "STELLA ARTOIS LONG NECK 330ml", price: priceToInt("R$ 7,00"), description: "Cerveja Stella Artois Long Neck", inStock: true },
+    { name: "Patagônia IPA 355ml", price: priceToInt("R$ 8,00"), description: "Cerveja Patagônia IPA", inStock: true }
+  ],
+  
+  // Bebidas Não Alcoólicas
+  [ProductCategory.BebidasNaoAlcoolicas]: [
+    { name: "AGUA COM GAS", price: priceToInt("R$ 3,50"), description: "Água mineral com gás", inStock: true },
+    { name: "Agua com gas + Limão", price: priceToInt("R$ 3,50"), description: "Água mineral com gás e limão", inStock: true },
+    { name: "AGUA MINERAL", price: priceToInt("R$ 3,00"), description: "Água mineral sem gás", inStock: true },
+    { name: "Antarctica Lata", price: priceToInt("R$ 3,50"), description: "Refrigerante Antarctica em lata", inStock: true },
+    { name: "ANTARCTICA ORIGINAL 600ml", price: priceToInt("R$ 13,00"), description: "Cerveja Antarctica Original 600ml", inStock: true },
+    { name: "APPIA COLORADO 300ML", price: priceToInt("R$ 7,00"), description: "Cerveja Colorado Appia 300ml", inStock: true },
+    { name: "Chopp Stadt", price: priceToInt("R$ 6,00"), description: "Chopp Stadt", inStock: true },
+    { name: "COCA 310ML", price: priceToInt("R$ 4,50"), description: "Coca-Cola lata 310ml", inStock: true },
+    { name: "COCA ZERO LATA 310ML", price: priceToInt("R$ 4,00"), description: "Coca-Cola Zero lata 310ml", inStock: true },
+    { name: "COCA-COLA KS", price: priceToInt("R$ 5,00"), description: "Coca-Cola KS", inStock: true },
+    { name: "HEINEKEN ZERO ALCOOL 330ml", price: priceToInt("R$ 7,00"), description: "Cerveja Heineken Zero Álcool", inStock: true },
+    { name: "Monster de goiaba", price: priceToInt("R$ 10,00"), description: "Energético Monster sabor goiaba", inStock: true },
+    { name: "Monster de Laranja", price: priceToInt("R$ 10,00"), description: "Energético Monster sabor laranja", inStock: true },
+    { name: "MONSTER MANGO LOKO", price: priceToInt("R$ 10,00"), description: "Energético Monster Mango Loko", inStock: true },
+    { name: "Monster Melancia", price: priceToInt("R$ 10,00"), description: "Energético Monster sabor melancia", inStock: true },
+    { name: "Monster Tradicional 473ml", price: priceToInt("R$ 10,00"), description: "Energético Monster tradicional", inStock: true },
+    { name: "GATORADE (MoRANGO)", price: priceToInt("R$ 6,00"), description: "Isotônico Gatorade sabor morango", inStock: true },
+    { name: "GATOREDE(limão)", price: priceToInt("R$ 6,00"), description: "Isotônico Gatorade sabor limão", inStock: true },
+    { name: "GATOREDE(MARACUJA)", price: priceToInt("R$ 6,00"), description: "Isotônico Gatorade sabor maracujá", inStock: true },
+    { name: "POWERADE SABORES 500ML", price: priceToInt("R$ 5,00"), description: "Isotônico Powerade diversos sabores", inStock: true },
+    { name: "RED BULL ENERGETICO", price: priceToInt("R$ 10,00"), description: "Energético Red Bull", inStock: true },
+    { name: "Suco
