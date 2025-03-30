@@ -11,6 +11,17 @@ enum ProductCategory {
   Acessorios = 6
 }
 
+// Função para converter preço de formato R$ XX,XX para centavos (inteiro)
+const priceToInt = (priceString: string): number => {
+  // Se já for um número, retorna como está
+  if (typeof priceString === 'number') return priceString;
+  
+  // Remove "R$ " e converte para número
+  const numericPrice = parseFloat(priceString.replace('R$ ', '').replace(',', '.'));
+  // Converte para centavos
+  return Math.round(numericPrice * 100);
+};
+
 // Função para adicionar campos de timestamp
 const addTimestamps = (data: any) => {
   const now = new Date().toISOString();
@@ -226,7 +237,7 @@ async function populateProducts() {
 
       if (checkError.code === 'PGRST116') {
         console.error('A tabela products não existe no Supabase!');
-        console.log('Execute primeiro o script SQL para criar as tabelas.');
+        console.log('Execute primeiro o script SQL para criar a tabela products.');
         return;
       }
 
@@ -250,6 +261,7 @@ async function populateProducts() {
       console.log(`\nInserindo produtos da categoria ID ${categoryId}...`);
 
       for (const product of products) {
+        // Mapear corretamente os campos para o formato do Supabase
         const productWithCategoryId = {
           name: product.name,
           price: product.price,
@@ -261,9 +273,13 @@ async function populateProducts() {
 
         const productWithTimestamps = addTimestamps(productWithCategoryId);
 
+        // Usar upsert para inserir ou atualizar
         const { error } = await supabase
           .from('products')
-          .upsert(productWithTimestamps, { onConflict: 'name' });
+          .upsert(productWithTimestamps, { 
+            onConflict: 'name', 
+            ignoreDuplicates: false 
+          });
 
         if (error) {
           console.error(`Erro ao inserir produto ${product.name}:`, error);
