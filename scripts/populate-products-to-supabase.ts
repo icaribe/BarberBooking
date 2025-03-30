@@ -1,7 +1,7 @@
 
 import { supabase } from '../server/supabase';
 
-// Lista de categorias e seus respectivos IDs
+// Enumeração de categorias com os IDs existentes no Supabase
 enum ProductCategory {
   BarbaECabelo = 1,
   Pomadas = 2,
@@ -34,7 +34,7 @@ const addTimestamps = (data: any) => {
 
 // Categorias e seus produtos
 const productsByCategory = {
-  // Produtos para Barba e Cabelo
+  // Produtos para Barba e Cabelo (ID: 1)
   [ProductCategory.BarbaECabelo]: [
     { name: "Foxidil minoxidil para barba (fox) 120 ml", price: 9000, description: "Minoxidil para crescimento da barba", image_url: null, in_stock: true },
     { name: "Bal fox", price: 4000, description: "Bálsamo para barba da Fox", image_url: null, in_stock: true },
@@ -63,7 +63,7 @@ const productsByCategory = {
     { name: "Tonico capilar", price: 3000, description: "Tônico para fortalecimento capilar", image_url: null, in_stock: true }
   ],
 
-  // Pomadas e Produtos para Estilização
+  // Pomadas e Produtos para Estilização (ID: 2)
   [ProductCategory.Pomadas]: [
     { name: "Cera Red Neck Cinza", price: 2000, description: "Cera de fixação média, acabamento matte", image_url: null, in_stock: true },
     { name: "Cera Red Neck Laranja", price: 2000, description: "Cera de fixação forte, acabamento brilhante", image_url: null, in_stock: true },
@@ -88,7 +88,7 @@ const productsByCategory = {
     { name: "Pomada Tradicional lenhador 120g", price: 3000, description: "Pomada tradicional Lenhador", image_url: null, in_stock: true }
   ],
 
-  // Bebidas Alcoólicas
+  // Bebidas Alcoólicas (ID: 3)
   [ProductCategory.BebidasAlcoolicas]: [
     { name: "BUDWEISER LONG NECK", price: 700, description: "Cerveja Budweiser Long Neck", image_url: null, in_stock: true },
     { name: "Campari", price: 600, description: "Dose de Campari", image_url: null, in_stock: true },
@@ -121,7 +121,7 @@ const productsByCategory = {
     { name: "Patagônia IPA 355ml", price: 800, description: "Cerveja Patagônia IPA", image_url: null, in_stock: true }
   ],
 
-  // Bebidas Não Alcoólicas
+  // Bebidas Não Alcoólicas (ID: 4)
   [ProductCategory.BebidasNaoAlcoolicas]: [
     { name: "AGUA COM GAS", price: 350, description: "Água mineral com gás", image_url: null, in_stock: true },
     { name: "Agua com gas + Limão", price: 350, description: "Água mineral com gás e limão", image_url: null, in_stock: true },
@@ -150,7 +150,7 @@ const productsByCategory = {
     { name: "SUCO UVA 290 ML", price: 450, description: "Suco de uva 290ml", image_url: null, in_stock: true }
   ],
 
-  // Lanches e Snacks
+  // Lanches e Snacks (ID: 5)
   [ProductCategory.Lanches]: [
     { name: "Barra de Cereal", price: 250, description: "Barra de cereal diversos sabores", image_url: null, in_stock: true },
     { name: "Barra de cereal banana", price: 300, description: "Barra de cereal sabor banana", image_url: null, in_stock: true },
@@ -168,7 +168,7 @@ const productsByCategory = {
     { name: "Trident(tutti fruiti)8g", price: 300, description: "Chiclete Trident sabor tutti-frutti", image_url: null, in_stock: true }
   ],
 
-  // Acessórios e Outros
+  // Acessórios e Outros (ID: 6)
   [ProductCategory.Acessorios]: [
     { name: "CARTEIRA PAIOL OURO", price: 1800, description: "Carteira de paiol ouro", image_url: null, in_stock: true },
     { name: "CARTEIRA TRADICIONAL E MAMA CADELA", price: 1500, description: "Carteira tradicional e mama cadela", image_url: null, in_stock: true },
@@ -178,77 +178,70 @@ const productsByCategory = {
   ]
 };
 
-async function populateProductCategories() {
-  console.log('Verificando categorias de produtos...');
-
-  const categories = [
-    { id: 1, name: "Produtos para Barba e Cabelo", icon: "scissors" },
-    { id: 2, name: "Pomadas e Produtos para Estilização", icon: "disc" },
-    { id: 3, name: "Bebidas Alcoólicas", icon: "wine" },
-    { id: 4, name: "Bebidas Não Alcoólicas", icon: "coffee" },
-    { id: 5, name: "Lanches e Snacks", icon: "burger" },
-    { id: 6, name: "Acessórios e Outros", icon: "shopping-bag" }
-  ];
-
-  for (const category of categories) {
-    console.log(`Verificando categoria: ${category.name}`);
-
-    const { data: existingCategory, error: checkError } = await supabase
-      .from('product_categories')
-      .select('*')
-      .eq('id', category.id)
-      .single();
-
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error(`Erro ao verificar categoria ${category.name}:`, checkError);
-      continue;
-    }
-
-    if (!existingCategory) {
-      const { error } = await supabase
-        .from('product_categories')
-        .insert([addTimestamps(category)]);
-
-      if (error) {
-        console.error(`Erro ao inserir categoria ${category.name}:`, error);
-      } else {
-        console.log(`✅ Categoria ${category.name} inserida com sucesso.`);
-      }
-    } else {
-      console.log(`⏭️ Categoria ${category.name} já existe.`);
-    }
+async function verificarCategorias() {
+  console.log('Verificando categorias existentes no Supabase...');
+  
+  const { data: categories, error } = await supabase
+    .from('product_categories')
+    .select('*');
+    
+  if (error) {
+    console.error('Erro ao buscar categorias:', error);
+    throw error;
   }
-
-  console.log('Processo de verificação de categorias concluído.\n');
+  
+  if (!categories || categories.length === 0) {
+    console.error('Não foram encontradas categorias! Por favor, crie as categorias primeiro.');
+    return false;
+  }
+  
+  console.log('Categorias encontradas:');
+  categories.forEach(cat => {
+    console.log(`ID: ${cat.id}, Nome: ${cat.name}`);
+  });
+  
+  return true;
 }
 
 async function populateProducts() {
-  console.log('Iniciando população da tabela products no Supabase...');
-
+  console.log('=== Script de População de Produtos para Supabase ===\n');
+  
   try {
-    // Verificar se a tabela existe
-    const { data: checkTable, error: checkError } = await supabase
-      .from('products')
-      .select('count')
-      .limit(1);
+    // Primeiro, verifica se as categorias existem
+    const categoriasExistem = await verificarCategorias();
+    if (!categoriasExistem) {
+      console.log('Execute primeiro o script para criar as categorias de produtos.');
+      return;
+    }
+    
+    // Verificar se a tabela products existe
+    console.log('\nVerificando tabela products...');
+    try {
+      const { data: checkTable, error: checkError } = await supabase
+        .from('products')
+        .select('count')
+        .limit(1);
 
-    if (checkError) {
-      console.error('Erro ao verificar tabela products:', checkError);
+      if (checkError) {
+        console.error('Erro ao verificar tabela products:', checkError);
 
-      if (checkError.code === 'PGRST116') {
-        console.error('A tabela products não existe no Supabase!');
-        console.log('Execute primeiro o script SQL para criar a tabela products.');
-        return;
+        if (checkError.code === 'PGRST116') {
+          console.error('A tabela products não existe no Supabase!');
+          console.log('Execute primeiro o script SQL para criar a tabela products.');
+          return;
+        }
+
+        throw checkError;
       }
-
-      throw checkError;
+      
+      console.log('✅ Tabela products encontrada.');
+    } catch (error) {
+      console.error('Erro ao verificar tabela products:', error);
+      return;
     }
 
-    console.log('Tabela products encontrada, prosseguindo com a inserção de dados...');
-
-    // Primeiro, popule as categorias
-    await populateProductCategories();
-
+    console.log('\nIniciando inserção de produtos...');
+    
     // Agora, popule os produtos
     let totalProducts = 0;
     let successCount = 0;
@@ -261,8 +254,8 @@ async function populateProducts() {
       console.log(`\nInserindo produtos da categoria ID ${categoryId}...`);
 
       for (const product of products) {
-        // Mapear corretamente os campos para o formato do Supabase
-        const productWithCategoryId = {
+        // Preparar objeto do produto para inserção
+        const productData = {
           name: product.name,
           price: product.price,
           description: product.description,
@@ -271,7 +264,7 @@ async function populateProducts() {
           in_stock: product.in_stock
         };
 
-        const productWithTimestamps = addTimestamps(productWithCategoryId);
+        const productWithTimestamps = addTimestamps(productData);
 
         // Usar upsert para inserir ou atualizar
         const { error } = await supabase
@@ -282,11 +275,11 @@ async function populateProducts() {
           });
 
         if (error) {
-          console.error(`Erro ao inserir produto ${product.name}:`, error);
+          console.error(`Erro ao inserir produto "${product.name}":`, error);
           errorCount++;
         } else {
           successCount++;
-          console.log(`✅ Produto ${product.name} inserido com sucesso.`);
+          console.log(`✅ Produto "${product.name}" inserido com sucesso.`);
         }
       }
     }
@@ -307,15 +300,5 @@ async function populateProducts() {
   }
 }
 
-// Função principal
-async function main() {
-  console.log('=== Script de População de Produtos para Supabase ===\n');
-
-  // Popula os produtos
-  await populateProducts();
-
-  console.log('\nOperação concluída.');
-}
-
 // Executar script
-main();
+populateProducts();
