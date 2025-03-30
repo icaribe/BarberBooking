@@ -1,4 +1,3 @@
-
 import { supabase } from '../server/supabase';
 
 // Lista de categorias e seus respectivos IDs
@@ -59,7 +58,7 @@ const productsByCategory = {
     { name: "Shampoo preto", price: 3000, description: "Shampoo tonalizante preto", inStock: true },
     { name: "Tonico capilar", price: 3000, description: "Tônico para fortalecimento capilar", inStock: true }
   ],
-  
+
   // Pomadas e Produtos para Estilização
   [ProductCategory.Pomadas]: [
     { name: "Cera Red Neck Cinza", price: 2000, description: "Cera de fixação média, acabamento matte", inStock: true },
@@ -84,7 +83,7 @@ const productsByCategory = {
     { name: "Pomada toque seco fox 120g", price: 3000, description: "Pomada com acabamento seco Fox", inStock: true },
     { name: "Pomada Tradicional lenhador 120g", price: 3000, description: "Pomada tradicional Lenhador", inStock: true }
   ],
-  
+
   // Bebidas Alcoólicas
   [ProductCategory.BebidasAlcoolicas]: [
     { name: "BUDWEISER LONG NECK", price: 700, description: "Cerveja Budweiser Long Neck", inStock: true },
@@ -117,7 +116,7 @@ const productsByCategory = {
     { name: "STELLA ARTOIS LONG NECK 330ml", price: 700, description: "Cerveja Stella Artois Long Neck", inStock: true },
     { name: "Patagônia IPA 355ml", price: 800, description: "Cerveja Patagônia IPA", inStock: true }
   ],
-  
+
   // Bebidas Não Alcoólicas
   [ProductCategory.BebidasNaoAlcoolicas]: [
     { name: "AGUA COM GAS", price: 350, description: "Água mineral com gás", inStock: true },
@@ -146,7 +145,7 @@ const productsByCategory = {
     { name: "SUCO GOIABA 290ML", price: 450, description: "Suco de goiaba 290ml", inStock: true },
     { name: "SUCO UVA 290 ML", price: 450, description: "Suco de uva 290ml", inStock: true }
   ],
-  
+
   // Lanches e Snacks
   [ProductCategory.Lanches]: [
     { name: "Barra de Cereal", price: 250, description: "Barra de cereal diversos sabores", inStock: true },
@@ -164,7 +163,7 @@ const productsByCategory = {
     { name: "Trident melancia 8g", price: 300, description: "Chiclete Trident sabor melancia", inStock: true },
     { name: "Trident(tutti fruiti)8g", price: 300, description: "Chiclete Trident sabor tutti-frutti", inStock: true }
   ],
-  
+
   // Acessórios e Outros
   [ProductCategory.Acessorios]: [
     { name: "CARTEIRA PAIOL OURO", price: 1800, description: "Carteira de paiol ouro", inStock: true },
@@ -177,7 +176,7 @@ const productsByCategory = {
 
 async function populateProductCategories() {
   console.log('Verificando categorias de produtos...');
-  
+
   const categories = [
     { id: 1, name: "Produtos para Barba e Cabelo", icon: "scissors" },
     { id: 2, name: "Pomadas e Produtos para Estilização", icon: "disc" },
@@ -186,26 +185,26 @@ async function populateProductCategories() {
     { id: 5, name: "Lanches e Snacks", icon: "burger" },
     { id: 6, name: "Acessórios e Outros", icon: "shopping-bag" }
   ];
-  
+
   for (const category of categories) {
     console.log(`Verificando categoria: ${category.name}`);
-    
+
     const { data: existingCategory, error: checkError } = await supabase
       .from('product_categories')
       .select('*')
       .eq('id', category.id)
       .single();
-    
+
     if (checkError && checkError.code !== 'PGRST116') {
       console.error(`Erro ao verificar categoria ${category.name}:`, checkError);
       continue;
     }
-    
+
     if (!existingCategory) {
       const { error } = await supabase
         .from('product_categories')
         .insert([addTimestamps(category)]);
-      
+
       if (error) {
         console.error(`Erro ao inserir categoria ${category.name}:`, error);
       } else {
@@ -215,60 +214,60 @@ async function populateProductCategories() {
       console.log(`⏭️ Categoria ${category.name} já existe.`);
     }
   }
-  
+
   console.log('Processo de verificação de categorias concluído.\n');
 }
 
 async function populateProducts() {
   console.log('Iniciando população da tabela products no Supabase...');
-  
+
   try {
     // Verificar se a tabela existe
     const { data: checkTable, error: checkError } = await supabase
       .from('products')
       .select('count')
       .limit(1);
-    
+
     if (checkError) {
       console.error('Erro ao verificar tabela products:', checkError);
-      
+
       if (checkError.code === 'PGRST116') {
         console.error('A tabela products não existe no Supabase!');
         console.log('Execute primeiro o script SQL para criar as tabelas.');
         return;
       }
-      
+
       throw checkError;
     }
-    
+
     console.log('Tabela products encontrada, prosseguindo com a inserção de dados...');
-    
+
     // Primeiro, popule as categorias
     await populateProductCategories();
-    
+
     // Agora, popule os produtos
     let totalProducts = 0;
     let successCount = 0;
     let errorCount = 0;
-    
+
     for (const categoryId in productsByCategory) {
       const products = productsByCategory[categoryId as unknown as ProductCategory];
       totalProducts += products.length;
-      
+
       console.log(`\nInserindo produtos da categoria ID ${categoryId}...`);
-      
+
       for (const product of products) {
         const productWithCategoryId = {
           ...product,
-          categoryId: parseInt(categoryId)
+          category_id: parseInt(categoryId) // Corrected field name here
         };
-        
+
         const productWithTimestamps = addTimestamps(productWithCategoryId);
-        
+
         const { error } = await supabase
           .from('products')
           .upsert(productWithTimestamps, { onConflict: 'name' });
-        
+
         if (error) {
           console.error(`Erro ao inserir produto ${product.name}:`, error);
           errorCount++;
@@ -278,18 +277,18 @@ async function populateProducts() {
         }
       }
     }
-    
+
     console.log('\n=== RESUMO DA OPERAÇÃO ===');
     console.log(`Total de produtos: ${totalProducts}`);
     console.log(`Inseridos com sucesso: ${successCount}`);
     console.log(`Falhas: ${errorCount}`);
-    
+
     if (successCount === totalProducts) {
       console.log('\n✅ Todos os produtos foram inseridos com sucesso!');
     } else {
       console.log('\n⚠️ Alguns produtos não puderam ser inseridos. Verifique os erros acima.');
     }
-    
+
   } catch (error) {
     console.error('Erro durante a população da tabela products:', error);
   }
@@ -298,10 +297,10 @@ async function populateProducts() {
 // Função principal
 async function main() {
   console.log('=== Script de População de Produtos para Supabase ===\n');
-  
+
   // Popula os produtos
   await populateProducts();
-  
+
   console.log('\nOperação concluída.');
 }
 
