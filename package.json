@@ -17,6 +17,7 @@
     "list:services": "tsx scripts/list-services.ts",
     "populate:services": "tsx scripts/populate-services-to-supabase.ts",
     "populate:professionals": "tsx scripts/populate-professionals-to-supabase.ts",
+    "populate:products": "tsx scripts/populate-products-to-supabase.ts",
     "vercel-build": "vite build && tsc -p tsconfig.json --skipLibCheck"
   },
   "dependencies": {
