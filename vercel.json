@@ -1,16 +1,14 @@
 
 {
   "version": 2,
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "dist",
   "builds": [
     {
       "src": "server/index.ts",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
+      "use": "@vercel/node",
       "config": {
-        "distDir": "dist"
+        "includeFiles": ["shared/**", "client/**"]
       }
     }
   ],
@@ -20,8 +18,15 @@
       "dest": "server/index.ts"
     },
     {
+      "src": "/(.*\\.js|.*\\.css|.*\\.png|.*\\.svg|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.json|.*\\.woff|.*\\.woff2|.*\\.ttf|.*\\.eot)",
+      "dest": "/dist/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "dist/$1"
+      "dest": "/dist/index.html"
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
