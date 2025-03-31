@@ -63,18 +63,18 @@ SQL:
 SQL: 
       DROP POLICY IF EXISTS services_insert_policy ON public.services;
       CREATE POLICY services_insert_policy ON public.services
-        FOR INSERT WITH CHECK (true);
+        FOR INSERT WITH CHECK (auth.role() = 'authenticated');
     
 SQL: 
       DROP POLICY IF EXISTS services_update_policy ON public.services;
       CREATE POLICY services_update_policy ON public.services
-        FOR UPDATE USING (true)
-        WITH CHECK (true);
+        FOR UPDATE USING (auth.role() = 'authenticated')
+        WITH CHECK (auth.role() = 'authenticated');
     
 SQL: 
       DROP POLICY IF EXISTS services_delete_policy ON public.services;
       CREATE POLICY services_delete_policy ON public.services
-        FOR DELETE USING (true);
+        FOR DELETE USING (auth.role() = 'authenticated');
     
   ✓ Políticas para a tabela services configuradas
 SQL: 
@@ -195,18 +195,18 @@ SQL:
 SQL: 
       DROP POLICY IF EXISTS products_insert_policy ON public.products;
       CREATE POLICY products_insert_policy ON public.products
-        FOR INSERT WITH CHECK (true);
+        FOR INSERT WITH CHECK (auth.role() = 'authenticated');
     
 SQL: 
       DROP POLICY IF EXISTS products_update_policy ON public.products;
       CREATE POLICY products_update_policy ON public.products
-        FOR UPDATE USING (true)
-        WITH CHECK (true);
+        FOR UPDATE USING (auth.role() = 'authenticated')
+        WITH CHECK (auth.role() = 'authenticated');
     
 SQL: 
       DROP POLICY IF EXISTS products_delete_policy ON public.products;
       CREATE POLICY products_delete_policy ON public.products
-        FOR DELETE USING (true);
+        FOR DELETE USING (auth.role() = 'authenticated');
     
   ✓ Políticas para a tabela products configuradas
 SQL: 
