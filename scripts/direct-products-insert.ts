@@ -1,8 +1,20 @@
-import { supabase } from '../server/supabase';
+import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
 // Carregar variáveis de ambiente do arquivo .env
 dotenv.config();
+
+// URL e chave de API do Supabase
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || '';
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Erro: SUPABASE_URL e SUPABASE_SERVICE_KEY são necessários no arquivo .env');
+  process.exit(1);
+}
+
+// Criar cliente Supabase com a chave de serviço (service key) que ignora RLS
+const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 
 enum ProductCategory {
   BarbaECabelo = 1,
@@ -21,64 +33,84 @@ async function verificarCategorias() {
   try {
     console.log('Verificando categorias de produtos existentes...');
     
-    // Lista de categorias que queremos verificar
-    const categorias = [
-      { id: ProductCategory.BarbaECabelo, name: 'Barba e Cabelo', description: 'Produtos para cuidados com barba e cabelo' },
-      { id: ProductCategory.Pomadas, name: 'Pomadas', description: 'Pomadas e ceras para modelagem' },
-      { id: ProductCategory.BebidasAlcoolicas, name: 'Bebidas Alcoólicas', description: 'Cervejas, destilados e outras bebidas' },
-      { id: ProductCategory.BebidasNaoAlcoolicas, name: 'Bebidas Não Alcoólicas', description: 'Águas, refrigerantes e sucos' },
-      { id: ProductCategory.Lanches, name: 'Lanches', description: 'Lanches e petiscos para consumo na barbearia' },
-      { id: ProductCategory.Acessorios, name: 'Acessórios', description: 'Acessórios diversos para barba e estilo' }
+    const categoriasEsperadas = [
+      { id: ProductCategory.BarbaECabelo, name: 'Produtos para Barba e Cabelo' },
+      { id: ProductCategory.Pomadas, name: 'Pomadas e Produtos para Estilização' },
+      { id: ProductCategory.BebidasAlcoolicas, name: 'Bebidas Alcoólicas' },
+      { id: ProductCategory.BebidasNaoAlcoolicas, name: 'Bebidas Não Alcoólicas' },
+      { id: ProductCategory.Lanches, name: 'Lanches e Snacks' },
+      { id: ProductCategory.Acessorios, name: 'Acessórios e Outros' }
     ];
     
-    // Verificar se todas as categorias existem
-    for (const categoria of categorias) {
-      const { data, error } = await supabase
+    // Verificar cada categoria
+    for (const categoria of categoriasEsperadas) {
+      const { data, error } = await supabaseAdmin
         .from('product_categories')
-        .select('id, name')
+        .select()
         .eq('id', categoria.id)
         .single();
       
       if (error || !data) {
-        console.log(`Categoria ${categoria.name} (ID ${categoria.id}) não encontrada, criando...`);
+        console.log(`Categoria ${categoria.name} (ID ${categoria.id}) não encontrada. Criando...`);
         
-        // Inserir a categoria se não existir
-        const { data: novaCategoria, error: insertError } = await supabase
+        // Inserir a categoria
+        const { data: insertedData, error: insertError } = await supabaseAdmin
           .from('product_categories')
           .insert({
             id: categoria.id,
             name: categoria.name,
-            description: categoria.description
+            description: `Categoria para ${categoria.name.toLowerCase()}`,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           })
-          .select()
-          .single();
+          .select();
         
         if (insertError) {
-          console.error(`Erro ao criar categoria ${categoria.name}:`, insertError);
+          console.error(`❌ Erro ao criar categoria ${categoria.name}:`, insertError);
         } else {
-          console.log(`✅ Categoria ${categoria.name} criada com ID ${novaCategoria.id}`);
+          console.log(`✓ Categoria ${categoria.name} (ID ${categoria.id}) criada com sucesso.`);
         }
       } else {
-        console.log(`✓ Categoria ${data.name} (ID ${data.id}) já existe.`);
+        console.log(`✓ Categoria ${categoria.name} (ID ${categoria.id}) já existe.`);
       }
     }
     
     console.log('✅ Verificação de categorias concluída!');
+    return true;
   } catch (error) {
     console.error('❌ Erro ao verificar categorias:', error);
-    throw error;
+    return false;
   }
 }
 
 /**
  * Popula a tabela de produtos no Supabase com produtos de exemplo.
+ * Usa a chave de serviço que ignora as políticas RLS.
  */
 async function populateProducts() {
   try {
     console.log('Iniciando população de produtos no Supabase...');
     
-    // Verificar se as categorias existem antes de inserir produtos
-    await verificarCategorias();
+    // Verificar se as categorias existem
+    const categoriasOk = await verificarCategorias();
+    if (!categoriasOk) {
+      console.error('❌ Erro na verificação de categorias. Abortando inserção de produtos.');
+      return;
+    }
+    
+    // Remover produtos existentes
+    console.log('Removendo produtos existentes...');
+    const { error: deleteError } = await supabaseAdmin
+      .from('products')
+      .delete()
+      .gte('id', 0);
+    
+    if (deleteError) {
+      console.error('❌ Erro ao remover produtos:', deleteError);
+      return;
+    }
+    
+    console.log('✅ Produtos removidos com sucesso.');
     
     // Lista de produtos para inserir
     const produtos = [
@@ -239,25 +271,20 @@ async function populateProducts() {
       }
     ];
     
-    // Limpar produtos existentes
-    console.log('Removendo produtos existentes...');
-    const { error: deleteError } = await supabase
-      .from('products')
-      .delete()
-      .gte('id', 0);
-    
-    if (deleteError) {
-      console.error('❌ Erro ao remover produtos:', deleteError);
-      return;
-    }
-    
-    console.log('✅ Produtos removidos com sucesso.');
-    
-    // Inserir novos produtos
+    // Inserir produtos
     console.log(`Inserindo ${produtos.length} produtos...`);
-    const { data, error } = await supabase
+    
+    // Adicionar timestamps aos produtos
+    const produtosComTimestamp = produtos.map(produto => ({
+      ...produto,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }));
+    
+    // Inserir todos os produtos de uma vez
+    const { data, error } = await supabaseAdmin
       .from('products')
-      .insert(produtos)
+      .insert(produtosComTimestamp)
       .select();
     
     if (error) {
@@ -265,21 +292,12 @@ async function populateProducts() {
       return;
     }
     
-    console.log(`✅ ${data.length} produtos inseridos com sucesso:`);
-    
-    // Mostrar os produtos inseridos
-    data.forEach((produto, index) => {
-      const priceInReais = (produto.price / 100).toFixed(2);
-      console.log(`${index + 1}. ${produto.name} (ID: ${produto.id}) - R$ ${priceInReais}`);
-    });
-    
-    console.log('\n🎉 População de produtos concluída com sucesso!');
+    console.log(`✅ ${data.length} produtos inseridos com sucesso!`);
     
   } catch (error) {
-    console.error('❌ Erro durante a inserção de produtos:', error);
-    process.exit(1);
+    console.error('❌ Erro ao popular produtos:', error);
   }
 }
 
-// Executar o script
+// Executar a população de produtos
 populateProducts().catch(console.error);

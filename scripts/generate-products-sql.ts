@@ -1,4 +1,3 @@
-import { supabase } from '../server/supabase';
 import dotenv from 'dotenv';
 
 // Carregar variáveis de ambiente do arquivo .env
@@ -14,71 +13,18 @@ enum ProductCategory {
 }
 
 /**
- * Verifica se as categorias de produtos existem no Supabase
- * antes de iniciar a inserção de produtos.
+ * Gera um script SQL para inserir produtos na tabela products
  */
-async function verificarCategorias() {
+async function generateProductsSQL() {
   try {
-    console.log('Verificando categorias de produtos existentes...');
+    console.log('-- Script SQL para inserir produtos na tabela products');
+    console.log('-- Executar este script no SQL Editor do Supabase');
+    console.log('');
     
-    // Lista de categorias que queremos verificar
-    const categorias = [
-      { id: ProductCategory.BarbaECabelo, name: 'Barba e Cabelo', description: 'Produtos para cuidados com barba e cabelo' },
-      { id: ProductCategory.Pomadas, name: 'Pomadas', description: 'Pomadas e ceras para modelagem' },
-      { id: ProductCategory.BebidasAlcoolicas, name: 'Bebidas Alcoólicas', description: 'Cervejas, destilados e outras bebidas' },
-      { id: ProductCategory.BebidasNaoAlcoolicas, name: 'Bebidas Não Alcoólicas', description: 'Águas, refrigerantes e sucos' },
-      { id: ProductCategory.Lanches, name: 'Lanches', description: 'Lanches e petiscos para consumo na barbearia' },
-      { id: ProductCategory.Acessorios, name: 'Acessórios', description: 'Acessórios diversos para barba e estilo' }
-    ];
-    
-    // Verificar se todas as categorias existem
-    for (const categoria of categorias) {
-      const { data, error } = await supabase
-        .from('product_categories')
-        .select('id, name')
-        .eq('id', categoria.id)
-        .single();
-      
-      if (error || !data) {
-        console.log(`Categoria ${categoria.name} (ID ${categoria.id}) não encontrada, criando...`);
-        
-        // Inserir a categoria se não existir
-        const { data: novaCategoria, error: insertError } = await supabase
-          .from('product_categories')
-          .insert({
-            id: categoria.id,
-            name: categoria.name,
-            description: categoria.description
-          })
-          .select()
-          .single();
-        
-        if (insertError) {
-          console.error(`Erro ao criar categoria ${categoria.name}:`, insertError);
-        } else {
-          console.log(`✅ Categoria ${categoria.name} criada com ID ${novaCategoria.id}`);
-        }
-      } else {
-        console.log(`✓ Categoria ${data.name} (ID ${data.id}) já existe.`);
-      }
-    }
-    
-    console.log('✅ Verificação de categorias concluída!');
-  } catch (error) {
-    console.error('❌ Erro ao verificar categorias:', error);
-    throw error;
-  }
-}
-
-/**
- * Popula a tabela de produtos no Supabase com produtos de exemplo.
- */
-async function populateProducts() {
-  try {
-    console.log('Iniciando população de produtos no Supabase...');
-    
-    // Verificar se as categorias existem antes de inserir produtos
-    await verificarCategorias();
+    // Limpar produtos existentes
+    console.log('-- Remover produtos existentes');
+    console.log('DELETE FROM public.products WHERE id > 0;');
+    console.log('');
     
     // Lista de produtos para inserir
     const produtos = [
@@ -239,47 +185,23 @@ async function populateProducts() {
       }
     ];
     
-    // Limpar produtos existentes
-    console.log('Removendo produtos existentes...');
-    const { error: deleteError } = await supabase
-      .from('products')
-      .delete()
-      .gte('id', 0);
-    
-    if (deleteError) {
-      console.error('❌ Erro ao remover produtos:', deleteError);
-      return;
-    }
-    
-    console.log('✅ Produtos removidos com sucesso.');
-    
     // Inserir novos produtos
-    console.log(`Inserindo ${produtos.length} produtos...`);
-    const { data, error } = await supabase
-      .from('products')
-      .insert(produtos)
-      .select();
+    console.log('-- Inserir novos produtos');
+    console.log('INSERT INTO public.products (name, description, price, image_url, category_id, in_stock)');
+    console.log('VALUES');
     
-    if (error) {
-      console.error('❌ Erro ao inserir produtos:', error);
-      return;
-    }
-    
-    console.log(`✅ ${data.length} produtos inseridos com sucesso:`);
-    
-    // Mostrar os produtos inseridos
-    data.forEach((produto, index) => {
-      const priceInReais = (produto.price / 100).toFixed(2);
-      console.log(`${index + 1}. ${produto.name} (ID: ${produto.id}) - R$ ${priceInReais}`);
+    produtos.forEach((produto, index) => {
+      const isLast = index === produtos.length - 1;
+      console.log(`  ('${produto.name.replace(/'/g, "''")}', '${produto.description.replace(/'/g, "''")}', ${produto.price}, '${produto.image_url}', ${produto.category_id}, ${produto.in_stock})${isLast ? ';' : ','}`);
     });
     
-    console.log('\n🎉 População de produtos concluída com sucesso!');
+    console.log('\n-- Fim do script');
     
   } catch (error) {
-    console.error('❌ Erro durante a inserção de produtos:', error);
+    console.error('❌ Erro:', error);
     process.exit(1);
   }
 }
 
-// Executar o script
-populateProducts().catch(console.error);
+// Executar a geração do script SQL
+generateProductsSQL().catch(console.error);

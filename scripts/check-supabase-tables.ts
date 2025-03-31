@@ -1,11 +1,18 @@
-
 import { supabase } from '../server/supabase';
+import dotenv from 'dotenv';
 
+// Carregar variáveis de ambiente do arquivo .env
+dotenv.config();
+
+/**
+ * Script para verificar as tabelas existentes no Supabase
+ * e mostrar informações sobre sua estrutura.
+ */
 async function checkTables() {
-  console.log('Verificando tabelas no Supabase...');
-
   try {
-    // Lista de tabelas que devem existir baseadas no schema
+    console.log('Verificando tabelas no Supabase...');
+    
+    // Vamos tentar listar as principais tabelas que sabemos que existem
     const expectedTables = [
       'users',
       'service_categories',
@@ -18,82 +25,80 @@ async function checkTables() {
       'products',
       'loyalty_rewards'
     ];
-
-    // Verificar cada tabela e contar registros
+    
+    const tables: {tablename: string}[] = [];
+    
     for (const tableName of expectedTables) {
-      const { data, error, count } = await supabase
-        .from(tableName)
-        .select('*', { count: 'exact' });
-      
-      if (error) {
-        console.error(`Erro ao verificar tabela ${tableName}:`, error.message);
-      } else {
-        console.log(`✅ Tabela ${tableName} existe com ${count} registros`);
+      try {
+        const { count, error } = await supabase
+          .from(tableName)
+          .select('*', { count: 'exact', head: true });
         
-        // Mostrar amostra de dados (primeiros 2 registros)
-        if (data && data.length > 0) {
-          console.log(`  Amostra de dados:`);
-          console.log(JSON.stringify(data.slice(0, 2), null, 2));
+        if (!error) {
+          tables.push({ tablename: tableName });
+          console.log(`✓ Tabela '${tableName}' encontrada. Registros: ${count || 0}`);
         } else {
-          console.log(`  Tabela vazia`);
+          console.log(`✗ Tabela '${tableName}' não está acessível: ${error.message}`);
         }
+      } catch (e) {
+        console.log(`✗ Erro ao acessar tabela ${tableName}: ${(e as Error).message}`);
       }
     }
-
-    // Verificar as relações entre tabelas através de queries específicas
-    console.log('\n--- Verificando relações entre tabelas ---');
     
-    // 1. Usuários e agendamentos
-    const { data: userAppointments, error: userAppError } = await supabase
-      .from('appointments')
-      .select(`
-        id, 
-        users (id, name),
-        professionals (id, name)
-      `)
-      .limit(2);
-    
-    if (userAppError) {
-      console.error('Erro ao verificar relação entre usuários e agendamentos:', userAppError.message);
-    } else {
-      console.log('✅ Relação entre usuários e agendamentos verificada:', userAppointments.length > 0 ? 'OK' : 'Sem dados');
+    if (tables.length === 0) {
+      console.log('\nNão foram encontradas tabelas acessíveis no schema public.');
+      return;
     }
     
-    // 2. Serviços e categorias
-    const { data: serviceCateg, error: serviceCategError } = await supabase
-      .from('services')
-      .select(`
-        id, name,
-        service_categories (id, name)
-      `)
-      .limit(2);
+    console.log(`\nForam encontradas ${tables.length} tabelas acessíveis no schema public:`);
+    const tableNames = tables.map(t => t.tablename);
     
-    if (serviceCategError) {
-      console.error('Erro ao verificar relação entre serviços e categorias:', serviceCategError.message);
-    } else {
-      console.log('✅ Relação entre serviços e categorias verificada:', serviceCateg.length > 0 ? 'OK' : 'Sem dados');
-    }
-
-    // 3. Produtos e categorias
-    const { data: prodCateg, error: prodCategError } = await supabase
-      .from('products')
-      .select(`
-        id, name,
-        product_categories (id, name)
-      `)
-      .limit(2);
+    // Para cada tabela, buscar informações sobre sua estrutura
+    console.log('\nDetalhes das tabelas:');
     
-    if (prodCategError) {
-      console.error('Erro ao verificar relação entre produtos e categorias:', prodCategError.message);
-    } else {
-      console.log('✅ Relação entre produtos e categorias verificada:', prodCateg.length > 0 ? 'OK' : 'Sem dados');
+    for (const tableName of tableNames) {
+      try {
+        // Ler uma linha da tabela para examinar a estrutura
+        const { data: sampleRow, error: sampleError } = await supabase
+          .from(tableName)
+          .select('*')
+          .limit(1)
+          .single();
+        
+        if (sampleError) {
+          console.log(`- Tabela ${tableName}: Não foi possível ler dados`);
+          continue;
+        }
+        
+        console.log(`\n📋 Tabela: ${tableName}`);
+        
+        // Mostrar as colunas da tabela
+        if (sampleRow) {
+          const columns = Object.keys(sampleRow);
+          console.log(`  Colunas (${columns.length}): ${columns.join(', ')}`);
+        }
+        
+        // Contar registros na tabela
+        const { count, error: countError } = await supabase
+          .from(tableName)
+          .select('*', { count: 'exact', head: true });
+        
+        if (!countError) {
+          console.log(`  Total de registros: ${count || 0}`);
+        }
+        
+      } catch (tableError) {
+        console.error(`  Erro ao ler estrutura da tabela ${tableName}:`, tableError);
+      }
     }
-
-    console.log('\nVerificação concluída');
+    
+    console.log('\n✅ Verificação de tabelas concluída!');
+    
   } catch (error) {
-    console.error('Erro durante a verificação:', error);
+    console.error('❌ Erro ao verificar tabelas:', error);
+    process.exit(1);
   }
 }
 
-// Executar verificação
-checkTables();
+// Executar a verificação
+checkTables().catch(console.error);
