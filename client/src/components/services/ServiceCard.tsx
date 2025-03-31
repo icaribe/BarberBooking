@@ -1,3 +1,4 @@
+
 import { Clock, Scissors } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils/format';
@@ -21,13 +22,9 @@ const ServiceCard = ({ service, onSchedule }: ServiceCardProps) => {
           <h3 className="font-montserrat font-semibold text-card-foreground">{name}</h3>
           <div className="flex items-center text-sm text-muted-foreground mt-1">
             {priceType === 'fixed' && price ? (
-              <>
-                <span className="font-medium text-primary">{formatCurrency(price)}</span>
-              </>
+              <span className="font-medium text-primary">{formatCurrency(price)}</span>
             ) : (
-              <>
-                <span className="font-medium text-primary">Consultar</span>
-              </>
+              <span className="font-medium text-primary">Consultar</span>
             )}
             <span className="mx-2">•</span>
             <Clock className="w-4 h-4 mr-1" />
