@@ -11,17 +11,17 @@ dotenv.config();
 
 let db: PostgresJsDatabase<typeof schema>;
 
-// Verificar se estamos em ambiente de produção ou desenvolvimento
-if (process.env.NODE_ENV === 'production') {
-  // Em produção, usar a conexão do Supabase através da URL do banco de dados
-  const connectionString = process.env.DATABASE_URL || `postgresql://postgres:postgres@db.rrqefsxymripcvoabers.supabase.co:5432/postgres`;
-  const queryClient = postgres(connectionString);
-  db = drizzle(queryClient, { schema });
-} else {
-  // Em desenvolvimento, ainda podemos usar a conexão local se existir
-  const connectionString = process.env.DATABASE_URL || `postgresql://postgres:postgres@db.rrqefsxymripcvoabers.supabase.co:5432/postgres`;
-  const queryClient = postgres(connectionString);
-  db = drizzle(queryClient, { schema });
-}
+// Conexão com o banco de dados Supabase usando pooler
+const connectionString = process.env.DATABASE_URL || `postgresql://postgres.rrqefsxymripcvoabers:LJjub0vLawnmKMfV@aws-0-sa-east-1.pooler.supabase.com:6543/postgres`;
+
+// Configuração do cliente Postgres com SSL necessário para Supabase
+const queryClient = postgres(connectionString, {
+  ssl: 'require',
+  max: 10, // Número máximo de conexões no pool
+  idle_timeout: 30, // Tempo em segundos para manter conexões ociosas
+});
+
+// Inicializar o Drizzle ORM com o cliente Postgres
+db = drizzle(queryClient, { schema });
 
 export { db };

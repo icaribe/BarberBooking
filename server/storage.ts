@@ -10,7 +10,8 @@ import {
 } from '@shared/schema';
 
 // Verificar se devemos usar Supabase ou o banco de dados local
-const useSupabase = process.env.USE_SUPABASE === 'true' || true;
+// Definido como true para forçar o uso do Supabase
+const useSupabase = process.env.USE_SUPABASE === 'true' || true; // Sempre usar Supabase
 
 // Exportar o armazenamento do Supabase se for para usar o Supabase
 export const storage = useSupabase ? supabaseStorage : {
