@@ -20,15 +20,13 @@ const ServiceCard = ({ service, onSchedule }: ServiceCardProps) => {
         <div className="flex-1">
           <h3 className="font-montserrat font-semibold text-card-foreground">{name}</h3>
           <div className="flex items-center text-sm text-muted-foreground mt-1">
-            {priceType === 'fixed' ? (
+            {priceType === 'fixed' && price ? (
               <>
-                <span>A partir de</span>
-                <span className="font-medium text-primary ml-1">{formatCurrency(price || 0)}</span>
+                <span className="font-medium text-primary">{formatCurrency(price)}</span>
               </>
             ) : (
               <>
-                <span>Preço sujeito a</span>
-                <span className="font-medium text-primary ml-1">consulta</span>
+                <span className="font-medium text-primary">Consultar</span>
               </>
             )}
             <span className="mx-2">•</span>
