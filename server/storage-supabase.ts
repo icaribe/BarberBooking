@@ -1,5 +1,5 @@
 
-import { supabase } from './supabase';
+import supabase from './supabase';
 import { db } from './db';
 import * as schema from '@shared/schema';
 import bcrypt from 'bcrypt';
@@ -109,31 +109,64 @@ export const supabaseStorage = {
   async getServices() {
     const { data, error } = await supabase
       .from('services')
-      .select('*');
+      .select('*, service_categories(*)');
     
     if (error) throw error;
-    return data;
+    
+    // Transformar os nomes dos campos para camelCase para o frontend
+    return data.map(service => ({
+      id: service.id,
+      name: service.name,
+      description: service.description || '',
+      price: service.price,
+      priceType: service.price_type,
+      durationMinutes: service.duration_minutes,
+      categoryId: service.category_id,
+      category: service.service_categories
+    }));
   },
 
   async getServicesByCategory(categoryId: number) {
     const { data, error } = await supabase
       .from('services')
-      .select('*')
-      .eq('categoryId', categoryId);
+      .select('*, service_categories(*)')
+      .eq('category_id', categoryId);
     
     if (error) throw error;
-    return data;
+    
+    // Transformar os nomes dos campos para camelCase para o frontend
+    return data.map(service => ({
+      id: service.id,
+      name: service.name,
+      description: service.description || '',
+      price: service.price,
+      priceType: service.price_type,
+      durationMinutes: service.duration_minutes,
+      categoryId: service.category_id,
+      category: service.service_categories
+    }));
   },
 
   async getService(id: number) {
     const { data, error } = await supabase
       .from('services')
-      .select('*')
+      .select('*, service_categories(*)')
       .eq('id', id)
       .single();
     
     if (error) return null;
-    return data;
+    
+    // Transformar os nomes dos campos para camelCase para o frontend
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description || '',
+      price: data.price,
+      priceType: data.price_type,
+      durationMinutes: data.duration_minutes,
+      categoryId: data.category_id,
+      category: data.service_categories
+    };
   },
 
   async createService(serviceData: InsertService) {
