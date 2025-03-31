@@ -1,0 +1,112 @@
+Okay, vamos configurar seu projeto Replit para se conectar ao Supabase usando as informações que você forneceu. A maneira correta e segura de fazer isso no Replit é usando a ferramenta Secrets.
+
+Por que usar Secrets no Replit?
+
+Segurança: Mantém suas chaves de API e senhas fora do seu código-fonte, evitando que sejam expostas acidentalmente (por exemplo, em um repositório Git público).
+
+Padrão: É a forma recomendada pelo Replit para gerenciar variáveis de ambiente sensíveis.
+
+Automático: O Replit injeta automaticamente os Secrets como variáveis de ambiente quando seu aplicativo é executado.
+
+Passos para Configurar os Secrets no Replit:
+
+Abra seu Repl: Vá para o seu projeto no Replit.
+
+Acesse a Ferramenta Secrets: Na barra lateral esquerda, procure por um ícone de cadeado (🔒) chamado "Secrets". Clique nele.
+
+Adicione os Secrets: Você precisará adicionar três secrets com base nas informações que você forneceu. Para cada um:
+
+Digite o nome da variável (Key).
+
+Digite o valor correspondente (Value).
+
+Clique em "Add new secret".
+
+Secrets a serem criados:
+
+Secret 1 (Supabase URL):
+
+Key: NEXT_PUBLIC_SUPABASE_URL
+
+Value: https://rrqefsxymripcvoabers.supabase.co
+
+Secret 2 (Supabase Anon Key):
+
+Key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJycWVmc3h5bXJpcGN2b2FiZXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxODIxMjksImV4cCI6MjA1ODc1ODEyOX0.Jf9UPmqkCWhkrz9NITiW-ioqpFh27O5unW2hJw7XCeo
+
+Secret 3 (Database URL com Senha):
+
+Key: DATABASE_URL
+
+Value: postgresql://postgres.rrqefsxymripcvoabers:LJjub0vLawnmKMfV@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
+(Note que substituí [YOUR-PASSWORD] pela senha LJjub0vLawnmKMfV que você forneceu)
+
+Verifique os Secrets: Após adicionar os três, você deve vê-los listados na interface dos Secrets.
+
+Como Usar os Secrets no seu Código:
+
+O Replit torna esses secrets disponíveis como variáveis de ambiente para o seu processo Node.js (ou qualquer outro runtime que você esteja usando). Você pode acessá-los assim:
+
+Para o Cliente Supabase (JavaScript/TypeScript):
+Em seus arquivos de configuração do Supabase (como utils/supabase/client.ts ou utils/supabase/server.ts), você provavelmente já tem um código que busca essas variáveis. Ele deve funcionar diretamente:
+
+// Exemplo em utils/supabase/client.ts ou similar
+import { createBrowserClient } from '@supabase/ssr'
+
+export function createClient() {
+  // Replit injeta os Secrets como process.env
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+  return createBrowserClient(supabaseUrl, supabaseAnonKey)
+}
+
+
+(O ! no final assume que as variáveis estarão presentes, o que o Replit garante se os Secrets estiverem configurados).
+
+Para o Drizzle ORM:
+Seu código de exemplo para Drizzle já está configurado corretamente para usar a variável de ambiente DATABASE_URL:
+
+// Exemplo em seu arquivo de configuração do Drizzle (index.tsx ou similar)
+import { drizzle } from 'drizzle-orm/postgres-js'
+import postgres from 'postgres'
+import * as schema from './schema' // Importe seu schema
+
+// Replit injeta o Secret DATABASE_URL como process.env.DATABASE_URL
+const connectionString = process.env.DATABASE_URL
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL environment variable is not set.');
+}
+
+// Disable prefetch as it is not supported for "Transaction" pool mode
+const client = postgres(connectionString, { prepare: false })
+// Passe o schema para o drizzle
+const db = drizzle(client, { schema });
+
+// Exemplo de uso (você pode remover isso do arquivo de configuração)
+// async function getUsers() {
+//   const allUsers = await db.select().from(schema.users);
+//   console.log(allUsers);
+// }
+// getUsers();
+
+export default db; // Exporte a instância do db para usar em outros lugares
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+TypeScript
+IGNORE_WHEN_COPYING_END
+
+Importante:
+
+Reinicie o Repl: Após adicionar ou modificar Secrets, pode ser necessário parar e reiniciar (Run novamente) seu Repl para que as novas variáveis de ambiente sejam carregadas corretamente.
+
+Não use .env para Secrets: Evite criar um arquivo .env no Replit e colocar essas chaves lá. Use sempre a ferramenta Secrets para informações sensíveis. O arquivo .env pode ser usado para configurações não sensíveis, se necessário.
+
+Prefixo NEXT_PUBLIC_: Lembre-se que o prefixo NEXT_PUBLIC_ no Next.js serve para expor a variável de ambiente também para o navegador. Se você precisar de uma chave que só deve ser usada no servidor (como a SERVICE_ROLE_KEY do Supabase), não use esse prefixo. Você adicionaria um Secret chamado SUPABASE_SERVICE_KEY, por exemplo.
+
+Com esses passos, seu projeto Replit estará configurado para usar as credenciais do Supabase de forma segura através dos Secrets.
