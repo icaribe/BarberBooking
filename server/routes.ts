@@ -216,16 +216,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Appointment routes
   app.get("/api/appointments", async (req: Request, res: Response) => {
-    const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
-    const professionalId = req.query.professionalId ? parseInt(req.query.professionalId as string) : undefined;
-    const date = req.query.date as string | undefined;
-    
-    if ((userId && isNaN(userId)) || (professionalId && isNaN(professionalId))) {
-      return res.status(400).json({ message: "Invalid user or professional ID" });
+    try {
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const professionalId = req.query.professionalId ? parseInt(req.query.professionalId as string) : undefined;
+      const date = req.query.date as string | undefined;
+      
+      if ((userId && isNaN(userId)) || (professionalId && isNaN(professionalId))) {
+        return res.status(400).json({ message: "Invalid user or professional ID" });
+      }
+      
+      console.log('Buscando agendamentos com:', { userId, professionalId, date });
+      const appointments = await storage.getAppointments(userId, professionalId, date);
+      return res.json(appointments);
+    } catch (error) {
+      console.error('Erro na rota /api/appointments:', error);
+      return res.status(500).json({ message: "Erro ao buscar agendamentos", error: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
-    
-    const appointments = await storage.getAppointments(userId, professionalId, date);
-    res.json(appointments);
   });
 
   app.get("/api/appointments/:id", async (req: Request, res: Response) => {

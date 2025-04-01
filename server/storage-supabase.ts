@@ -236,24 +236,33 @@ export const supabaseStorage = {
 
   // Agendamentos
   async getAppointments(userId?: number, professionalId?: number, date?: string) {
-    let query = supabase.from('appointments').select('*');
-    
-    if (userId) {
-      query = query.eq('userId', userId);
+    try {
+      let query = supabase.from('appointments').select('*');
+      
+      if (userId) {
+        query = query.eq('userId', userId);
+      }
+      
+      if (professionalId) {
+        query = query.eq('professionalId', professionalId);
+      }
+      
+      if (date) {
+        query = query.eq('date', date);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Erro ao buscar agendamentos:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (err) {
+      console.error('Exceção ao buscar agendamentos:', err);
+      return [];
     }
-    
-    if (professionalId) {
-      query = query.eq('professionalId', professionalId);
-    }
-    
-    if (date) {
-      query = query.eq('date', date);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) throw error;
-    return data;
   },
 
   async getAppointment(id: number) {
