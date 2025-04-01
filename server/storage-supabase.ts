@@ -98,14 +98,31 @@ export const supabaseStorage = {
   },
 
   async getUserByUsername(username: string) {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('username', username)
-      .single();
-    
-    if (error) return null;
-    return data;
+    try {
+      console.log('Buscando usuário com username:', username);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username)
+        .single();
+      
+      if (error) {
+        console.error('Erro ao buscar usuário por username:', error);
+        return null;
+      }
+      
+      if (!data) {
+        console.log('Nenhum usuário encontrado com username:', username);
+        return null;
+      }
+      
+      console.log('Usuário encontrado:', data);
+      return data;
+    } catch (error) {
+      console.error('Exceção ao buscar usuário por username:', error);
+      return null;
+    }
   },
 
   async createUser(userData: InsertUser) {
