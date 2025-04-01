@@ -244,14 +244,15 @@ const AppointmentPage = () => {
   };
 
   const handleConfirmAppointment = async () => {
-    if (!selectedProfessional || !selectedDate || !selectedTime) {
-      toast({
-        title: "Informações incompletas",
-        description: "Por favor, selecione profissional, data e horário.",
-        variant: "destructive"
-      });
-      return;
-    }
+    try {
+      if (!selectedProfessional || !selectedDate || !selectedTime) {
+        toast({
+          title: "Informações incompletas",
+          description: "Por favor, selecione profissional, data e horário.",
+          variant: "destructive"
+        });
+        return;
+      }
 
     // Check if the user is logged in
     if (!user) {
@@ -307,12 +308,14 @@ const AppointmentPage = () => {
       sessionStorage.removeItem('pendingAppointment');
 
       navigate('/appointments');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Erro ao criar agendamento:', error);
       toast({
         title: "Erro ao agendar",
-        description: "Ocorreu um erro ao tentar confirmar seu agendamento. Tente novamente.",
+        description: error?.message || "Ocorreu um erro ao tentar confirmar seu agendamento. Tente novamente.",
         variant: "destructive"
       });
+      setShowConfirmation(false);
     }
   };
 
