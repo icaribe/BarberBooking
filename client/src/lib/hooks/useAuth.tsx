@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -18,7 +19,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
-  // Obter informações do usuário atual
   const {
     data: user,
     isLoading,
@@ -27,11 +27,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     queryKey: ['/api/user'],
     queryFn: async () => {
       try {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          return JSON.parse(storedUser) as User;
+        const response = await apiRequest('GET', '/api/user');
+        if (!response.ok) {
+          return null;
         }
-        return null;
+        const userData = await response.json();
+        return userData;
       } catch (error) {
         console.error('Failed to get user data:', error);
         return null;
@@ -42,25 +43,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: { username: string; password: string }) => {
-      try {
-        // Simula autenticação - em uma aplicação real, isso seria uma chamada à API
-        const response = await apiRequest('GET', '/api/users');
-        const users = await response.json();
-        
-        // Encontra usuário com usuário correspondente
-        const foundUser = users.find((u: User) => u.username === credentials.username);
-        
-        if (!foundUser) {
-          throw new Error('Usuário ou senha incorretos');
-        }
-        
-        // Simulação de autenticação bem-sucedida
-        localStorage.setItem('user', JSON.stringify(foundUser));
-        return foundUser;
-      } catch (error) {
-        console.error('Login error:', error);
-        throw error;
+      const response = await apiRequest('POST', '/api/login', credentials);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Falha no login');
       }
+      return response.json();
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['/api/user'], data);
@@ -81,19 +69,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Register mutation
   const registerMutation = useMutation({
     mutationFn: async (userData: UserRegistration) => {
-      try {
-        const response = await apiRequest('POST', '/api/users', userData);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Não foi possível criar sua conta");
-        }
-        const newUser = await response.json();
-        localStorage.setItem('user', JSON.stringify(newUser));
-        return newUser;
-      } catch (error) {
-        console.error('Registration error:', error);
-        throw error;
+      const response = await apiRequest('POST', '/api/register', userData);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Falha no registro");
       }
+      return response.json();
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['/api/user'], data);
@@ -111,13 +92,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     },
   });
 
-  const logout = () => {
-    localStorage.removeItem('user');
-    queryClient.setQueryData(['/api/user'], null);
-    toast({
-      title: "Logout realizado",
-      description: "Você saiu da sua conta com sucesso.",
-    });
+  const logout = async () => {
+    try {
+      await apiRequest('POST', '/api/logout');
+      queryClient.setQueryData(['/api/user'], null);
+      toast({
+        title: "Logout realizado",
+        description: "Você saiu da sua conta com sucesso.",
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
