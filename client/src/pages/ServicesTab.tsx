@@ -19,14 +19,16 @@ const ServicesTab = () => {
     isLoadingCategories 
   } = useServices();
 
-  // Filter services by category and search term
-  const filteredServices = services.filter(service => {
-    const matchesCategory = selectedCategoryId === null || service.categoryId === selectedCategoryId;
-    const matchesSearch = searchTerm === '' || 
-      service.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    return matchesCategory && matchesSearch;
-  });
+  // Filter and sort services by category and search term
+  const filteredServices = services
+    .filter(service => {
+      const matchesCategory = selectedCategoryId === null || service.categoryId === selectedCategoryId;
+      const matchesSearch = searchTerm === '' || 
+        service.name.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return matchesCategory && matchesSearch;
+    })
+    .sort((a, b) => selectedCategoryId === null ? a.name.localeCompare(b.name) : 0);
 
   const handleScheduleService = (service: Service) => {
     navigate(`/appointment/${service.id}`);
