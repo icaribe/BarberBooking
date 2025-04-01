@@ -43,17 +43,29 @@ export const supabaseStorage = {
   },
 
   async createUser(userData: InsertUser) {
-    // Hash da senha
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
-    
-    const { data, error } = await supabase
-      .from('users')
-      .insert({ ...userData, password: hashedPassword })
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    try {
+      // Hash da senha
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+      
+      // Remover id se existir para deixar o Supabase gerar automaticamente
+      const { id, ...userDataWithoutId } = userData as any;
+      
+      const { data, error } = await supabase
+        .from('users')
+        .insert({ ...userDataWithoutId, password: hashedPassword })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Erro ao criar usuário no Supabase:', error);
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Exceção ao criar usuário:', error);
+      throw error;
+    }
   },
 
   async updateUser(id: number, userData: Partial<InsertUser>) {
