@@ -253,9 +253,8 @@ const AppointmentPage = () => {
       return;
     }
 
-    try {
-      // Check if the user is logged in
-      if (!user) {
+    // Check if the user is logged in
+    if (!user) {
       toast({
         title: "Autenticação necessária",
         description: "Você precisa fazer login para confirmar o agendamento.",
