@@ -157,6 +157,30 @@ const AppointmentPage = () => {
     // Create a Map to track blocked time slots based on existing appointments
     const blockedTimeSlots = new Map();
 
+    // Obter a data e hora atual
+    const now = new Date();
+    const selectedDateObj = new Date(selectedDate);
+    const isToday = selectedDateObj.toDateString() === now.toDateString();
+    
+    // Bloquear horários passados se for o dia atual
+    if (isToday) {
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      
+      // Bloquear todos os horários até a hora atual
+      for (let hour = startHour; hour <= currentHour; hour++) {
+        for (let minute = 0; minute < 60; minute += interval) {
+          // Se for a hora atual, só bloquear minutos passados
+          if (hour === currentHour && minute >= currentMinute) {
+            continue;
+          }
+          
+          const timeKey = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+          blockedTimeSlots.set(timeKey, true);
+        }
+      }
+    }
+
     // Mark blocked time slots from existing appointments
     try {
       // Verificação de segurança para garantir que appointments é um array

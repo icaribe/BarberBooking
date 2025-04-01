@@ -117,9 +117,11 @@ export const supabaseStorage = {
         options: {
           data: {
             username: userData.username,
-            name: userData.name,
-            phone: userData.phone
-          }
+            name: userData.name || "",
+            phone: userData.phone || ""
+          },
+          // Inclui o nome e telefone no Supabase Auth metadata
+          emailRedirectTo: `${process.env.SITE_URL || 'http://localhost:3000'}/login`
         }
       });
 
@@ -134,10 +136,18 @@ export const supabaseStorage = {
 
       console.log('Usuário criado no Auth do Supabase com ID:', authData.user.id);
 
-      // 2. Hash da senha para guardar no banco de dados
+      // 2. Atualizar nome de exibição e telefone para o usuário no Supabase Auth
+      await supabase.auth.updateUser({
+        data: { 
+          full_name: userData.name || "", 
+          phone: userData.phone || "" 
+        }
+      });
+
+      // 3. Hash da senha para guardar no banco de dados local
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       
-      // 3. Verificar se as colunas auth_id e password existem na tabela users
+      // 4. Inserir na tabela de usuários personalizada
       try {
         // Tentar inserir com todas as colunas incluindo auth_id e password
         const { data: user, error: userError } = await supabase
@@ -154,35 +164,19 @@ export const supabaseStorage = {
           .single();
   
         if (userError) {
-          console.error('Erro ao criar usuário na tabela users (tentativa 1):', userError);
+          console.error('Erro ao criar usuário na tabela users:', userError);
           
-          // Se falhar, tentar sem as colunas auth_id e password
-          const { data: userBasic, error: userBasicError } = await supabase
-            .from('users')
-            .insert({
-              username: userData.username,
-              email: userData.email,
-              name: userData.name || null,
-              phone: userData.phone || null
-            })
-            .select()
-            .single();
-            
-          if (userBasicError) {
-            console.error('Erro ao criar usuário básico na tabela users:', userBasicError);
-            // Tentar reverter a criação do usuário de autenticação em caso de falha
-            try {
-              await supabase.auth.admin.deleteUser(authData.user.id);
-            } catch (deleteError) {
-              console.error('Erro ao tentar reverter criação do usuário de autenticação:', deleteError);
-            }
-            throw userBasicError;
+          // Tentar reverter a criação do usuário de autenticação
+          try {
+            await supabase.auth.admin.deleteUser(authData.user.id);
+          } catch (deleteError) {
+            console.error('Erro ao tentar reverter criação do usuário de autenticação:', deleteError);
           }
           
-          console.log('Usuário criado com sucesso sem auth_id/password. É necessário executar o SQL manual_sql_update.sql para adicionar essas colunas.');
-          return userBasic;
+          throw userError;
         }
   
+        console.log('Usuário criado com sucesso na tabela users e no Auth do Supabase');
         return user;
       } catch (insertError) {
         console.error('Erro durante inserção do usuário:', insertError);

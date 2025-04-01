@@ -101,8 +101,14 @@ export function setupAuth(app: Express) {
       // Removemos a senha antes de retornar ao cliente
       const { password, ...userWithoutPassword } = user;
 
+      // Login do usuário após o registro (importante para sessão correta)
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          console.error('Erro ao fazer login automático após registro:', err);
+          return next(err);
+        }
+        
+        console.log('Login automático após registro realizado com sucesso para o usuário:', user.id);
         res.status(201).json(userWithoutPassword);
       });
     } catch (error) {
