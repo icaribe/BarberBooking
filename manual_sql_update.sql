@@ -1,0 +1,2 @@
+ALTER TABLE public.users ADD COLUMN auth_id UUID;
+ALTER TABLE public.users ADD COLUMN password VARCHAR NOT NULL DEFAULT '';

@@ -137,32 +137,65 @@ export const supabaseStorage = {
       // 2. Hash da senha para guardar no banco de dados
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       
-      // 3. Criar entrada na tabela de usuários vinculada ao ID de autenticação
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .insert({
-          username: userData.username,
-          email: userData.email,
-          name: userData.name || null,
-          phone: userData.phone || null,
-          password: hashedPassword,
-          auth_id: authData.user.id // Vincular com o ID de autenticação
-        })
-        .select()
-        .single();
-
-      if (userError) {
-        console.error('Erro ao criar usuário na tabela users:', userError);
-        // Tentar reverter a criação do usuário de autenticação em caso de falha
+      // 3. Verificar se as colunas auth_id e password existem na tabela users
+      try {
+        // Tentar inserir com todas as colunas incluindo auth_id e password
+        const { data: user, error: userError } = await supabase
+          .from('users')
+          .insert({
+            username: userData.username,
+            email: userData.email,
+            name: userData.name || null,
+            phone: userData.phone || null,
+            password: hashedPassword,
+            auth_id: authData.user.id // Vincular com o ID de autenticação
+          })
+          .select()
+          .single();
+  
+        if (userError) {
+          console.error('Erro ao criar usuário na tabela users (tentativa 1):', userError);
+          
+          // Se falhar, tentar sem as colunas auth_id e password
+          const { data: userBasic, error: userBasicError } = await supabase
+            .from('users')
+            .insert({
+              username: userData.username,
+              email: userData.email,
+              name: userData.name || null,
+              phone: userData.phone || null
+            })
+            .select()
+            .single();
+            
+          if (userBasicError) {
+            console.error('Erro ao criar usuário básico na tabela users:', userBasicError);
+            // Tentar reverter a criação do usuário de autenticação em caso de falha
+            try {
+              await supabase.auth.admin.deleteUser(authData.user.id);
+            } catch (deleteError) {
+              console.error('Erro ao tentar reverter criação do usuário de autenticação:', deleteError);
+            }
+            throw userBasicError;
+          }
+          
+          console.log('Usuário criado com sucesso sem auth_id/password. É necessário executar o SQL manual_sql_update.sql para adicionar essas colunas.');
+          return userBasic;
+        }
+  
+        return user;
+      } catch (insertError) {
+        console.error('Erro durante inserção do usuário:', insertError);
+        
+        // Tentar reverter a criação do usuário de autenticação
         try {
           await supabase.auth.admin.deleteUser(authData.user.id);
         } catch (deleteError) {
           console.error('Erro ao tentar reverter criação do usuário de autenticação:', deleteError);
         }
-        throw userError;
+        
+        throw insertError;
       }
-
-      return user;
     } catch (error) {
       console.error('Exceção ao criar usuário:', error);
       throw error;
@@ -353,11 +386,11 @@ export const supabaseStorage = {
       let query = supabase.from('appointments').select('*');
       
       if (userId) {
-        query = query.eq('userId', userId);
+        query = query.eq('user_id', userId);
       }
       
       if (professionalId) {
-        query = query.eq('professionalId', professionalId);
+        query = query.eq('professional_id', professionalId);
       }
       
       if (date) {
@@ -371,7 +404,18 @@ export const supabaseStorage = {
         return [];
       }
       
-      return data || [];
+      // Transformar os nomes dos campos para camelCase para o frontend
+      return (data || []).map(appointment => ({
+        id: appointment.id,
+        userId: appointment.user_id,
+        professionalId: appointment.professional_id,
+        date: appointment.date,
+        startTime: appointment.start_time,
+        endTime: appointment.end_time,
+        status: appointment.status,
+        notes: appointment.notes,
+        createdAt: appointment.created_at
+      }));
     } catch (err) {
       console.error('Exceção ao buscar agendamentos:', err);
       return [];
@@ -386,18 +430,53 @@ export const supabaseStorage = {
       .single();
     
     if (error) return null;
-    return data;
+    
+    // Transformar os nomes dos campos para camelCase para o frontend
+    return {
+      id: data.id,
+      userId: data.user_id,
+      professionalId: data.professional_id,
+      date: data.date,
+      startTime: data.start_time,
+      endTime: data.end_time,
+      status: data.status,
+      notes: data.notes,
+      createdAt: data.created_at
+    };
   },
 
   async createAppointment(appointmentData: InsertAppointment) {
+    // Converter camelCase para snake_case para o Supabase
+    const supabaseData = {
+      user_id: appointmentData.userId,
+      professional_id: appointmentData.professionalId,
+      date: appointmentData.date,
+      start_time: appointmentData.startTime,
+      end_time: appointmentData.endTime,
+      status: appointmentData.status,
+      notes: appointmentData.notes
+    };
+    
     const { data, error } = await supabase
       .from('appointments')
-      .insert(appointmentData)
+      .insert(supabaseData)
       .select()
       .single();
     
     if (error) throw error;
-    return data;
+    
+    // Transformar os nomes dos campos para camelCase para o frontend
+    return {
+      id: data.id,
+      userId: data.user_id,
+      professionalId: data.professional_id,
+      date: data.date,
+      startTime: data.start_time,
+      endTime: data.end_time,
+      status: data.status,
+      notes: data.notes,
+      createdAt: data.created_at
+    };
   },
 
   async updateAppointmentStatus(id: number, status: string) {
@@ -417,21 +496,39 @@ export const supabaseStorage = {
     const { data, error } = await supabase
       .from('appointment_services')
       .select('*')
-      .eq('appointmentId', appointmentId);
+      .eq('appointment_id', appointmentId);
     
     if (error) throw error;
-    return data;
+    
+    // Transformar os nomes dos campos para camelCase para o frontend
+    return (data || []).map(service => ({
+      id: service.id,
+      appointmentId: service.appointment_id,
+      serviceId: service.service_id
+    }));
   },
 
   async createAppointmentService(appointmentServiceData: InsertAppointmentService) {
+    // Converter camelCase para snake_case para o Supabase
+    const supabaseData = {
+      appointment_id: appointmentServiceData.appointmentId,
+      service_id: appointmentServiceData.serviceId
+    };
+    
     const { data, error } = await supabase
       .from('appointment_services')
-      .insert(appointmentServiceData)
+      .insert(supabaseData)
       .select()
       .single();
     
     if (error) throw error;
-    return data;
+    
+    // Transformar os nomes dos campos para camelCase para o frontend
+    return {
+      id: data.id,
+      appointmentId: data.appointment_id,
+      serviceId: data.service_id
+    };
   },
 
   // Categorias de Produtos
