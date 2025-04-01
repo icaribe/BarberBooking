@@ -43,11 +43,41 @@ export function setupAuth(app: Express) {
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
-      const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
+      try {
+        // Passo 1: Verificar se o usuário existe na tabela users
+        const user = await storage.getUserByUsername(username);
+        if (!user) {
+          console.log(`Usuário '${username}' não encontrado.`);
+          return done(null, false);
+        }
+
+        // Passo 2: Autenticar usando o Supabase Auth
+        // Se tiver email, usamos o email, caso contrário usamos o username como email
+        const email = user.email || `${username}@example.com`;
+        
+        const { data: authData, error: authError } = await storage.authenticateWithSupabase(email, password);
+        
+        if (authError) {
+          console.error('Erro na autenticação do Supabase:', authError.message);
+          
+          // Verificar com a versão local de backup
+          if (await comparePasswords(password, user.password)) {
+            console.log('Login bem-sucedido usando senha local.');
+            return done(null, user);
+          }
+          
+          return done(null, false);
+        }
+        
+        if (authData && authData.user) {
+          console.log('Login bem-sucedido usando Supabase Auth.');
+          return done(null, user);
+        }
+        
         return done(null, false);
-      } else {
-        return done(null, user);
+      } catch (error) {
+        console.error('Erro durante autenticação:', error);
+        return done(error);
       }
     }),
   );
@@ -59,27 +89,60 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByUsername(req.body.username);
-    if (existingUser) {
-      return res.status(400).send("Username already exists");
+    try {
+      const existingUser = await storage.getUserByUsername(req.body.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Nome de usuário já existe" });
+      }
+
+      // Criamos o usuário usando a nova função que integra com o Supabase Auth
+      const user = await storage.createUser(req.body);
+
+      // Removemos a senha antes de retornar ao cliente
+      const { password, ...userWithoutPassword } = user;
+
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(201).json(userWithoutPassword);
+      });
+    } catch (error) {
+      console.error('Erro ao registrar usuário:', error);
+      return res.status(500).json({
+        message: "Erro ao criar conta. Verifique os dados fornecidos e tente novamente.",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
     }
+  });
 
-    const user = await storage.createUser({
-      ...req.body,
-      password: await hashPassword(req.body.password),
-    });
-
-    req.login(user, (err) => {
+  app.post("/api/login", async (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
       if (err) return next(err);
-      res.status(201).json(user);
-    });
+      
+      if (!user) {
+        return res.status(401).json({ message: "Nome de usuário ou senha incorretos" });
+      }
+      
+      req.login(user, (err) => {
+        if (err) return next(err);
+        
+        // Removemos a senha antes de retornar ao cliente
+        const { password, ...userWithoutPassword } = user;
+        res.status(200).json(userWithoutPassword);
+      });
+    })(req, res, next);
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
-  });
-
-  app.post("/api/logout", (req, res, next) => {
+  app.post("/api/logout", async (req, res, next) => {
+    // Logout do Supabase Auth
+    if (req.user) {
+      try {
+        await storage.signOutFromSupabase();
+      } catch (error) {
+        console.error('Erro ao fazer logout do Supabase:', error);
+      }
+    }
+    
+    // Logout do Passport
     req.logout((err) => {
       if (err) return next(err);
       res.sendStatus(200);
@@ -88,6 +151,9 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    res.json(req.user);
+    
+    // Removemos a senha antes de retornar ao cliente
+    const { password, ...userWithoutPassword } = req.user as any;
+    res.json(userWithoutPassword);
   });
 }

@@ -6,8 +6,9 @@ import { z } from "zod";
 // User schema
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  auth_id: uuid("auth_id").notNull().unique(),
+  auth_id: uuid("auth_id").unique(),
   username: varchar("username").notNull(),
+  password: varchar("password").notNull(),
   name: varchar("name"),
   email: varchar("email").notNull(),
   phone: varchar("phone"),
@@ -15,11 +16,18 @@ export const users = pgTable("users", {
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  auth_id: true,
   username: true,
+  password: true,
   name: true,
   email: true,
   phone: true,
+});
+
+// Estendendo o schema para incluir validações adicionais
+export const userValidationSchema = insertUserSchema.extend({
+  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
+  username: z.string().min(3, "O nome de usuário deve ter pelo menos 3 caracteres"),
+  email: z.string().email("Email inválido"),
 });
 
 // Service category schema

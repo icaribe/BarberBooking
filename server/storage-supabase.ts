@@ -8,8 +8,74 @@ import {
   InsertSchedule, InsertAppointment, InsertAppointmentService,
   InsertProductCategory, InsertProduct, InsertLoyaltyReward
 } from '@shared/schema';
+import MemoryStore from 'memorystore';
+import session from 'express-session';
+
+// Definindo o tipo de retorno das funções de autenticação do Supabase
+interface SupabaseAuthResponse {
+  data: {
+    user: any;
+    session: any;
+  } | null;
+  error: {
+    message: string;
+  } | null;
+}
+
+// Criando o Memory Store para sessões
+const MemoryStoreConstructor = MemoryStore(session);
 
 export const supabaseStorage = {
+  // Métodos de autenticação do Supabase
+  sessionStore: new MemoryStoreConstructor({
+    checkPeriod: 86400000 // limpar sessões expiradas a cada 24h
+  }),
+  
+  // Método para autenticar com o Supabase
+  async authenticateWithSupabase(email: string, password: string): Promise<SupabaseAuthResponse> {
+    try {
+      const response = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      return response;
+    } catch (error) {
+      console.error('Erro na autenticação com Supabase:', error);
+      return {
+        data: null,
+        error: {
+          message: 'Falha na autenticação'
+        }
+      };
+    }
+  },
+  
+  // Método para logout do Supabase
+  async signOutFromSupabase() {
+    try {
+      return await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Erro ao fazer logout do Supabase:', error);
+      throw error;
+    }
+  },
+  
+  // Método para recuperar o usuário atual do Supabase Auth
+  async getCurrentUser() {
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error('Erro ao obter usuário atual:', error);
+        return null;
+      }
+      return data.user;
+    } catch (error) {
+      console.error('Exceção ao obter usuário atual:', error);
+      return null;
+    }
+  },
+  
   // Usuários
   async getUsers() {
     const { data, error } = await supabase
@@ -44,24 +110,55 @@ export const supabaseStorage = {
 
   async createUser(userData: InsertUser) {
     try {
-      // Hash da senha para guardar no banco
+      // 1. Primeiro, criar o usuário no sistema de autenticação do Supabase
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: userData.email || `${userData.username}@example.com`,
+        password: userData.password,
+        options: {
+          data: {
+            username: userData.username,
+            name: userData.name,
+            phone: userData.phone
+          }
+        }
+      });
+
+      if (authError) {
+        console.error('Erro ao criar usuário na autenticação do Supabase:', authError);
+        throw authError;
+      }
+
+      if (!authData.user || !authData.user.id) {
+        throw new Error('Falha ao criar usuário na autenticação do Supabase');
+      }
+
+      console.log('Usuário criado no Auth do Supabase com ID:', authData.user.id);
+
+      // 2. Hash da senha para guardar no banco de dados
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       
-      // Criar entrada na tabela de usuários
+      // 3. Criar entrada na tabela de usuários vinculada ao ID de autenticação
       const { data: user, error: userError } = await supabase
         .from('users')
         .insert({
           username: userData.username,
           email: userData.email,
-          name: userData.name,
-          phone: userData.phone,
-          password: hashedPassword
+          name: userData.name || null,
+          phone: userData.phone || null,
+          password: hashedPassword,
+          auth_id: authData.user.id // Vincular com o ID de autenticação
         })
         .select()
         .single();
 
       if (userError) {
-        console.error('Erro ao criar usuário:', userError);
+        console.error('Erro ao criar usuário na tabela users:', userError);
+        // Tentar reverter a criação do usuário de autenticação em caso de falha
+        try {
+          await supabase.auth.admin.deleteUser(authData.user.id);
+        } catch (deleteError) {
+          console.error('Erro ao tentar reverter criação do usuário de autenticação:', deleteError);
+        }
         throw userError;
       }
 
