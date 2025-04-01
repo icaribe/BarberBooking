@@ -44,24 +44,38 @@ export const supabaseStorage = {
 
   async createUser(userData: InsertUser) {
     try {
-      // Hash da senha
-      const hashedPassword = await bcrypt.hash(userData.password, 10);
-      
-      // Remover id se existir para deixar o Supabase gerar automaticamente
-      const { id, ...userDataWithoutId } = userData as any;
-      
-      const { data, error } = await supabase
+      // Primeiro criar o usuário na autenticação do Supabase
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+      });
+
+      if (authError) {
+        console.error('Erro ao criar usuário na autenticação:', authError);
+        throw authError;
+      }
+
+      if (!authData.user) {
+        throw new Error('Usuário não foi criado na autenticação');
+      }
+
+      // Agora inserir os dados complementares na tabela users
+      const { password, ...userDataWithoutPassword } = userData;
+      const { data: userData, error: userError } = await supabase
         .from('users')
-        .insert({ ...userDataWithoutId, password: hashedPassword })
+        .insert({
+          ...userDataWithoutPassword,
+          auth_id: authData.user.id // Vincular com o ID da autenticação
+        })
         .select()
         .single();
-      
-      if (error) {
-        console.error('Erro ao criar usuário no Supabase:', error);
-        throw error;
+
+      if (userError) {
+        console.error('Erro ao criar dados do usuário:', userError);
+        throw userError;
       }
-      
-      return data;
+
+      return userData;
     } catch (error) {
       console.error('Exceção ao criar usuário:', error);
       throw error;

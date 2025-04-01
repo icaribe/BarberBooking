@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, foreignKey, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, foreignKey, pgEnum, varchar, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
@@ -6,17 +6,17 @@ import { z } from "zod";
 // User schema
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  name: text("name"),
-  email: text("email"),
-  phone: text("phone"),
+  auth_id: uuid("auth_id").notNull().unique(),
+  username: varchar("username").notNull(),
+  name: varchar("name"),
+  email: varchar("email").notNull(),
+  phone: varchar("phone"),
   loyaltyPoints: integer("loyalty_points").default(0),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
+  auth_id: true,
   username: true,
-  password: true,
   name: true,
   email: true,
   phone: true,
