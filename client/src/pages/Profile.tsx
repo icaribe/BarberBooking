@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/hooks/useAuth'; // Importando o hook de autenticação
 import {
   Dialog,
   DialogContent,
@@ -45,9 +46,10 @@ const ProfilePage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: authUser, logout } = useAuth(); // Hook de autenticação
   
-  // Using a fixed user ID (1) for demo purposes
-  const userId = 1;
+  // Usando o ID do usuário autenticado em vez de um ID fixo
+  const userId = authUser?.id ?? 1;
   
   // Fetch user data
   const { 
@@ -218,6 +220,15 @@ const ProfilePage = () => {
               <Button
                 variant="secondary"
                 className="w-full justify-start font-normal text-left h-auto py-3"
+                onClick={() => {
+                  logout();
+                  toast({
+                    title: "Logout realizado",
+                    description: "Você saiu da sua conta com sucesso."
+                  });
+                  // Redirecionar para a página inicial após o logout
+                  window.location.href = '/';
+                }}
               >
                 <LogOut className="mr-2 h-5 w-5 text-primary" />
                 Sair
