@@ -348,31 +348,64 @@ export const supabaseStorage = {
   async getProducts() {
     const { data, error } = await supabase
       .from('products')
-      .select('*');
+      .select('*, product_categories(*)');
     
     if (error) throw error;
-    return data;
+    
+    // Transformar os nomes dos campos para camelCase para o frontend
+    return data.map(product => ({
+      id: product.id,
+      name: product.name,
+      description: product.description || '',
+      price: product.price,
+      stockQuantity: product.in_stock ? 1 : 0,
+      categoryId: product.category_id,
+      imageUrl: product.image_url || null,
+      category: product.product_categories
+    }));
   },
 
   async getProductsByCategory(categoryId: number) {
     const { data, error } = await supabase
       .from('products')
-      .select('*')
-      .eq('categoryId', categoryId);
+      .select('*, product_categories(*)')
+      .eq('category_id', categoryId);
     
     if (error) throw error;
-    return data;
+    
+    // Transformar os nomes dos campos para camelCase para o frontend
+    return data.map(product => ({
+      id: product.id,
+      name: product.name,
+      description: product.description || '',
+      price: product.price,
+      stockQuantity: product.in_stock ? 1 : 0,
+      categoryId: product.category_id,
+      imageUrl: product.image_url || null,
+      category: product.product_categories
+    }));
   },
 
   async getProduct(id: number) {
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select('*, product_categories(*)')
       .eq('id', id)
       .single();
     
     if (error) return null;
-    return data;
+    
+    // Transformar os nomes dos campos para camelCase para o frontend
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description || '',
+      price: data.price,
+      stockQuantity: data.in_stock ? 1 : 0,
+      categoryId: data.category_id,
+      imageUrl: data.image_url || null,
+      category: data.product_categories
+    };
   },
 
   async createProduct(productData: InsertProduct) {
