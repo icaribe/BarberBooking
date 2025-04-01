@@ -82,10 +82,24 @@ export function setupAuth(app: Express) {
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    console.log('Serializando usuário:', user.id);
+    done(null, user.id);
+  });
+  
   passport.deserializeUser(async (id: number, done) => {
-    const user = await storage.getUser(id);
-    done(null, user);
+    try {
+      console.log('Desserializando usuário de ID:', id);
+      const user = await storage.getUser(id);
+      if (!user) {
+        console.error('Usuário não encontrado na desserialização:', id);
+        return done(null, null);
+      }
+      done(null, user);
+    } catch (error) {
+      console.error('Erro ao desserializar usuário:', error);
+      done(error, null);
+    }
   });
 
   app.post("/api/register", async (req, res, next) => {
@@ -95,7 +109,7 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Nome de usuário já existe" });
       }
 
-      // Criamos o usuário usando a nova função que integra com o Supabase Auth
+      // Criamos o usuário usando a função que integra com o Supabase Auth
       const user = await storage.createUser(req.body);
 
       // Removemos a senha antes de retornar ao cliente
@@ -108,8 +122,17 @@ export function setupAuth(app: Express) {
           return next(err);
         }
         
-        console.log('Login automático após registro realizado com sucesso para o usuário:', user.id);
-        res.status(201).json(userWithoutPassword);
+        // Garantir que temos a sessão correta estabelecida
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Erro ao salvar sessão após registro:', saveErr);
+            return next(saveErr);
+          }
+          
+          console.log('Login automático após registro realizado com sucesso para o usuário:', user.id);
+          console.log('Sessão estabelecida:', req.isAuthenticated(), 'user ID:', req.user?.id);
+          res.status(201).json(userWithoutPassword);
+        });
       });
     } catch (error) {
       console.error('Erro ao registrar usuário:', error);
@@ -121,19 +144,30 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", async (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: Error | null, user: any, info: any) => {
       if (err) return next(err);
       
       if (!user) {
         return res.status(401).json({ message: "Nome de usuário ou senha incorretos" });
       }
       
-      req.login(user, (err) => {
-        if (err) return next(err);
+      req.login(user, (loginErr: Error | null) => {
+        if (loginErr) return next(loginErr);
         
-        // Removemos a senha antes de retornar ao cliente
-        const { password, ...userWithoutPassword } = user;
-        res.status(200).json(userWithoutPassword);
+        // Garantir que a sessão seja salva adequadamente
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Erro ao salvar sessão após login:', saveErr);
+            return next(saveErr);
+          }
+          
+          console.log('Login bem-sucedido para o usuário:', user.id);
+          console.log('Sessão estabelecida:', req.isAuthenticated(), 'user ID:', req.user?.id);
+          
+          // Removemos a senha antes de retornar ao cliente
+          const { password, ...userWithoutPassword } = user;
+          res.status(200).json(userWithoutPassword);
+        });
       });
     })(req, res, next);
   });
@@ -155,11 +189,30 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/user", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      console.log('Usuário não autenticado em /api/user');
+      return res.sendStatus(401);
+    }
     
-    // Removemos a senha antes de retornar ao cliente
-    const { password, ...userWithoutPassword } = req.user as any;
-    res.json(userWithoutPassword);
+    try {
+      // Buscar informações atualizadas do usuário do banco de dados
+      const userId = (req.user as any).id;
+      console.log('Buscando informações atualizadas para o usuário ID:', userId);
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        console.error('Usuário autenticado não encontrado no banco:', userId);
+        return res.sendStatus(401);
+      }
+      
+      // Remover a senha antes de retornar ao cliente
+      const { password, ...userWithoutPassword } = user;
+      console.log('Retornando dados do usuário:', userId, userWithoutPassword.username);
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Erro ao buscar dados do usuário:', error);
+      res.status(500).json({ message: 'Erro ao buscar dados do usuário' });
+    }
   });
 }

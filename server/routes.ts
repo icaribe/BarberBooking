@@ -261,25 +261,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/appointments", async (req: Request, res: Response) => {
     try {
-      const appointmentData = insertAppointmentSchema.parse(req.body);
+      // Verificar autenticação
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Você precisa estar autenticado para criar um agendamento" });
+      }
+      
+      // Obter o ID do usuário atual da sessão
+      const currentUserId = (req.user as any).id;
+      console.log('Criando agendamento para o usuário autenticado ID:', currentUserId);
+      
+      // Garantir que o userId no agendamento corresponda ao usuário autenticado
+      const appointmentData = insertAppointmentSchema.parse({
+        ...req.body,
+        userId: currentUserId // Sobrescrever com o ID do usuário autenticado
+      });
+      
+      console.log('Dados do agendamento validados:', appointmentData);
       const newAppointment = await storage.createAppointment(appointmentData);
+      console.log('Agendamento criado com ID:', newAppointment.id);
       
       // Add services to the appointment if provided
       if (req.body.services && Array.isArray(req.body.services)) {
+        console.log('Adicionando serviços ao agendamento:', req.body.services);
         for (const serviceId of req.body.services) {
-          await storage.createAppointmentService({
+          const appointmentService = await storage.createAppointmentService({
             appointmentId: newAppointment.id,
             serviceId: parseInt(serviceId)
           });
+          console.log('Serviço adicionado ao agendamento:', appointmentService);
         }
       }
       
+      // Buscar o agendamento recém-criado para confirmar que foi salvo
+      const savedAppointment = await storage.getAppointment(newAppointment.id);
+      console.log('Agendamento verificado após salvar:', savedAppointment);
+      
       res.status(201).json(newAppointment);
     } catch (error) {
+      console.error('Erro ao criar agendamento:', error);
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid appointment data", errors: error.errors });
+        return res.status(400).json({ message: "Dados de agendamento inválidos", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create appointment" });
+      res.status(500).json({ message: "Falha ao criar agendamento" });
     }
   });
 

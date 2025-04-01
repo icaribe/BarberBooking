@@ -114,13 +114,14 @@ export const supabaseStorage = {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email || `${userData.username}@example.com`,
         password: userData.password,
+        phone: userData.phone || undefined, // Adiciona o telefone diretamente
         options: {
           data: {
             username: userData.username,
-            name: userData.name || "",
-            phone: userData.phone || ""
+            full_name: userData.name || "",
+            display_name: userData.name || "", // Adiciona display_name explicitamente
+            phone_number: userData.phone || "" // Adiciona phone_number explicitamente para metadados
           },
-          // Inclui o nome e telefone no Supabase Auth metadata
           emailRedirectTo: `${process.env.SITE_URL || 'http://localhost:3000'}/login`
         }
       });
@@ -137,12 +138,21 @@ export const supabaseStorage = {
       console.log('Usuário criado no Auth do Supabase com ID:', authData.user.id);
 
       // 2. Atualizar nome de exibição e telefone para o usuário no Supabase Auth
-      await supabase.auth.updateUser({
+      const { data: updatedUser, error: updateError } = await supabase.auth.updateUser({
+        phone: userData.phone ? userData.phone : undefined, // Atualiza o telefone principal (undefined se for null)
         data: { 
           full_name: userData.name || "", 
-          phone: userData.phone || "" 
+          display_name: userData.name || "",
+          phone_number: userData.phone || "",
+          phone: userData.phone || ""
         }
       });
+      
+      if (updateError) {
+        console.error('Erro ao atualizar metadados do usuário no Supabase Auth:', updateError);
+      } else {
+        console.log('Metadados do usuário atualizados no Supabase Auth:', updatedUser?.user?.user_metadata);
+      }
 
       // 3. Hash da senha para guardar no banco de dados local
       const hashedPassword = await bcrypt.hash(userData.password, 10);

@@ -10,6 +10,14 @@ export interface User {
   loyaltyPoints: number; // Alias para points para compatibilidade
 }
 
+export interface UserRegistration {
+  username: string;
+  password: string;
+  email: string;
+  name: string;
+  phone?: string;
+}
+
 export interface ServiceCategory {
   id: number;
   name: string;

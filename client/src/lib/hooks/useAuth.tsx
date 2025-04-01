@@ -77,11 +77,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return response.json();
     },
     onSuccess: (data) => {
+      // Atualiza o cache do usuário atual
       queryClient.setQueryData(['/api/user'], data);
+      
+      // Força a atualização do estado global do usuário
+      refetchUser();
+      
       toast({
         title: "Registro concluído",
         description: "Sua conta foi criada com sucesso!",
       });
+      
+      // Invalidar todas as queries relacionadas a agendamentos e perfil
+      queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
     },
     onError: (error: Error) => {
       toast({
