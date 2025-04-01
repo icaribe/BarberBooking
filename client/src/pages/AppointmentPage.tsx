@@ -29,7 +29,7 @@ const AppointmentPage = () => {
   const [notes, setNotes] = useState('');
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  
+
   const { services, isLoadingServices } = useServices();
   const { professionals, isLoadingProfessionals } = useProfessionals();
   const { 
@@ -51,23 +51,23 @@ const AppointmentPage = () => {
     // Only try to restore if we have professionals loaded and a serviceId
     if (professionals.length > 0 && serviceId) {
       const pendingAppointmentStr = sessionStorage.getItem('pendingAppointment');
-      
+
       if (pendingAppointmentStr) {
         try {
           const pendingAppointment = JSON.parse(pendingAppointmentStr);
-          
+
           // Only restore if for the same service
           if (pendingAppointment.serviceId === serviceId) {
             // Restore date
             if (pendingAppointment.selectedDate) {
               setSelectedDate(new Date(pendingAppointment.selectedDate));
             }
-            
+
             // Restore time
             if (pendingAppointment.selectedTime) {
               setSelectedTime(pendingAppointment.selectedTime);
             }
-            
+
             // Restore professional
             if (pendingAppointment.selectedProfessionalId) {
               const prof = professionals.find(p => p.id === pendingAppointment.selectedProfessionalId);
@@ -126,7 +126,7 @@ const AppointmentPage = () => {
     const dates = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     for (let i = 0; i < 7; i++) {
       const date = addDays(today, i);
       // Skip Sundays (0 = Sunday)
@@ -134,7 +134,7 @@ const AppointmentPage = () => {
         dates.push(date);
       }
     }
-    
+
     return dates;
   };
 
@@ -148,15 +148,15 @@ const AppointmentPage = () => {
   // Generate time slots for selected professional and date
   const generateTimeSlots = () => {
     if (!selectedProfessional || !selectedDate) return [];
-    
+
     const slots = [];
     const startHour = 9;
     const endHour = 18;
     const interval = 15; // minutes
-    
+
     // Create a Map to track blocked time slots based on existing appointments
     const blockedTimeSlots = new Map();
-    
+
     // Mark blocked time slots from existing appointments
     if (appointments && appointments.length > 0) {
       appointments.forEach(appointment => {
@@ -164,10 +164,10 @@ const AppointmentPage = () => {
         if (appointment.startTime && appointment.endTime) {
           const [startHour, startMinute] = appointment.startTime.split(':').map(Number);
           const [endHour, endMinute] = appointment.endTime.split(':').map(Number);
-          
+
           let currentHour = startHour;
           let currentMinute = startMinute;
-          
+
           // Block all slots from start time to end time
           while (
             currentHour < endHour || 
@@ -175,7 +175,7 @@ const AppointmentPage = () => {
           ) {
             const timeKey = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
             blockedTimeSlots.set(timeKey, true);
-            
+
             // Move to the next slot
             currentMinute += interval;
             if (currentMinute >= 60) {
@@ -186,7 +186,7 @@ const AppointmentPage = () => {
         }
       });
     }
-    
+
     // Generate all possible time slots
     for (let hour = startHour; hour < endHour; hour++) {
       for (let minute = 0; minute < 60; minute += interval) {
@@ -194,44 +194,44 @@ const AppointmentPage = () => {
         if ((hour === 13 && minute >= 0) || (hour === 14 && minute < 30)) {
           continue;
         }
-        
+
         const formattedHour = hour.toString().padStart(2, '0');
         const formattedMinute = minute.toString().padStart(2, '0');
         const timeSlot = `${formattedHour}:${formattedMinute}`;
-        
+
         // Check if this slot is available
         if (!blockedTimeSlots.has(timeSlot)) {
           // Also need to check if there's enough time for the service before the next blocked slot
           // or before closing time
           const slotDate = new Date(selectedDate);
           slotDate.setHours(hour, minute, 0, 0);
-          
+
           const endTime = new Date(slotDate);
           endTime.setMinutes(endTime.getMinutes() + (service?.durationMinutes || 0));
-          
+
           // If the end time is after closing time, skip this slot
           if (endTime.getHours() >= endHour) {
             continue;
           }
-          
+
           // Check if the service would overlap with any blocked slots
           let hasOverlap = false;
           let currentCheck = new Date(slotDate);
-          
+
           while (currentCheck < endTime) {
             const checkHour = currentCheck.getHours().toString().padStart(2, '0');
             const checkMinute = currentCheck.getMinutes().toString().padStart(2, '0');
             const checkKey = `${checkHour}:${checkMinute}`;
-            
+
             if (blockedTimeSlots.has(checkKey)) {
               hasOverlap = true;
               break;
             }
-            
+
             // Move to the next interval to check
             currentCheck.setMinutes(currentCheck.getMinutes() + interval);
           }
-          
+
           // If there's no overlap, this slot is available
           if (!hasOverlap) {
             slots.push(timeSlot);
@@ -239,7 +239,7 @@ const AppointmentPage = () => {
         }
       }
     }
-    
+
     return slots;
   };
 
@@ -267,7 +267,7 @@ const AppointmentPage = () => {
         selectedTime
       };
       sessionStorage.setItem('pendingAppointment', JSON.stringify(appointmentState));
-      
+
       // Redirect to auth page
       navigate('/auth?returnTo=/appointment/' + serviceId);
       return;
@@ -276,17 +276,17 @@ const AppointmentPage = () => {
     try {
       // Format date as YYYY-MM-DD
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-      
+
       // Calculate end time based on service duration
       const [hours, minutes] = selectedTime.split(':').map(Number);
       const startDate = new Date(selectedDate);
       startDate.setHours(hours, minutes, 0, 0);
-      
+
       const endDate = new Date(startDate);
       endDate.setMinutes(endDate.getMinutes() + service.durationMinutes);
-      
+
       const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
-      
+
       await createAppointment({
         userId: user.id,
         professionalId: selectedProfessional.id,
@@ -297,15 +297,15 @@ const AppointmentPage = () => {
         notes: notes,
         services: [service.id]
       });
-      
+
       toast({
         title: "Agendamento confirmado!",
         description: `Seu agendamento com ${selectedProfessional.name} foi confirmado para ${format(selectedDate, 'dd/MM/yyyy')} às ${selectedTime}.`,
       });
-      
+
       // Clear the pending appointment from session storage
       sessionStorage.removeItem('pendingAppointment');
-      
+
       navigate('/appointments');
     } catch (error) {
       toast({
@@ -324,19 +324,19 @@ const AppointmentPage = () => {
       const today = new Date();
       const startMonth = today.getMonth();
       const startYear = today.getFullYear();
-      
+
       for (let i = 0; i < 12; i++) {
         let year = startYear;
         let month = startMonth + i;
-        
+
         if (month > 11) {
           month = month - 12;
           year = startYear + 1;
         }
-        
+
         months.push({ month, year });
       }
-      
+
       return months;
     };
 
@@ -344,42 +344,42 @@ const AppointmentPage = () => {
       const firstDay = new Date(year, month, 1);
       const lastDay = new Date(year, month + 1, 0);
       const daysInMonth = lastDay.getDate();
-      
+
       // Get day of week for first day (0 = Sunday, 1 = Monday, etc.)
       let firstDayIndex = firstDay.getDay();
       if (firstDayIndex === 0) firstDayIndex = 7; // Move Sunday to end
-      
+
       const days = [];
-      
+
       // Create days array
       for (let i = 1; i <= daysInMonth; i++) {
         const date = new Date(year, month, i);
         const isDisabled = date < new Date() || date.getDay() === 0; // Disable past dates and Sundays
-        
+
         days.push({
           date,
           isDisabled
         });
       }
-      
+
       return (
         <div key={`${month}-${year}`} className="mb-8">
           <h3 className="text-center text-lg font-medium mb-2">
             {format(new Date(year, month), 'MMMM yyyy', { locale: ptBR })}
           </h3>
-          
+
           <div className="grid grid-cols-7 gap-2 text-center">
             {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((day, index) => (
               <div key={index} className="text-xs py-1 text-muted-foreground">
                 {day}
               </div>
             ))}
-            
+
             {/* Empty cells for days before first day of month */}
             {Array.from({ length: firstDayIndex - 1 }).map((_, i) => (
               <div key={`empty-${i}`} />
             ))}
-            
+
             {/* Calendar days */}
             {days.map(({ date, isDisabled }, i) => (
               <button
@@ -419,7 +419,7 @@ const AppointmentPage = () => {
             </Button>
             <h2 className="text-center font-medium text-lg mt-1">Selecione uma data</h2>
           </div>
-          
+
           <div className="px-4 pb-4">
             {generateMonths().map(({ month, year }) => renderMonthCalendar(month, year))}
           </div>
@@ -451,7 +451,7 @@ const AppointmentPage = () => {
           <h1 className="font-montserrat font-semibold ml-2">Agendamento</h1>
         </div>
       </header>
-      
+
       <div className="p-4 border-b border-border">
         <h2 className="font-montserrat font-semibold text-lg">{service.name}</h2>
         <div className="flex justify-between items-center mt-1">
@@ -475,7 +475,7 @@ const AppointmentPage = () => {
             <Calendar className="h-5 w-5" />
           </Button>
         </div>
-        
+
         {/* Horizontal date picker */}
         <div className="overflow-x-auto no-scrollbar -mx-4 px-4 mt-2">
           <div className="flex space-x-2">
@@ -483,7 +483,7 @@ const AppointmentPage = () => {
               const isSelected = isSameDay(date, selectedDate);
               const dayNumber = date.getDate();
               const dayName = format(date, 'EEE', { locale: ptBR });
-              
+
               return (
                 <div 
                   key={index}
@@ -534,7 +534,7 @@ const AppointmentPage = () => {
       {selectedProfessional && (
         <div className="p-4 border-b border-border">
           <h3 className="font-medium mb-2">Escolha o horário</h3>
-          
+
           {isLoadingAppointments ? (
             <div className="flex justify-center py-6">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
@@ -602,31 +602,31 @@ const AppointmentPage = () => {
           <DialogContent className="sm:max-w-md">
             <div className="p-4">
               <h2 className="text-xl font-semibold mb-4 text-center">Confirmação de Agendamento</h2>
-              
+
               <div className="space-y-4">
                 <div className="border-b pb-2">
                   <h3 className="font-medium">Serviço</h3>
                   <p>{service.name}</p>
                   <p className="text-sm text-muted-foreground">{service.durationMinutes} min</p>
                 </div>
-                
+
                 <div className="border-b pb-2">
                   <h3 className="font-medium">Profissional</h3>
                   <p>{selectedProfessional?.name}</p>
                 </div>
-                
+
                 <div className="border-b pb-2">
                   <h3 className="font-medium">Data e Horário</h3>
                   <p>{format(selectedDate, 'dd/MM/yyyy')} às {selectedTime}</p>
                 </div>
-                
+
                 {notes && (
                   <div className="border-b pb-2">
                     <h3 className="font-medium">Observações</h3>
                     <p className="text-sm">{notes}</p>
                   </div>
                 )}
-                
+
                 <div className="border-b pb-2">
                   <h3 className="font-medium">Valor</h3>
                   <p className="text-primary font-semibold">
@@ -634,7 +634,7 @@ const AppointmentPage = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex justify-between mt-6 space-x-2">
                 <Button variant="outline" onClick={() => setShowConfirmation(false)} className="flex-1">
                   Cancelar
@@ -647,7 +647,7 @@ const AppointmentPage = () => {
           </DialogContent>
         </Dialog>
       )}
-      
+
       {renderCalendarDialog()}
     </div>
   );
