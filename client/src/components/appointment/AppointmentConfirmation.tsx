@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils/format';
 import { Service, Professional } from '@/lib/types';
@@ -33,33 +33,34 @@ const AppointmentConfirmation = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
+        <DialogTitle>Confirmar Agendamento</DialogTitle>
         <div className="p-4">
           <h2 className="text-xl font-semibold mb-4 text-center">Confirmação de Agendamento</h2>
-          
+
           <div className="space-y-4">
             <div className="border-b pb-2">
               <h3 className="font-medium">Serviço</h3>
               <p>{service.name}</p>
               <p className="text-sm text-muted-foreground">{service.durationMinutes} min</p>
             </div>
-            
+
             <div className="border-b pb-2">
               <h3 className="font-medium">Profissional</h3>
               <p>{selectedProfessional.name}</p>
             </div>
-            
+
             <div className="border-b pb-2">
               <h3 className="font-medium">Data e Horário</h3>
               <p>{format(selectedDate, 'dd/MM/yyyy', { locale: ptBR })} às {selectedTime}</p>
             </div>
-            
+
             {notes && (
               <div className="border-b pb-2">
                 <h3 className="font-medium">Observações</h3>
                 <p className="text-sm">{notes}</p>
               </div>
             )}
-            
+
             <div className="border-b pb-2">
               <h3 className="font-medium">Valor</h3>
               <p className="text-primary font-semibold">
@@ -67,7 +68,7 @@ const AppointmentConfirmation = ({
               </p>
             </div>
           </div>
-          
+
           <div className="flex justify-between mt-6 space-x-2">
             <Button variant="outline" onClick={onClose} className="flex-1">
               Cancelar
