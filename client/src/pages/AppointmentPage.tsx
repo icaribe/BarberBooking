@@ -244,18 +244,18 @@ const AppointmentPage = () => {
   };
 
   const handleConfirmAppointment = async () => {
-    try {
-      if (!selectedProfessional || !selectedDate || !selectedTime) {
-        toast({
-          title: "Informações incompletas",
-          description: "Por favor, selecione profissional, data e horário.",
-          variant: "destructive"
-        });
-        return;
-      }
+    if (!selectedProfessional || !selectedDate || !selectedTime) {
+      toast({
+        title: "Informações incompletas",
+        description: "Por favor, selecione profissional, data e horário.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    // Check if the user is logged in
-    if (!user) {
+    try {
+      // Check if the user is logged in
+      if (!user) {
       toast({
         title: "Autenticação necessária",
         description: "Você precisa fazer login para confirmar o agendamento.",
