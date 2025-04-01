@@ -11,6 +11,7 @@ import Profile from "@/pages/Profile";
 import AppointmentPage from "@/pages/AppointmentPage";
 import ProductsPage from "@/pages/ProductsPage";
 import AuthPage from "@/pages/auth-page";
+import Settings from "@/pages/Settings";
 
 function App() {
   return (
@@ -22,7 +23,8 @@ function App() {
             <Route path="/auth" component={AuthPage} />
             <ProtectedRoute path="/appointments" component={Appointments} />
             <ProtectedRoute path="/profile" component={Profile} />
-            {/* <Route path="/products" component={ProductsPage} /> */}
+            <ProtectedRoute path="/settings" component={Settings} />
+            <Route path="/products" component={ProductsPage} />
             <Route path="/appointment/:serviceId" component={AppointmentPage} />
             <Route component={NotFound} />
           </Switch>
