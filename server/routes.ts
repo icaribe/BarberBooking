@@ -42,17 +42,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existingUser = await storage.getUserByUsername(userData.username);
       
       if (existingUser) {
-        return res.status(409).json({ message: "Username already exists" });
+        return res.status(409).json({ message: "Nome de usuário já existe" });
       }
       
       const newUser = await storage.createUser(userData);
+      if (!newUser) {
+        return res.status(500).json({ message: "Erro ao criar usuário no banco de dados" });
+      }
+
       const { password, ...userWithoutPassword } = newUser;
       res.status(201).json(userWithoutPassword);
     } catch (error) {
+      console.error("Erro ao criar usuário:", error);
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
+        return res.status(400).json({ 
+          message: "Dados de usuário inválidos", 
+          errors: error.errors 
+        });
       }
-      res.status(500).json({ message: "Failed to create user" });
+      res.status(500).json({ 
+        message: "Erro ao criar usuário. Por favor, tente novamente.",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
     }
   });
 
