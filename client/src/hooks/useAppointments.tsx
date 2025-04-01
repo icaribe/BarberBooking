@@ -15,6 +15,7 @@ type AppointmentCreation = {
 };
 
 export const useAppointments = (userId?: number, professionalId?: number, date?: string) => {
+  console.log("useAppointments hook chamado com:", { userId, professionalId, date });
   const queryClient = useQueryClient();
 
   // Build the query parameters
@@ -33,7 +34,8 @@ export const useAppointments = (userId?: number, professionalId?: number, date?:
     error
   } = useQuery<Appointment[]>({ 
     queryKey: [apiUrl],
-    enabled: !!userId || !!professionalId || !!date,
+    // Sempre habilitar a consulta, mesmo que os parâmetros sejam undefined
+    // Nesse caso, retornará todos os agendamentos
   });
 
   // Create a new appointment

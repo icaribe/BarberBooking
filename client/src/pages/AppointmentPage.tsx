@@ -158,33 +158,47 @@ const AppointmentPage = () => {
     const blockedTimeSlots = new Map();
 
     // Mark blocked time slots from existing appointments
-    if (appointments && appointments.length > 0) {
-      appointments.forEach(appointment => {
-        // For each appointment, block all slots within its duration
-        if (appointment.startTime && appointment.endTime) {
-          const [startHour, startMinute] = appointment.startTime.split(':').map(Number);
-          const [endHour, endMinute] = appointment.endTime.split(':').map(Number);
+    try {
+      // Verificação de segurança para garantir que appointments é um array
+      const appointmentsArray = Array.isArray(appointments) ? appointments : [];
+      
+      if (appointmentsArray.length > 0) {
+        appointmentsArray.forEach(appointment => {
+          // For each appointment, block all slots within its duration
+          if (appointment && appointment.startTime && appointment.endTime) {
+            const [startHour, startMinute] = appointment.startTime.split(':').map(Number);
+            const [endHour, endMinute] = appointment.endTime.split(':').map(Number);
 
-          let currentHour = startHour;
-          let currentMinute = startMinute;
+            // Validar que os valores são números válidos
+            if (isNaN(startHour) || isNaN(startMinute) || isNaN(endHour) || isNaN(endMinute)) {
+              console.error('Horários inválidos:', appointment.startTime, appointment.endTime);
+              return; // Skip this appointment
+            }
 
-          // Block all slots from start time to end time
-          while (
-            currentHour < endHour || 
-            (currentHour === endHour && currentMinute < endMinute)
-          ) {
-            const timeKey = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-            blockedTimeSlots.set(timeKey, true);
+            let currentHour = startHour;
+            let currentMinute = startMinute;
 
-            // Move to the next slot
-            currentMinute += interval;
-            if (currentMinute >= 60) {
-              currentHour++;
-              currentMinute = 0;
+            // Block all slots from start time to end time
+            while (
+              currentHour < endHour || 
+              (currentHour === endHour && currentMinute < endMinute)
+            ) {
+              const timeKey = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+              blockedTimeSlots.set(timeKey, true);
+
+              // Move to the next slot
+              currentMinute += interval;
+              if (currentMinute >= 60) {
+                currentHour++;
+                currentMinute = 0;
+              }
             }
           }
-        }
-      });
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao processar agendamentos:', error);
+      // Em caso de erro, continuar com a lista vazia de horários bloqueados
     }
 
     // Generate all possible time slots
