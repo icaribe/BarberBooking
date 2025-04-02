@@ -1,90 +1,115 @@
-// Formatadores
+// Função auxiliar para formatar moeda em BRL
 export const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-  }).format(value / 100);
+  }).format(value / 100); // Converte de centavos para reais
 };
 
-// Chaves de armazenamento
+// Chaves de armazenamento para localStorage/sessionStorage
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: 'auth_token',
-  USER_DATA: 'user_data',
-  CART: 'cart',
-  PREFERENCES: 'preferences',
+  AUTH_TOKEN: 'los-barbeiros-auth-token',
+  USER_DATA: 'los-barbeiros-user-data',
+  CART: 'los-barbeiros-cart',
+  THEME: 'los-barbeiros-theme'
 };
 
-// URLs da API
+// Rotas da API
 export const API_ENDPOINTS = {
   // Autenticação
-  AUTH: {
-    LOGIN: '/api/auth/login',
-    REGISTER: '/api/auth/register',
-    LOGOUT: '/api/auth/logout',
-    ME: '/api/auth/me',
-  },
-  // Serviços
-  SERVICES: {
-    BASE: '/api/services',
-    CATEGORIES: '/api/service-categories',
-  },
-  // Agendamentos
-  APPOINTMENTS: {
-    BASE: '/api/appointments',
-    APPOINTMENT_SERVICES: '/api/appointment-services',
-  },
-  // Produtos
-  PRODUCTS: {
-    BASE: '/api/products',
-    CATEGORIES: '/api/product-categories',
-  },
-  // Profissionais
-  PROFESSIONALS: {
-    BASE: '/api/professionals',
-  },
+  LOGIN: '/api/auth/login',
+  REGISTER: '/api/auth/register',
+  LOGOUT: '/api/auth/logout',
+  
   // Usuários
-  USERS: {
-    BASE: '/api/users',
-    PROFILE: '/api/users/profile',
-  },
+  USER_PROFILE: '/api/users/profile',
+  USER_UPDATE: '/api/users/update',
+  
+  // Serviços
+  SERVICES: '/api/services',
+  SERVICE_CATEGORIES: '/api/service-categories',
+  
+  // Produtos
+  PRODUCTS: '/api/products',
+  PRODUCT_CATEGORIES: '/api/product-categories',
+  
+  // Agendamentos
+  APPOINTMENTS: '/api/appointments',
+  APPOINTMENT_BY_ID: (id: string) => `/api/appointments/${id}`,
+  
+  // Profissionais
+  PROFESSIONALS: '/api/professionals'
 };
 
-// Configurações de datas
+// Formatos de data
 export const DATE_FORMATS = {
-  DISPLAY_DATE: 'dd/MM/yyyy',
-  DISPLAY_TIME: 'HH:mm',
-  DISPLAY_DATETIME: 'dd/MM/yyyy HH:mm',
-  API_DATE: 'yyyy-MM-dd',
-  API_TIME: 'HH:mm:ss',
-  API_DATETIME: 'yyyy-MM-dd\'T\'HH:mm:ss',
+  DEFAULT: 'dd/MM/yyyy',
+  DATETIME: 'dd/MM/yyyy HH:mm',
+  ISO: 'yyyy-MM-dd',
+  TIME: 'HH:mm'
 };
 
-// Status dos Agendamentos
+// Status dos agendamentos
 export enum AppointmentStatus {
   SCHEDULED = 'scheduled',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
 }
 
-// Mensagens de erro
-export const BUSINESS_HOURS = {
-  start: '09:00',
-  end: '18:00',
-  interval: 30 // minutes
+// Mapeamento de status para exibição
+export const APPOINTMENT_STATUS = {
+  [AppointmentStatus.SCHEDULED]: {
+    label: 'Agendado',
+    color: 'bg-yellow-500'
+  },
+  [AppointmentStatus.COMPLETED]: {
+    label: 'Concluído',
+    color: 'bg-green-500'
+  },
+  [AppointmentStatus.CANCELLED]: {
+    label: 'Cancelado',
+    color: 'bg-red-500'
+  }
 };
 
+// Horário de funcionamento da barbearia
+export const BUSINESS_HOURS = {
+  start: 9, // 9:00
+  end: 19,  // 19:00
+  interval: 30, // intervalo de 30 minutos entre agendamentos
+  
+  daysOfWeek: {
+    0: { open: true, startHour: 9, endHour: 13 }, // Domingo: 9-13
+    1: { open: true, startHour: 9, endHour: 19 }, // Segunda: 9-19
+    2: { open: true, startHour: 9, endHour: 19 }, // Terça: 9-19
+    3: { open: true, startHour: 9, endHour: 19 }, // Quarta: 9-19
+    4: { open: true, startHour: 9, endHour: 19 }, // Quinta: 9-19
+    5: { open: true, startHour: 9, endHour: 19 }, // Sexta: 9-19
+    6: { open: true, startHour: 9, endHour: 17 }  // Sábado: 9-17
+  }
+};
+
+// Mensagens de erro
 export const ERROR_MESSAGES = {
   GENERIC: 'Ocorreu um erro. Por favor, tente novamente.',
+  NETWORK: 'Erro de conexão. Verifique sua internet e tente novamente.',
   AUTH: {
-    INVALID_CREDENTIALS: 'E-mail ou senha inválidos.',
-    SESSION_EXPIRED: 'Sua sessão expirou. Por favor, faça login novamente.',
-    UNAUTHORIZED: 'Você não tem permissão para acessar este recurso.',
+    INVALID_CREDENTIALS: 'Email ou senha inválidos.',
+    SESSION_EXPIRED: 'Sua sessão expirou. Faça login novamente.',
+    WEAK_PASSWORD: 'A senha deve ter pelo menos 8 caracteres, incluindo letras e números.',
+    EXISTING_EMAIL: 'Este email já está em uso.',
+    EMPTY_FIELDS: 'Preencha todos os campos obrigatórios.'
   },
   FORM: {
-    REQUIRED: 'Este campo é obrigatório.',
-    INVALID_EMAIL: 'Por favor, insira um e-mail válido.',
-    INVALID_PHONE: 'Por favor, insira um telefone válido.',
-    PASSWORD_MISMATCH: 'As senhas não coincidem.',
-    PASSWORD_TOO_SHORT: 'A senha deve ter pelo menos 6 caracteres.'
+    REQUIRED_FIELD: 'Este campo é obrigatório.',
+    INVALID_EMAIL: 'Insira um email válido.',
+    INVALID_PHONE: 'Insira um número de telefone válido.',
+    PASSWORD_MISMATCH: 'As senhas não coincidem.'
+  },
+  APPOINTMENT: {
+    UNAVAILABLE_TIME: 'Este horário não está disponível.',
+    PAST_DATE: 'Não é possível agendar para datas passadas.',
+    OUTSIDE_BUSINESS_HOURS: 'Este horário está fora do expediente.',
+    MINIMUM_NOTICE: 'Agendamentos devem ser feitos com pelo menos 1 hora de antecedência.'
   }
 };

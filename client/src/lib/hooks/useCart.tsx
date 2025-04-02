@@ -1,164 +1,153 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useToast } from '../../hooks/use-toast';
-import { formatCurrency } from '../constants';
+import { useToast } from '../../hooks/toast-context';
 
-// Tipos
-interface CartItem {
-  id: number;
+// Definição do tipo de produto no carrinho
+export interface CartItem {
+  id: string;
   name: string;
-  price: number;
+  price: number; // preço em centavos
   quantity: number;
-  type: 'product' | 'service';
   image_url?: string;
 }
 
+// Interface do contexto do carrinho
 interface CartContextType {
   items: CartItem[];
   addItem: (item: Omit<CartItem, 'quantity'>) => void;
-  removeItem: (id: number, type: 'product' | 'service') => void;
-  updateQuantity: (id: number, quantity: number) => void;
+  removeItem: (itemId: string) => void;
   clearCart: () => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
   totalItems: number;
   totalPrice: number;
 }
 
-// Contexto do Carrinho
-const CartContext = createContext<CartContextType | undefined>(undefined);
+// Criação do contexto
+const CartContext = createContext<CartContextType | null>(null);
 
-// Provider do Carrinho
+// Chave para armazenamento no localStorage
+const STORAGE_KEY = 'los-barbeiros-cart';
+
+// Provider do carrinho
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const { toast } = useToast();
   const [items, setItems] = useState<CartItem[]>([]);
-  
-  // Carregar o carrinho do localStorage na inicialização
+  const { addToast } = useToast();
+
+  // Carregar itens do localStorage na montagem
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      try {
+    try {
+      const savedCart = localStorage.getItem(STORAGE_KEY);
+      if (savedCart) {
         setItems(JSON.parse(savedCart));
-      } catch (error) {
-        console.error('Erro ao carregar o carrinho:', error);
-        localStorage.removeItem('cart');
       }
+    } catch (error) {
+      console.error('Erro ao carregar o carrinho:', error);
     }
   }, []);
-  
-  // Salvar o carrinho no localStorage quando ele for atualizado
+
+  // Salvar itens no localStorage quando mudam
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(items));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
-  
-  // Calcular totais
-  const totalItems = items.reduce((total, item) => total + item.quantity, 0);
-  const totalPrice = items.reduce((total, item) => total + (item.price * item.quantity), 0);
-  
+
   // Adicionar item ao carrinho
-  const addItem = (newItem: Omit<CartItem, 'quantity'>) => {
+  const addItem = (item: Omit<CartItem, 'quantity'>) => {
     setItems(prevItems => {
       // Verificar se o item já existe no carrinho
-      const existingItem = prevItems.find(
-        item => item.id === newItem.id && item.type === newItem.type
-      );
-      
-      if (existingItem) {
-        // Se for um serviço, não aumentar a quantidade (serviços são únicos)
-        if (newItem.type === 'service') {
-          toast({
-            title: 'Serviço já adicionado',
-            description: 'Este serviço já está no seu carrinho.',
-            variant: 'default',
-          });
-          return prevItems;
-        }
+      const existingItemIndex = prevItems.findIndex(i => i.id === item.id);
+
+      if (existingItemIndex >= 0) {
+        // Se existir, aumentar a quantidade
+        const updatedItems = [...prevItems];
+        updatedItems[existingItemIndex].quantity += 1;
         
-        // Se for um produto, aumentar a quantidade
-        toast({
+        addToast({ 
+          title: 'Produto atualizado',
+          description: `Quantidade de ${item.name} atualizada no carrinho`,
+          type: 'success'
+        });
+        
+        return updatedItems;
+      } else {
+        // Se não existir, adicionar como novo com quantidade 1
+        addToast({ 
           title: 'Produto adicionado',
-          description: `Quantidade de ${newItem.name} aumentada.`,
-          variant: 'default',
+          description: `${item.name} foi adicionado ao carrinho`,
+          type: 'success'
         });
         
-        return prevItems.map(item => 
-          item.id === newItem.id && item.type === newItem.type
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
+        return [...prevItems, { ...item, quantity: 1 }];
       }
-      
-      // Se o item não existir, adicionar ao carrinho
-      toast({
-        title: newItem.type === 'product' ? 'Produto adicionado' : 'Serviço adicionado',
-        description: `${newItem.name} adicionado ao carrinho.`,
-        variant: 'default',
-      });
-      
-      return [...prevItems, { ...newItem, quantity: 1 }];
     });
   };
-  
+
   // Remover item do carrinho
-  const removeItem = (id: number, type: 'product' | 'service') => {
+  const removeItem = (itemId: string) => {
     setItems(prevItems => {
-      const removedItem = prevItems.find(item => item.id === id && item.type === type);
+      const item = prevItems.find(i => i.id === itemId);
       
-      if (removedItem) {
-        toast({
-          title: type === 'product' ? 'Produto removido' : 'Serviço removido',
-          description: `${removedItem.name} removido do carrinho.`,
-          variant: 'default',
+      if (item) {
+        addToast({ 
+          title: 'Produto removido',
+          description: `${item.name} foi removido do carrinho`,
+          type: 'info'
         });
       }
       
-      return prevItems.filter(item => !(item.id === id && item.type === type));
+      return prevItems.filter(item => item.id !== itemId);
     });
   };
-  
-  // Atualizar quantidade de um item
-  const updateQuantity = (id: number, quantity: number) => {
-    if (quantity < 1) {
-      // Se a quantidade for menor que 1, remover o item
-      const item = items.find(item => item.id === id);
-      if (item) {
-        removeItem(id, item.type);
-      }
+
+  // Limpar o carrinho
+  const clearCart = () => {
+    setItems([]);
+    addToast({ 
+      title: 'Carrinho limpo',
+      description: 'Todos os itens foram removidos do carrinho',
+      type: 'info'
+    });
+  };
+
+  // Atualizar a quantidade de um item
+  const updateQuantity = (itemId: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeItem(itemId);
       return;
     }
     
     setItems(prevItems => 
       prevItems.map(item => 
-        item.id === id ? { ...item, quantity } : item
+        item.id === itemId 
+          ? { ...item, quantity } 
+          : item
       )
     );
   };
-  
-  // Limpar o carrinho
-  const clearCart = () => {
-    setItems([]);
-    toast({
-      title: 'Carrinho limpo',
-      description: 'Todos os itens foram removidos do carrinho.',
-      variant: 'default',
-    });
+
+  // Calcular o número total de itens
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Calcular o preço total (em centavos)
+  const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  // Valor do contexto
+  const value: CartContextType = {
+    items,
+    addItem,
+    removeItem,
+    clearCart,
+    updateQuantity,
+    totalItems,
+    totalPrice,
   };
-  
+
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        addItem,
-        removeItem,
-        updateQuantity,
-        clearCart,
-        totalItems,
-        totalPrice,
-      }}
-    >
+    <CartContext.Provider value={value}>
       {children}
     </CartContext.Provider>
   );
 }
 
-// Hook para usar o contexto do carrinho
+// Hook para usar o carrinho
 export function useCart() {
   const context = useContext(CartContext);
   
