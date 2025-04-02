@@ -1,5 +1,5 @@
 
-import { supabase } from '../server/supabase';
+import supabase from '../server/supabase';
 
 async function listUserCredentials() {
   try {
