@@ -67,6 +67,12 @@ export enum AppointmentStatus {
 }
 
 // Mensagens de erro
+export const BUSINESS_HOURS = {
+  start: '09:00',
+  end: '18:00',
+  interval: 30 // minutes
+};
+
 export const ERROR_MESSAGES = {
   GENERIC: 'Ocorreu um erro. Por favor, tente novamente.',
   AUTH: {
@@ -79,6 +85,8 @@ export const ERROR_MESSAGES = {
     INVALID_EMAIL: 'Por favor, insira um e-mail válido.',
     INVALID_PHONE: 'Por favor, insira um telefone válido.',
     PASSWORD_MISMATCH: 'As senhas não coincidem.',
-    PASSWORD_TOO_SHORT: 'A senha deve ter pelo menos 6 caracteres.',
+    PASSWORD_TOO_SHORT: 'A senha deve ter pelo menos 6 caracteres.'
+  }
+};cteres.',
   },
 };
