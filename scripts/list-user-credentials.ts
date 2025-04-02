@@ -1,30 +1,35 @@
 
 import { supabase } from '../server/supabase';
-import * as schema from '../shared/schema';
 
 async function listUserCredentials() {
   try {
-    console.log('Listando credenciais dos usuários...\n');
+    console.log('Verificando conexão com Supabase...');
     
     const { data: users, error } = await supabase
       .from('users')
-      .select('*')
-      .in('role', ['ADMIN', 'PROFESSIONAL']);
+      .select('username, name, role, email')
+      .in('role', ['admin', 'professional']);
     
     if (error) {
-      throw error;
+      console.error('Erro ao consultar usuários:', error.message);
+      return;
+    }
+
+    if (!users || users.length === 0) {
+      console.log('Nenhum usuário encontrado.');
+      return;
     }
     
-    console.log('Credenciais de acesso:');
+    console.log('\nCredenciais de acesso:');
     console.log('======================\n');
     
-    for (const user of users) {
+    users.forEach(user => {
       console.log(`Usuário: ${user.username}`);
       console.log(`Nome: ${user.name}`);
       console.log(`Role: ${user.role}`);
       console.log(`Email: ${user.email}`);
       console.log('Senha temporária: senha123\n');
-    }
+    });
     
   } catch (error) {
     console.error('Erro ao listar credenciais:', error);
