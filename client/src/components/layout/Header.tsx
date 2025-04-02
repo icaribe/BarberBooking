@@ -50,8 +50,8 @@ const Header = ({ title, showBackButton }: HeaderProps) => {
               </a>
             </Button>
             <Button variant="ghost" size="icon" className="text-foreground" asChild>
-              <Link href="/favorites">
-                <Heart className="h-5 w-5" />
+              <Link href="/cart">
+                <ShoppingCart className="h-5 w-5" />
               </Link>
             </Button>
             <Button variant="ghost" size="icon" className="text-foreground" asChild>
@@ -116,6 +116,14 @@ const SidebarMenu = () => {
                   <div className="flex items-center py-2 px-3 rounded-md hover:bg-secondary text-foreground">
                     <span className="mr-3">🛍️</span>
                     <span>Produtos</span>
+                  </div>
+                </Link>
+              </li>
+              <li>
+                <Link href="/cart">
+                  <div className="flex items-center py-2 px-3 rounded-md hover:bg-secondary text-foreground">
+                    <span className="mr-3">🛒</span>
+                    <span>Carrinho</span>
                   </div>
                 </Link>
               </li>

@@ -12,6 +12,7 @@ import AppointmentPage from "@/pages/AppointmentPage";
 import ProductsPage from "@/pages/ProductsPage";
 import AuthPage from "@/pages/auth-page";
 import Settings from "@/pages/Settings";
+import CartPage from "@/pages/CartPage"; // Added import for CartPage
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
             <ProtectedRoute path="/settings" component={Settings} />
             <Route path="/products" component={ProductsPage} />
             <Route path="/appointment/:serviceId" component={AppointmentPage} />
+            <Route path="/cart" component={CartPage} /> {/* Added CartPage route */}
             <Route component={NotFound} />
           </Switch>
         </div>
