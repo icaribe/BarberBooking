@@ -16,29 +16,16 @@ export const STORAGE_KEYS = {
 
 // Rotas da API
 export const API_ENDPOINTS = {
-  // Autenticação
-  LOGIN: '/api/auth/login',
-  REGISTER: '/api/auth/register',
-  LOGOUT: '/api/auth/logout',
-  
-  // Usuários
-  USER_PROFILE: '/api/users/profile',
-  USER_UPDATE: '/api/users/update',
-  
-  // Serviços
+  AUTH: '/api/auth',
+  USER: '/api/user',
   SERVICES: '/api/services',
   SERVICE_CATEGORIES: '/api/service-categories',
-  
-  // Produtos
   PRODUCTS: '/api/products',
   PRODUCT_CATEGORIES: '/api/product-categories',
-  
-  // Agendamentos
+  PROFESSIONALS: '/api/professionals',
+  SCHEDULES: '/api/professionals/:professionalId/schedules',
   APPOINTMENTS: '/api/appointments',
-  APPOINTMENT_BY_ID: (id: string) => `/api/appointments/${id}`,
-  
-  // Profissionais
-  PROFESSIONALS: '/api/professionals'
+  LOYALTY: '/api/loyalty'
 };
 
 // Formatos de data
@@ -75,18 +62,8 @@ export const APPOINTMENT_STATUS = {
 // Horário de funcionamento da barbearia
 export const BUSINESS_HOURS = {
   start: 9, // 9:00
-  end: 19,  // 19:00
-  interval: 30, // intervalo de 30 minutos entre agendamentos
-  
-  daysOfWeek: {
-    0: { open: true, startHour: 9, endHour: 13 }, // Domingo: 9-13
-    1: { open: true, startHour: 9, endHour: 19 }, // Segunda: 9-19
-    2: { open: true, startHour: 9, endHour: 19 }, // Terça: 9-19
-    3: { open: true, startHour: 9, endHour: 19 }, // Quarta: 9-19
-    4: { open: true, startHour: 9, endHour: 19 }, // Quinta: 9-19
-    5: { open: true, startHour: 9, endHour: 19 }, // Sexta: 9-19
-    6: { open: true, startHour: 9, endHour: 17 }  // Sábado: 9-17
-  }
+  end: 21,  // 21:00
+  interval: 30 // minutos
 };
 
 // Mensagens de erro
@@ -111,5 +88,16 @@ export const ERROR_MESSAGES = {
     PAST_DATE: 'Não é possível agendar para datas passadas.',
     OUTSIDE_BUSINESS_HOURS: 'Este horário está fora do expediente.',
     MINIMUM_NOTICE: 'Agendamentos devem ser feitos com pelo menos 1 hora de antecedência.'
+  }
+};
+
+export const MESSAGES = {
+  AUTH: {
+    LOGIN_SUCCESS: 'Login realizado com sucesso!',
+    LOGIN_ERROR: 'Erro ao fazer login. Verifique suas credenciais.',
+    REGISTER_SUCCESS: 'Cadastro realizado com sucesso!',
+    REGISTER_ERROR: 'Erro ao realizar cadastro.',
+    PASSWORD_MISMATCH: 'As senhas não coincidem.',
+    PASSWORD_TOO_SHORT: 'A senha deve ter pelo menos 6 caracteres.'
   }
 };
