@@ -1,7 +1,10 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, foreignKey, pgEnum, varchar, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, foreignKey, pgEnum, varchar, uuid, date, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
+
+// Enum para roles de usuário
+export const userRoleEnum = pgEnum('user_role', ['admin', 'professional', 'customer']);
 
 // User schema
 export const users = pgTable("users", {
@@ -12,7 +15,11 @@ export const users = pgTable("users", {
   name: varchar("name"),
   email: varchar("email").notNull(),
   phone: varchar("phone"),
+  role: userRoleEnum("role").default("customer"),
+  professionalId: integer("professional_id"),
   loyaltyPoints: integer("loyalty_points").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -21,6 +28,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
   email: true,
   phone: true,
+  role: true,
+  professionalId: true,
 });
 
 // Estendendo o schema para incluir validações adicionais
@@ -184,9 +193,79 @@ export const insertLoyaltyRewardSchema = createInsertSchema(loyaltyRewards).pick
   isActive: true,
 });
 
+// Esquema para histórico de pontos de fidelidade
+export const loyaltyHistory = pgTable("loyalty_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  points: integer("points").notNull(),
+  description: text("description").notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertLoyaltyHistorySchema = createInsertSchema(loyaltyHistory).pick({
+  userId: true,
+  points: true,
+  description: true,
+  date: true,
+});
+
+// Enum para tipo de transação
+export const transactionTypeEnum = pgEnum('transaction_type', ['income', 'expense']);
+
+// Enum para categorias de transação
+export const transactionCategoryEnum = pgEnum('transaction_category', [
+  'service', 'product', 'commission', 'salary', 'rent', 'utilities', 'supplies', 'marketing', 'other'
+]);
+
+// Tabela para fluxo de caixa
+export const cashFlow = pgTable("cash_flow", {
+  id: serial("id").primaryKey(),
+  type: transactionTypeEnum("type").notNull(),
+  category: transactionCategoryEnum("category").notNull(),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  description: text("description").notNull(),
+  date: date("date").notNull(),
+  appointmentId: integer("appointment_id"),
+  productId: integer("product_id"),
+  professionalId: integer("professional_id"),
+  createdById: integer("created_by_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertCashFlowSchema = createInsertSchema(cashFlow).pick({
+  type: true,
+  category: true,
+  amount: true,
+  description: true,
+  date: true,
+  appointmentId: true,
+  productId: true,
+  professionalId: true,
+  createdById: true,
+});
+
+// Tabela para vincular profissionais e serviços
+export const professionalServices = pgTable("professional_services", {
+  id: serial("id").primaryKey(),
+  professionalId: integer("professional_id").notNull(),
+  serviceId: integer("service_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertProfessionalServiceSchema = createInsertSchema(professionalServices).pick({
+  professionalId: true,
+  serviceId: true,
+});
+
 // Relações entre tabelas
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   appointments: many(appointments),
+  createdTransactions: many(cashFlow, { relationName: "createdBy" }),
+  professional: one(professionals, {
+    fields: [users.professionalId],
+    references: [professionals.id],
+  }),
 }));
 
 export const serviceCategoriesRelations = relations(serviceCategories, ({ many }) => ({
@@ -201,9 +280,12 @@ export const servicesRelations = relations(services, ({ one, many }) => ({
   appointmentServices: many(appointmentServices),
 }));
 
-export const professionalsRelations = relations(professionals, ({ many }) => ({
+export const professionalsRelations = relations(professionals, ({ many, one }) => ({
   schedules: many(schedules),
   appointments: many(appointments),
+  users: many(users, { relationName: "professionalUser" }),
+  professionalServices: many(professionalServices),
+  transactions: many(cashFlow),
 }));
 
 export const schedulesRelations = relations(schedules, ({ one }) => ({
@@ -240,10 +322,41 @@ export const productCategoriesRelations = relations(productCategories, ({ many }
   products: many(products),
 }));
 
-export const productsRelations = relations(products, ({ one }) => ({
+export const productsRelations = relations(products, ({ one, many }) => ({
   category: one(productCategories, {
     fields: [products.categoryId],
     references: [productCategories.id],
+  }),
+  transactions: many(cashFlow),
+}));
+
+export const cashFlowRelations = relations(cashFlow, ({ one }) => ({
+  appointment: one(appointments, {
+    fields: [cashFlow.appointmentId],
+    references: [appointments.id],
+  }),
+  product: one(products, {
+    fields: [cashFlow.productId],
+    references: [products.id],
+  }),
+  professional: one(professionals, {
+    fields: [cashFlow.professionalId],
+    references: [professionals.id],
+  }),
+  createdBy: one(users, {
+    fields: [cashFlow.createdById],
+    references: [users.id],
+  }),
+}));
+
+export const professionalServicesRelations = relations(professionalServices, ({ one }) => ({
+  professional: one(professionals, {
+    fields: [professionalServices.professionalId],
+    references: [professionals.id],
+  }),
+  service: one(services, {
+    fields: [professionalServices.serviceId],
+    references: [services.id],
   }),
 }));
 
@@ -277,3 +390,9 @@ export type InsertProduct = z.infer<typeof insertProductSchema>;
 
 export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
 export type InsertLoyaltyReward = z.infer<typeof insertLoyaltyRewardSchema>;
+
+export type CashFlow = typeof cashFlow.$inferSelect;
+export type InsertCashFlow = z.infer<typeof insertCashFlowSchema>;
+
+export type ProfessionalService = typeof professionalServices.$inferSelect;
+export type InsertProfessionalService = z.infer<typeof insertProfessionalServiceSchema>;

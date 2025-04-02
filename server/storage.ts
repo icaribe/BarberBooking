@@ -6,8 +6,12 @@ import bcrypt from 'bcrypt';
 import {
   InsertUser, InsertServiceCategory, InsertService, InsertProfessional,
   InsertSchedule, InsertAppointment, InsertAppointmentService,
-  InsertProductCategory, InsertProduct, InsertLoyaltyReward
+  InsertProductCategory, InsertProduct, InsertLoyaltyReward,
+  InsertCashFlow, InsertProfessionalService
 } from '@shared/schema';
+
+// Importar a extensão administrativa do Supabase storage
+import './storage-supabase-admin';
 
 // Verificar se devemos usar Supabase ou o banco de dados local
 // Definido como true para forçar o uso do Supabase
