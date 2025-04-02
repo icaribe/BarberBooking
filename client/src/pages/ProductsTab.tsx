@@ -6,53 +6,42 @@ import { useProducts } from '@/lib/hooks/useProducts';
 import ProductCategoryFilter from '@/components/products/ProductCategoryFilter';
 import type { Product } from '@/lib/types';
 import { Input } from '@/components/ui/input';
-import { useCart } from '@/lib/hooks/useCart'; // Import the useCart hook
-
 
 const ProductsTab = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
   const { products, categories, isLoadingProducts, isLoadingCategories } = useProducts();
-  const { addToCart } = useCart(); // Get the addToCart function from the hook
-
 
   // Filtrar produtos por termo de busca e categoria
   const filteredProducts = products
     .filter(product => {
       // Filtro por categoria
       const matchesCategory = selectedCategoryId === null || product.categoryId === selectedCategoryId;
-
+      
       // Filtro por termo de busca
       const matchesSearch = searchTerm === '' || 
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
-
+      
       return matchesCategory && matchesSearch;
     });
-
+    
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
 
   const handleAddToCart = (product: Product) => {
-    addToCart({
-      id: product.id,
-      type: 'product',
-      name: product.name,
-      price: product.price
-    });
-
     toast({
       title: "Produto adicionado",
-      description: `${product.name} foi adicionado ao carrinho.`,
+      description: `${product.name} foi adicionado ao seu carrinho.`,
     });
   };
 
   // Função para renderizar ícone com base no nome do ícone da categoria
   const renderCategoryIcon = (iconName: string | null) => {
     if (!iconName) return null;
-
+    
     switch (iconName) {
       case 'scissors': return <Scissors className="h-5 w-5" />;
       case 'disc': return <Disc className="h-5 w-5" />;
@@ -63,12 +52,12 @@ const ProductsTab = () => {
       default: return null;
     }
   };
-
+  
   return (
     <div className="px-4 py-4">
       <div className="mb-4">
         <h2 className="font-montserrat font-semibold text-xl mb-2">Produtos</h2>
-
+        
         {/* Barra de Pesquisa */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -90,7 +79,7 @@ const ProductsTab = () => {
             </Button>
           )}
         </div>
-
+        
         {/* Categories Filter */}
         {isLoadingCategories ? (
           <div className="flex justify-center py-2">
@@ -104,7 +93,7 @@ const ProductsTab = () => {
           />
         )}
       </div>
-
+      
       {/* Products List */}
       {isLoadingProducts ? (
         <div className="flex justify-center py-8">
@@ -146,7 +135,7 @@ const ProductsTab = () => {
               </div>
             </div>
           )}
-
+          
           {/* Se nenhuma categoria foi selecionada, agrupar por categoria */}
           {selectedCategoryId === null && categories.map(category => {
             // Usar os produtos já filtrados pelo termo de busca
@@ -154,7 +143,7 @@ const ProductsTab = () => {
               ? filteredProducts.filter(product => product.categoryId === category.id)
               : products.filter(product => product.categoryId === category.id);
             if (productsInCategory.length === 0) return null;
-
+            
             return (
               <div key={category.id} className="mb-5">
                 <h3 className="font-montserrat font-medium text-lg mb-2 flex items-center">

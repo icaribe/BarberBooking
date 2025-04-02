@@ -29,13 +29,6 @@ export function useServices(categoryId?: number) {
     isLoading: isLoadingCategories
   } = useQuery<ServiceCategory[]>({
     queryKey: [API_ENDPOINTS.SERVICE_CATEGORIES],
-    queryFn: async () => {
-      const response = await fetch(API_ENDPOINTS.SERVICE_CATEGORIES);
-      if (!response.ok) {
-        throw new Error('Failed to fetch service categories');
-      }
-      return response.json();
-    }
   });
 
   return {
