@@ -13,6 +13,7 @@ import ProductsPage from "@/pages/ProductsPage";
 import AuthPage from "@/pages/auth-page";
 import Settings from "@/pages/Settings";
 import CartPage from "@/pages/CartPage"; // Added import for CartPage
+import AdminPanel from './pages/AdminPanel'; // Added import for AdminPanel
 
 function App() {
   return (
