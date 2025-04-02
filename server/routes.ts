@@ -317,9 +317,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ message: "Invalid status" });
     }
     
-    const updatedAppointment = await storage.updateAppointmentStatus(id, status);
-    if (!updatedAppointment) {
+    const appointment = await storage.getAppointment(id);
+    if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    const updatedAppointment = await storage.updateAppointmentStatus(id, status);
+    
+    // Adicionar pontos de fidelidade quando o agendamento é completado
+    if (status === "completed") {
+      const services = await storage.getAppointmentServices(id);
+      const totalPoints = services.reduce((sum, service) => sum + Math.floor(service.price / 10), 0);
+      
+      const user = await storage.getUser(appointment.userId);
+      if (user) {
+        const newPoints = (user.loyaltyPoints || 0) + totalPoints;
+        await storage.updateUser(user.id, { loyaltyPoints: newPoints });
+      }
     }
     
     res.json(updatedAppointment);
