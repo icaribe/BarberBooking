@@ -27,7 +27,8 @@ function App() {
             <ProtectedRoute path="/settings" component={Settings} />
             <Route path="/products" component={ProductsPage} />
             <Route path="/appointment/:serviceId" component={AppointmentPage} />
-            <Route path="/cart" component={CartPage} /> {/* Added CartPage route */}
+            <Route path="/cart" component={CartPage} />
+            <ProtectedRoute path="/admin" component={AdminPanel} />
             <Route component={NotFound} />
           </Switch>
         </div>

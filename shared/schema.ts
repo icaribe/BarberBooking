@@ -13,6 +13,8 @@ export const users = pgTable("users", {
   email: varchar("email").notNull(),
   phone: varchar("phone"),
   loyaltyPoints: integer("loyalty_points").default(0),
+  role: text("role").notNull().default("customer"), // "admin", "secretary", "professional", "customer"
+  permissions: jsonb("permissions").default("{}"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
