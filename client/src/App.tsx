@@ -19,9 +19,9 @@ import AdminPanel from './pages/AdminPanel';
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster>
-        <AuthProvider>
-          <CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <Toaster>
             <div className="bg-background text-foreground min-h-screen">
               <Switch>
                 <Route path="/" component={Home} />
