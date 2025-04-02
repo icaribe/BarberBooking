@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Menu, MapPin, Heart, User, Instagram, Facebook, Phone, ArrowLeft } from 'lucide-react';
+import { Menu, MapPin, Heart, User, Instagram, Facebook, Phone, ArrowLeft, ShoppingCart } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import logoPath from '@/assets/logo.jpeg';
