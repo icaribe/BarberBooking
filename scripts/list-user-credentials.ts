@@ -5,10 +5,11 @@ async function listUserCredentials() {
   try {
     console.log('Verificando conexão com Supabase...');
     
+    // Primeiro vamos verificar a estrutura da tabela
+    console.log('Verificando estrutura da tabela users...');
     const { data: users, error } = await supabase
       .from('users')
-      .select('username, name, role, email')
-      .in('role', ['admin', 'professional']);
+      .select('*');
     
     if (error) {
       console.error('Erro ao consultar usuários:', error.message);
