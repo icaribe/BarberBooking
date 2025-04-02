@@ -5,8 +5,30 @@ async function listUserCredentials() {
   try {
     console.log('Verificando conexão com Supabase...');
     
-    // Primeiro vamos verificar a estrutura da tabela
-    console.log('Verificando estrutura da tabela users...');
+    // Primeiro vamos atualizar o Johnata como ADMIN
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ role: 'admin' })
+      .eq('username', 'johnata');
+    
+    if (updateError) {
+      console.error('Erro ao atualizar role do admin:', updateError.message);
+      return;
+    }
+
+    // Atualizar outros usuários como professional
+    const { error: updateProfError } = await supabase
+      .from('users')
+      .update({ role: 'professional' })
+      .neq('username', 'johnata')
+      .in('username', ['carlos', 'iuri', 'jorran', 'mikael']);
+
+    if (updateProfError) {
+      console.error('Erro ao atualizar role dos profissionais:', updateProfError.message);
+      return;
+    }
+
+    // Listar usuários atualizados
     const { data: users, error } = await supabase
       .from('users')
       .select('*');
@@ -21,13 +43,13 @@ async function listUserCredentials() {
       return;
     }
     
-    console.log('\nCredenciais de acesso:');
-    console.log('======================\n');
+    console.log('\nCredenciais de acesso atualizadas:');
+    console.log('==============================\n');
     
     users.forEach(user => {
       console.log(`Usuário: ${user.username}`);
       console.log(`Nome: ${user.name}`);
-      console.log(`Role: ${user.role}`);
+      console.log(`Role: ${user.role || 'não definido'}`);
       console.log(`Email: ${user.email}`);
       console.log('Senha temporária: senha123\n');
     });
