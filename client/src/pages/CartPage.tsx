@@ -10,15 +10,15 @@ import { formatCurrency } from '@/lib/utils/format';
 import { useCart } from '@/lib/hooks/useCart';
 
 const CartPage = () => {
-  const { cartItems, removeFromCart, clearCart } = useCart();
+  const { items, removeFromCart, clearCart } = useCart();
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    const newTotal = cartItems.reduce((sum, item) => sum + item.price, 0);
+    const newTotal = items.reduce((sum, item) => sum + item.price, 0);
     setTotal(newTotal);
-  }, [cartItems]);
+  }, [items]);
 
-  if (cartItems.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <Header title="Carrinho" showBackButton />
@@ -40,7 +40,7 @@ const CartPage = () => {
       <Header title="Carrinho" showBackButton />
       <main className="flex-1 p-4">
         <div className="space-y-4">
-          {cartItems.map((item) => (
+          {items.map((item) => (
             <Card key={`${item.type}-${item.id}`}>
               <CardContent className="flex items-center justify-between p-4">
                 <div>
