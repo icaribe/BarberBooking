@@ -20,10 +20,10 @@ import AdminPanel from './pages/AdminPanel';
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <CartProvider>
-          <div className="bg-background text-foreground min-h-screen">
-            <Toaster />
+      <Toaster>
+        <AuthProvider>
+          <CartProvider>
+            <div className="bg-background text-foreground min-h-screen">
             <Switch>
               <Route path="/" component={Home} />
               <Route path="/auth" component={AuthPage} />
@@ -37,8 +37,9 @@ function App() {
               <Route component={NotFound} />
             </Switch>
           </div>
-        </CartProvider>
-      </AuthProvider>
+          </CartProvider>
+        </AuthProvider>
+      </Toaster>
     </QueryClientProvider>
   );
 }
