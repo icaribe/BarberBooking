@@ -87,6 +87,4 @@ export const ERROR_MESSAGES = {
     PASSWORD_MISMATCH: 'As senhas não coincidem.',
     PASSWORD_TOO_SHORT: 'A senha deve ter pelo menos 6 caracteres.'
   }
-};cteres.',
-  },
 };
