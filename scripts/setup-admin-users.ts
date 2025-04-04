@@ -25,7 +25,8 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !DATABASE_URL) {
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-const client = postgres(DATABASE_URL);
+// Configure postgres with SSL
+const client = postgres(DATABASE_URL, { ssl: 'require' });
 const db = drizzle(client);
 
 enum UserRole {
@@ -40,11 +41,12 @@ async function setupAdminAndProfessionals() {
   try {
     // Buscar o usuário Johnata (ou criar se não existir)
     console.log("Verificando se Johnata já existe como usuário...");
-    let johnataSql = `
-      SELECT * FROM users WHERE email = 'johnata@example.com' LIMIT 1;
-    `;
-    let johnataResult = await client.query(johnataSql);
-    let johnataUser = johnataResult.length > 0 ? johnataResult[0] : null;
+    const johnataUsers = await db.select()
+      .from(schema.users)
+      .where(eq(schema.users.email, 'johnata@example.com'))
+      .limit(1);
+    
+    let johnataUser = johnataUsers.length > 0 ? johnataUsers[0] : null;
     
     if (!johnataUser) {
       console.log("Criando usuário para Johnata...");
@@ -53,27 +55,27 @@ async function setupAdminAndProfessionals() {
       const hashedPassword = await bcrypt.hash('senha123', salt);
       
       // Inserir usuário
-      let insertSql = `
-        INSERT INTO users 
-          (name, email, phone, password, role) 
-        VALUES 
-          ('Johnata', 'johnata@example.com', '(22) 99999-9999', $1, $2)
-        RETURNING *;
-      `;
-      johnataResult = await client.query(insertSql, [hashedPassword, UserRole.ADMIN]);
-      johnataUser = johnataResult[0];
+      const insertedUsers = await db.insert(schema.users)
+        .values({
+          name: 'Johnata',
+          email: 'johnata@example.com',
+          phone: '(22) 99999-9999',
+          password: hashedPassword,
+          role: UserRole.ADMIN
+        })
+        .returning();
+      
+      johnataUser = insertedUsers[0];
       console.log("Usuário Johnata criado com sucesso!");
     } else {
       console.log("Johnata já existe, atualizando para ADMIN...");
       // Atualizar para role ADMIN
-      let updateSql = `
-        UPDATE users 
-        SET role = $1
-        WHERE id = $2
-        RETURNING *;
-      `;
-      johnataResult = await client.query(updateSql, [UserRole.ADMIN, johnataUser.id]);
-      johnataUser = johnataResult[0];
+      const updatedUsers = await db.update(schema.users)
+        .set({ role: UserRole.ADMIN })
+        .where(eq(schema.users.id, johnataUser.id))
+        .returning();
+      
+      johnataUser = updatedUsers[0];
       console.log("Usuário Johnata atualizado com sucesso!");
     }
     
@@ -87,11 +89,12 @@ async function setupAdminAndProfessionals() {
       
       // Verificar se já existe um usuário com o e-mail do profissional
       const email = `${professional.name.toLowerCase().replace(/\s/g, '')}@losbarbeiros.com.br`;
-      let userSql = `
-        SELECT * FROM users WHERE email = $1 LIMIT 1;
-      `;
-      let userResult = await client.query(userSql, [email]);
-      let professionalUser = userResult.length > 0 ? userResult[0] : null;
+      const professionalUsers = await db.select()
+        .from(schema.users)
+        .where(eq(schema.users.email, email))
+        .limit(1);
+      
+      let professionalUser = professionalUsers.length > 0 ? professionalUsers[0] : null;
       
       if (!professionalUser) {
         console.log(`Criando usuário para profissional: ${professional.name}`);
@@ -100,35 +103,27 @@ async function setupAdminAndProfessionals() {
         const hashedPassword = await bcrypt.hash('senha123', salt);
         
         // Inserir usuário
-        let insertSql = `
-          INSERT INTO users 
-            (name, email, phone, password, role, professional_id) 
-          VALUES 
-            ($1, $2, $3, $4, $5, $6)
-          RETURNING *;
-        `;
-        await client.query(
-          insertSql, 
-          [
-            professional.name, 
-            email, 
-            professional.phone || '(00) 00000-0000', 
-            hashedPassword, 
-            UserRole.PROFESSIONAL,
-            professional.id
-          ]
-        );
+        await db.insert(schema.users)
+          .values({
+            name: professional.name,
+            email: email,
+            phone: professional.phone || '(00) 00000-0000',
+            password: hashedPassword,
+            role: UserRole.PROFESSIONAL,
+            professionalId: professional.id
+          });
+        
         console.log(`Usuário para profissional ${professional.name} criado com sucesso!`);
       } else {
         console.log(`Usuário para profissional ${professional.name} já existe, atualizando role e professionalId...`);
         // Atualizar para role PROFESSIONAL e associar ao profissional
-        let updateSql = `
-          UPDATE users 
-          SET role = $1, professional_id = $2
-          WHERE id = $3
-          RETURNING *;
-        `;
-        await client.query(updateSql, [UserRole.PROFESSIONAL, professional.id, professionalUser.id]);
+        await db.update(schema.users)
+          .set({ 
+            role: UserRole.PROFESSIONAL, 
+            professionalId: professional.id 
+          })
+          .where(eq(schema.users.id, professionalUser.id));
+        
         console.log(`Usuário para profissional ${professional.name} atualizado com sucesso!`);
       }
     }

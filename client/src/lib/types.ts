@@ -1,5 +1,7 @@
 // Definindo interfaces para os tipos de dados utilizados no aplicativo
 
+export type UserRole = 'USER' | 'PROFESSIONAL' | 'ADMIN';
+
 export interface User {
   id: number;
   username: string;
@@ -8,6 +10,7 @@ export interface User {
   phone?: string;
   points: number;
   loyaltyPoints: number; // Alias para points para compatibilidade
+  role: UserRole;
 }
 
 export interface UserRegistration {

@@ -537,6 +537,40 @@ export function registerAdminRoutes(app: Express): void {
     }
   );
   
+  /**
+   * Inicialização do sistema administrativo - para o primeiro usuário
+   * Esta rota não requer autenticação para permitir a configuração inicial
+   */
+  adminRouter.post('/initialize', 
+    async (req: Request, res: Response) => {
+      try {
+        const { userId } = req.body;
+        
+        if (!userId) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'ID do usuário é obrigatório' 
+          });
+        }
+        
+        // Inicializar sistema administrativo
+        const result = await adminFunctions.initializeAdminSystem(userId);
+        
+        if (result.success) {
+          res.status(200).json(result);
+        } else {
+          res.status(500).json(result);
+        }
+      } catch (error) {
+        console.error('Erro ao inicializar sistema administrativo:', error);
+        res.status(500).json({ 
+          success: false, 
+          message: 'Erro ao inicializar sistema administrativo' 
+        });
+      }
+    }
+  );
+
   // Montar as rotas na aplicação principal
   app.use('/admin', adminRouter);
   console.log("[Admin Routes] Rotas administrativas registradas com sucesso.");

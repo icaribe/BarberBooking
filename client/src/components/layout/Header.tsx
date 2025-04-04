@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Menu, MapPin, Heart, User, Instagram, Facebook, Phone, ArrowLeft } from 'lucide-react';
+import { Menu, MapPin, Heart, User, Instagram, Facebook, Phone, ArrowLeft, Settings } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { useAuth } from '@/lib/hooks/useAuth';
 import logoPath from '@/assets/logo.jpeg';
 
 interface HeaderProps {
@@ -67,6 +68,9 @@ const Header = ({ title, showBackButton }: HeaderProps) => {
 };
 
 const SidebarMenu = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'PROFESSIONAL';
+  
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -127,6 +131,29 @@ const SidebarMenu = () => {
                   </div>
                 </Link>
               </li>
+              
+              {isAdmin && (
+                <li>
+                  <Link href="/admin/dashboard">
+                    <div className="flex items-center py-2 px-3 rounded-md bg-primary/10 hover:bg-primary/20 text-foreground">
+                      <span className="mr-3">⚙️</span>
+                      <span>Painel Administrativo</span>
+                    </div>
+                  </Link>
+                </li>
+              )}
+              
+              {/* Link para inicialização do sistema admin - visível para todos */}
+              {!isAdmin && user && (
+                <li>
+                  <Link href="/admin/initialize">
+                    <div className="flex items-center py-2 px-3 rounded-md bg-amber-100/50 hover:bg-amber-100 text-amber-800 border border-amber-200">
+                      <span className="mr-3">🔐</span>
+                      <span>Inicializar Sistema Admin</span>
+                    </div>
+                  </Link>
+                </li>
+              )}
             </ul>
           </nav>
         </div>

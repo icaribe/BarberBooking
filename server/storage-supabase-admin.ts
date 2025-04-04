@@ -341,6 +341,41 @@ export async function addLoyaltyPoints(userId: number, points: number) {
   }
 }
 
+// Inicialização do sistema administrativo
+export async function initializeAdminSystem(userId: number) {
+  try {
+    // Verificar se o usuário existe
+    const users = await db.select().from(schema.users).where(eq(schema.users.id, userId));
+    const user = users[0];
+    
+    if (!user) {
+      return { success: false, message: 'Usuário não encontrado' };
+    }
+    
+    // Atualizar o papel do usuário para administrador
+    const updated = await db.update(schema.users)
+      .set({
+        role: 'ADMIN',
+        updatedAt: new Date().toISOString()
+      })
+      .where(eq(schema.users.id, userId))
+      .returning();
+    
+    if (!updated || updated.length === 0) {
+      return { success: false, message: 'Erro ao atualizar o papel do usuário' };
+    }
+    
+    return {
+      success: true,
+      message: 'Sistema administrativo inicializado com sucesso',
+      user: updated[0]
+    };
+  } catch (error) {
+    console.error('Erro ao inicializar sistema administrativo:', error);
+    return { success: false, message: 'Erro ao inicializar o sistema administrativo' };
+  }
+}
+
 // Exportação das funções administrativas
 const adminFunctions = {
   updateService,
@@ -357,7 +392,8 @@ const adminFunctions = {
   createCashFlowTransaction,
   getCashFlowTransactions,
   getCashFlowSummary,
-  addLoyaltyPoints
+  addLoyaltyPoints,
+  initializeAdminSystem
 };
 
 export default adminFunctions;
