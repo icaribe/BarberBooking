@@ -1,5 +1,5 @@
 import { db } from './db';
-import { supabase } from './supabase';
+import supabase from './supabase';
 import { supabaseStorage } from './storage-supabase';
 import * as schema from '@shared/schema';
 import bcrypt from 'bcrypt';

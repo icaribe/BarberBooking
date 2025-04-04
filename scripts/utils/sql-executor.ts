@@ -1,4 +1,4 @@
-import { supabase } from '../../server/supabase';
+import supabase from '../../server/supabase';
 
 /**
  * Simula a execução de comandos SQL no banco de dados

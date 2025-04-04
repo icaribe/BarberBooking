@@ -1,4 +1,4 @@
-import { supabase } from '../server/supabase';
+import supabase from '../server/supabase';
 import dotenv from 'dotenv';
 
 // Carregar variáveis de ambiente do arquivo .env
