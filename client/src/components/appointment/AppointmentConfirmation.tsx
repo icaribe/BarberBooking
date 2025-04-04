@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils/format';
 import { Service, Professional } from '@/lib/types';
@@ -33,8 +33,10 @@ const AppointmentConfirmation = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-center">Confirmação de Agendamento</DialogTitle>
+        </DialogHeader>
         <div className="p-4">
-          <h2 className="text-xl font-semibold mb-4 text-center">Confirmação de Agendamento</h2>
           
           <div className="space-y-4">
             <div className="border-b pb-2">
