@@ -1,0 +1,331 @@
+[
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=50661",
+    "id": "683005b0-7ecc-4072-a27c-002d7dee17cb",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826150236000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "c4d52ff4-2d95-4421-8cb0-1091a86ca92b",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826150236000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "checkpoint complete: wrote 61 buffers (0.2%); 0 WAL file(s) added, 0 removed, 0 recycled; write=6.020 s, sync=0.003 s, total=6.032 s; sync files=39, longest=0.002 s, average=0.001 s; distance=88 kB, estimate=2313 kB",
+    "id": "67e2f29d-d191-4246-ab57-5c181a6dc33e",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826143513000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "checkpoint starting: time",
+    "id": "b7683b7e-1d13-413f-942d-7fdcec6379c4",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826137481000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authenticated: identity=\"supabase_admin\" method=scram-sha-256 (/etc/postgresql/pg_hba.conf:94)",
+    "id": "253d2d89-51d3-42a8-9c65-8c6fc0517c80",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826130695000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)",
+    "id": "f0eb8be0-5f0e-4586-af3d-2da50bf5887d",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826130695000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authenticated: identity=\"supabase_admin\" method=scram-sha-256 (/etc/postgresql/pg_hba.conf:94)",
+    "id": "7fcd81a9-8bae-47b8-9253-cb84e41355d3",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826130655000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)",
+    "id": "8fc63d95-11a9-40e2-be4f-9c3bbd932625",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826130655000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authenticated: identity=\"supabase_admin\" method=scram-sha-256 (/etc/postgresql/pg_hba.conf:94)",
+    "id": "25d27db5-2cad-42c9-bb5d-2a130c29334a",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826130621000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)",
+    "id": "0c709316-8997-4c2c-8744-8920d39d283b",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826130621000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=2600:1f18:2a66:6e01:f56:a72b:ce2c:f304 port=56280",
+    "id": "9d8b9c13-7079-4567-9233-f567c2b9c804",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826130070000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=2600:1f18:2a66:6e01:e477:2bd8:780:729d port=48840",
+    "id": "f8e28dd1-d8d0-4815-9162-d77620b366a9",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826129911000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=2600:1f18:2a66:6e00:596f:16e9:b286:a4f8 port=54146",
+    "id": "acf367c5-bd0e-4038-8c23-9c6fdfa32985",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826129870000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "c880cb9d-3a97-4283-ad06-9b2e4a5fe894",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826090236000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_auth_admin database=postgres",
+    "id": "adaceb32-4f98-42e7-8223-dec448ee7842",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826086684000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=127.0.0.1 port=53339",
+    "id": "46b8c694-e9e2-49f8-98e3-69a4ca52b065",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826086684000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=authenticator database=postgres application_name=postgrest SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)",
+    "id": "638bda2b-30d7-4488-8d01-2bb8fc21d81e",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826074440000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=authenticator database=postgres application_name=postgrest SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)",
+    "id": "4087123e-594a-4be0-b77d-ebefc024b61f",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826074425000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=60851",
+    "id": "17db99ac-0afa-44e9-aac4-90e9de43c462",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826074417000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "d674ba5b-ec17-486e-b489-de29c8890196",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826030283000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=57141",
+    "id": "229e792e-ae60-46f7-8279-ecc284f679e6",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743826030282000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "20236e0a-d191-4525-bdae-781d15b98237",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825970238000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=59497",
+    "id": "6a0679a1-74ee-4b3f-bfcd-9661e486a8a3",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825970237000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "4436eb6b-6624-4265-9ca9-84b85857082c",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825910237000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=39601",
+    "id": "b5890edf-a443-42da-9ef9-362c192295f4",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825910236000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "760189ab-cf0f-4139-b8fd-2d74039d0b98",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825850236000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=45183",
+    "id": "38f8f5a4-89a7-421b-80b6-d09811d9c162",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825850235000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "a8996d22-7d54-41a9-bfea-91c950db1996",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825790238000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=61059",
+    "id": "b26de90c-2bb5-4ae2-886e-e345826750e8",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825790237000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "974c54e9-c54a-45da-a516-4fd7b92159e0",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825730237000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=24787",
+    "id": "dce88e48-fa9b-4b36-a8e7-269508419433",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825730236000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "115a36ec-7c23-46f6-b8b0-5ab9c0a5bc45",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825670237000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=23779",
+    "id": "d2cf78d4-f34e-43d7-ac94-b3ad0fd56212",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825670236000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "c8da6db3-5bf8-47f6-837e-82da444d17bc",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825610237000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=10983",
+    "id": "797a888a-940f-4db4-80d4-39ef5d4092f9",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825610236000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "73a4154f-3a8d-4fcb-814d-ee562c3c134f",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825550238000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=19253",
+    "id": "95edd9ad-9929-4f2b-b72f-471d918d6392",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825550237000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "986fc208-9b4a-4021-a556-566366836781",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825490237000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=41187",
+    "id": "a4f38d90-ac53-4c5e-9c0b-471ad537b07c",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825490236000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "3846ed16-9f5d-4d70-b2c8-bba61f0c7251",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825430237000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=48163",
+    "id": "861ce706-1d91-4d80-b834-13383832cdda",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825430236000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "eec89e49-c5c8-453f-9c8d-1d8f13e11954",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825370244000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=34025",
+    "id": "41ad743d-d7f3-4dec-8272-229a35e6d6b9",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825370243000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "5d8cf7e8-6595-467d-a74e-e2b99b45b1f5",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825310237000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=12939",
+    "id": "7a69a4b5-9483-4f05-bb11-8e9d591dc2c6",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825310236000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter",
+    "id": "37efe257-e988-40a3-9a4a-128fbd63c158",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825250237000
+  },
+  {
+    "error_severity": "LOG",
+    "event_message": "connection received: host=::1 port=29029",
+    "id": "4deb1814-9938-4924-8126-979dc0cd3c2b",
+    "identifier": "rrqefsxymripcvoabers",
+    "timestamp": 1743825250236000
+  }
+]

@@ -10,6 +10,7 @@ import { eq, and, or, gte, lte, desc, sql } from 'drizzle-orm';
 import * as schema from '@shared/schema';
 import { db } from './db';
 import { storage } from './storage'; // Importamos storage diretamente
+import supabase from './supabase'; // Importamos o cliente Supabase
 
 // Funções para atualização de serviços
 export async function updateService(id: number, data: Partial<schema.InsertService>) {
@@ -351,17 +352,28 @@ export async function initializeAdminSystem(userId: number) {
       return { success: false, message: 'Usuário não encontrado' };
     }
     
-    // Atualizar o papel do usuário para administrador através da camada de storage
-    const updated = await storage.updateUser(userId, { role: 'admin' });
+    // Em vez de atualizar a coluna role (que não existe), 
+    // atualizamos o email do usuário para aquele que identificamos como admin
+    // na nossa solução role-workaround.ts
+    const { data, error } = await supabase
+      .from('users')
+      .update({ email: 'johnatanlima26@gmail.com' })
+      .eq('id', userId)
+      .select();
     
-    if (!updated) {
-      return { success: false, message: 'Erro ao atualizar o papel do usuário' };
+    if (error) {
+      console.error('Erro ao atualizar email do usuário:', error);
+      return { success: false, message: 'Erro ao configurar usuário como administrador' };
     }
+    
+    // Limpar o cache de papéis para forçar uma nova verificação
+    const { clearRoleCache } = await import('@shared/role-workaround');
+    clearRoleCache(userId);
     
     return {
       success: true,
       message: 'Sistema administrativo inicializado com sucesso',
-      user: updated
+      user: data[0]
     };
   } catch (error) {
     console.error('Erro ao inicializar sistema administrativo:', error);

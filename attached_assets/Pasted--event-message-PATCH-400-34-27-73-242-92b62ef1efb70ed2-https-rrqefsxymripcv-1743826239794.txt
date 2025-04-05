@@ -1,0 +1,92 @@
+[
+  {
+    "event_message": "PATCH | 400 | 34.27.73.242 | 92b62ef1efb70ed2 | https://rrqefsxymripcvoabers.supabase.co/rest/v1/users?id=eq.10&select=* | node",
+    "id": "f1d4055b-67c3-48a5-aee9-9288c417fc61",
+    "identifier": "rrqefsxymripcvoabers",
+    "method": "PATCH",
+    "path": "/rest/v1/users",
+    "status_code": 400,
+    "timestamp": 1743826097353000
+  },
+  {
+    "event_message": "GET | 200 | 34.27.73.242 | 92b62eef29160ed2 | https://rrqefsxymripcvoabers.supabase.co/rest/v1/users?select=*&id=eq.10 | node",
+    "id": "3150b272-8635-40fa-a85e-b00e30a13d58",
+    "identifier": "rrqefsxymripcvoabers",
+    "method": "GET",
+    "path": "/rest/v1/users",
+    "status_code": 200,
+    "timestamp": 1743826096930000
+  },
+  {
+    "event_message": "GET | 200 | 34.27.73.242 | 92b62eec4a490ed2 | https://rrqefsxymripcvoabers.supabase.co/rest/v1/users?select=*&id=eq.10 | node",
+    "id": "d9164d44-74f6-4a7a-9712-960c4eab4f3e",
+    "identifier": "rrqefsxymripcvoabers",
+    "method": "GET",
+    "path": "/rest/v1/users",
+    "status_code": 200,
+    "timestamp": 1743826096484000
+  },
+  {
+    "event_message": "GET | 200 | 34.27.73.242 | 92b62eb47b14eac6 | https://rrqefsxymripcvoabers.supabase.co/rest/v1/users?select=*&id=eq.10 | node",
+    "id": "91c138ad-055c-473b-9608-d891ccc6d07f",
+    "identifier": "rrqefsxymripcvoabers",
+    "method": "GET",
+    "path": "/rest/v1/users",
+    "status_code": 200,
+    "timestamp": 1743826087555000
+  },
+  {
+    "event_message": "POST | 200 | 34.27.73.242 | 92b62eafab8aeac6 | https://rrqefsxymripcvoabers.supabase.co/auth/v1/token?grant_type=password | node",
+    "id": "ac3df246-00d6-41b1-b733-87e565b85806",
+    "identifier": "rrqefsxymripcvoabers",
+    "method": "POST",
+    "path": "/auth/v1/token",
+    "status_code": 200,
+    "timestamp": 1743826086854000
+  },
+  {
+    "event_message": "GET | 200 | 34.27.73.242 | 92b62eacbeceeac6 | https://rrqefsxymripcvoabers.supabase.co/rest/v1/users?select=*&username=eq.johnata | node",
+    "id": "ad9f0a51-497c-4702-ba7e-dc5fad5bc23f",
+    "identifier": "rrqefsxymripcvoabers",
+    "method": "GET",
+    "path": "/rest/v1/users",
+    "status_code": 200,
+    "timestamp": 1743826086315000
+  },
+  {
+    "event_message": "GET | 200 | 34.27.73.242 | 92b62e671d3f2197 | https://rrqefsxymripcvoabers.supabase.co/rest/v1/services?select=*%2Cservice_categories%28*%29 | node",
+    "id": "53ccb21a-f27b-4274-a936-bfc49babbbb7",
+    "identifier": "rrqefsxymripcvoabers",
+    "method": "GET",
+    "path": "/rest/v1/services",
+    "status_code": 200,
+    "timestamp": 1743826075156000
+  },
+  {
+    "event_message": "GET | 200 | 34.27.73.242 | 92b62e66fd71a3e4 | https://rrqefsxymripcvoabers.supabase.co/rest/v1/service_categories?select=* | node",
+    "id": "a44f9a20-c4e2-4663-896a-333771bd2994",
+    "identifier": "rrqefsxymripcvoabers",
+    "method": "GET",
+    "path": "/rest/v1/service_categories",
+    "status_code": 200,
+    "timestamp": 1743826075148000
+  },
+  {
+    "event_message": "GET | 200 | 34.27.73.242 | 92b62e62b8b12197 | https://rrqefsxymripcvoabers.supabase.co/rest/v1/services?select=*%2Cservice_categories%28*%29 | node",
+    "id": "6a0e04f5-80e1-445b-994c-8bc8b0b4011f",
+    "identifier": "rrqefsxymripcvoabers",
+    "method": "GET",
+    "path": "/rest/v1/services",
+    "status_code": 200,
+    "timestamp": 1743826074511000
+  },
+  {
+    "event_message": "GET | 200 | 34.27.73.242 | 92b62e62aab3a3e4 | https://rrqefsxymripcvoabers.supabase.co/rest/v1/service_categories?select=* | node",
+    "id": "dddb8573-3641-4567-9da8-06b44b4b2bb1",
+    "identifier": "rrqefsxymripcvoabers",
+    "method": "GET",
+    "path": "/rest/v1/service_categories",
+    "status_code": 200,
+    "timestamp": 1743826074493000
+  }
+]
