@@ -402,20 +402,22 @@ export const supabaseStorage = {
   },
 
   // Agendamentos
-  async getAppointments(userId?: number, professionalId?: number, date?: string) {
+  async getAppointments(options?: { userId?: number; professionalId?: number | undefined; date?: string }) {
     try {
       let query = supabase.from('appointments').select('*');
       
-      if (userId) {
-        query = query.eq('user_id', userId);
-      }
-      
-      if (professionalId) {
-        query = query.eq('professional_id', professionalId);
-      }
-      
-      if (date) {
-        query = query.eq('date', date);
+      if (options) {
+        if (options.userId) {
+          query = query.eq('user_id', options.userId);
+        }
+        
+        if (options.professionalId) {
+          query = query.eq('professional_id', options.professionalId);
+        }
+        
+        if (options.date) {
+          query = query.eq('date', options.date);
+        }
       }
       
       const { data, error } = await query;
@@ -500,16 +502,39 @@ export const supabaseStorage = {
     };
   },
 
-  async updateAppointmentStatus(id: number, status: string) {
+  async updateAppointmentStatus(id: number, status: string, notes?: string) {
+    // Preparar os dados para atualização
+    const updateData: { status: string; notes?: string } = { status };
+    
+    // Adicionar notes se fornecido
+    if (notes !== undefined) {
+      updateData.notes = notes;
+    }
+    
     const { data, error } = await supabase
       .from('appointments')
-      .update({ status })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
     
-    if (error) return null;
-    return data;
+    if (error) {
+      console.error('Erro ao atualizar status do agendamento:', error);
+      return null;
+    }
+    
+    // Transformar os nomes dos campos para camelCase para o frontend
+    return {
+      id: data.id,
+      userId: data.user_id,
+      professionalId: data.professional_id,
+      date: data.date,
+      startTime: data.start_time,
+      endTime: data.end_time,
+      status: data.status,
+      notes: data.notes,
+      createdAt: data.created_at
+    };
   },
 
   // Serviços de Agendamento
@@ -657,6 +682,60 @@ export const supabaseStorage = {
     
     if (error) throw error;
     return data;
+  },
+
+  // Excluir agendamento
+  async deleteAppointment(id: number) {
+    try {
+      // Primeiro, excluir os serviços relacionados ao agendamento
+      await supabase
+        .from('appointment_services')
+        .delete()
+        .eq('appointment_id', id);
+      
+      // Depois, excluir o agendamento em si
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Erro ao excluir agendamento:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Exceção ao excluir agendamento:', err);
+      return false;
+    }
+  },
+  
+  // Obter profissional por ID de usuário
+  async getProfessionalByUserId(userId: number) {
+    try {
+      const { data, error } = await supabase
+        .from('professionals')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (error || !data) return null;
+      
+      return {
+        id: data.id,
+        name: data.name,
+        email: data.email || '',
+        phone: data.phone || '',
+        specialty: data.specialty || '',
+        bio: data.bio || '',
+        imageUrl: data.image_url || null,
+        userId: data.user_id
+      };
+    } catch (err) {
+      console.error('Exceção ao buscar profissional por userId:', err);
+      return null;
+    }
   },
 
   // Recompensas de Fidelidade

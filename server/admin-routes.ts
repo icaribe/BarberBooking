@@ -12,6 +12,7 @@ import { storage } from './storage';
 import adminFunctions from './storage-supabase-admin';
 import * as schema from '@shared/schema';
 import { requireRole, ownProfessionalOrAdmin, UserRole } from './middleware/role-middleware';
+import { supabaseStorage } from './storage-supabase';
 
 /**
  * Registra as rotas administrativas na aplicação
@@ -486,6 +487,325 @@ export function registerAdminRoutes(app: Express): void {
     }
   );
   
+  /**
+   * Gerenciamento de agendamentos
+   */
+  adminRouter.get('/appointments',
+    requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
+    async (req: Request, res: Response) => {
+      try {
+        // Parâmetros opcionais para filtrar agendamentos
+        const { date, professionalId } = req.query;
+        
+        // Definir as opções de filtro
+        const options: { date?: string; professionalId?: number } = {};
+        
+        if (date) {
+          options.date = date as string;
+        }
+        
+        if (professionalId) {
+          options.professionalId = parseInt(professionalId as string);
+        }
+        
+        // Buscar todos os agendamentos
+        let appointments = await supabaseStorage.getAppointments(options);
+        
+        // Buscar dados complementares para cada agendamento
+        const enhancedAppointments = await Promise.all(
+          appointments.map(async (appointment) => {
+            // Buscar nome do cliente
+            const client = await storage.getUser(appointment.userId);
+            
+            // Buscar nome do profissional
+            const professional = await storage.getProfessional(appointment.professionalId);
+            
+            // Buscar serviços do agendamento
+            const appointmentServices = await storage.getAppointmentServices(appointment.id);
+            
+            // Buscar detalhes de cada serviço
+            const serviceDetails = await Promise.all(
+              appointmentServices.map(async (as) => {
+                const service = await storage.getService(as.serviceId);
+                return service;
+              })
+            );
+            
+            // Retornar agendamento com dados complementares
+            return {
+              ...appointment,
+              client_name: client?.name || client?.username || 'Cliente',
+              client_email: client?.email,
+              professional_name: professional?.name || 'Profissional',
+              service_names: serviceDetails.map(s => s?.name || 'Serviço').filter(Boolean),
+              service_ids: appointmentServices.map(as => as.serviceId)
+            };
+          })
+        );
+        
+        res.json(enhancedAppointments);
+      } catch (error) {
+        console.error('Erro ao buscar agendamentos:', error);
+        res.status(500).json({ message: 'Erro ao buscar agendamentos' });
+      }
+    }
+  );
+
+  adminRouter.get('/appointments/:id',
+    requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
+    async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id);
+        const appointment = await storage.getAppointment(id);
+        
+        if (!appointment) {
+          return res.status(404).json({ message: 'Agendamento não encontrado' });
+        }
+        
+        // Buscar dados complementares
+        const client = await storage.getUser(appointment.userId);
+        const professional = await storage.getProfessional(appointment.professionalId);
+        const appointmentServices = await storage.getAppointmentServices(id);
+        const serviceDetails = await Promise.all(
+          appointmentServices.map(async (as) => {
+            const service = await storage.getService(as.serviceId);
+            return service;
+          })
+        );
+        
+        // Retornar agendamento com dados complementares
+        const enhancedAppointment = {
+          ...appointment,
+          client_name: client?.name || client?.username || 'Cliente',
+          client_email: client?.email,
+          professional_name: professional?.name || 'Profissional',
+          service_names: serviceDetails.map(s => s?.name || 'Serviço').filter(Boolean),
+          service_ids: appointmentServices.map(as => as.serviceId)
+        };
+        
+        res.json(enhancedAppointment);
+      } catch (error) {
+        console.error('Erro ao buscar agendamento:', error);
+        res.status(500).json({ message: 'Erro ao buscar agendamento' });
+      }
+    }
+  );
+
+  adminRouter.put('/appointments/:id/status',
+    requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
+    async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id);
+        const { status, notes } = req.body;
+        
+        // Verificar se o agendamento existe
+        const existingAppointment = await storage.getAppointment(id);
+        if (!existingAppointment) {
+          return res.status(404).json({ message: 'Agendamento não encontrado' });
+        }
+        
+        // Verificar permissões extras
+        if (req.user && (req.user as any).role !== UserRole.ADMIN) {
+          const user = req.user as any;
+          const professional = await storage.getProfessionalByUserId(user.id);
+          
+          // Se o usuário é um profissional, só pode modificar seus próprios agendamentos
+          if (professional && existingAppointment.professionalId !== professional.id) {
+            return res.status(403).json({ message: 'Permissão negada' });
+          }
+        }
+        
+        // Atualizar status do agendamento
+        const updatedAppointment = await storage.updateAppointmentStatus(id, status, notes);
+        
+        res.json(updatedAppointment);
+      } catch (error) {
+        console.error('Erro ao atualizar status do agendamento:', error);
+        res.status(500).json({ message: 'Erro ao atualizar status do agendamento' });
+      }
+    }
+  );
+
+  adminRouter.delete('/appointments/:id',
+    requireRole([UserRole.ADMIN]),
+    async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id);
+        
+        // Verificar se o agendamento existe
+        const existingAppointment = await storage.getAppointment(id);
+        if (!existingAppointment) {
+          return res.status(404).json({ message: 'Agendamento não encontrado' });
+        }
+        
+        // Excluir agendamento
+        await storage.deleteAppointment(id);
+        
+        res.status(204).send();
+      } catch (error) {
+        console.error('Erro ao excluir agendamento:', error);
+        res.status(500).json({ message: 'Erro ao excluir agendamento' });
+      }
+    }
+  );
+
+  /**
+   * Dashboard stats
+   */
+  adminRouter.get('/dashboard/stats',
+    requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
+    async (req: Request, res: Response) => {
+      try {
+        // Obter data de hoje (no formato que o banco espera)
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Buscar agendamentos de hoje
+        const todayAppointments = await storage.getAppointments({ date: today });
+        
+        // Buscar totais de cada entidade
+        const professionals = await storage.getProfessionals();
+        const products = await storage.getProducts();
+        const lowStockProducts = products.filter(p => p.stockQuantity <= 0);
+        
+        // Dados para estatísticas financeiras
+        let financialData = {
+          dailyRevenue: "0.00",
+          monthlyRevenue: "0.00"
+        };
+        
+        // Se for admin, adicionar dados financeiros
+        if ((req.user as any).role === UserRole.ADMIN) {
+          try {
+            // Obter dados financeiros do dia
+            const startOfDay = new Date();
+            startOfDay.setHours(0, 0, 0, 0);
+            
+            const endOfDay = new Date();
+            endOfDay.setHours(23, 59, 59, 999);
+            
+            // Obter dados financeiros do mês
+            const startOfMonth = new Date();
+            startOfMonth.setDate(1);
+            startOfMonth.setHours(0, 0, 0, 0);
+            
+            const endOfMonth = new Date();
+            
+            // Formatação para o banco
+            const formattedStartOfDay = startOfDay.toISOString();
+            const formattedEndOfDay = endOfDay.toISOString();
+            const formattedStartOfMonth = startOfMonth.toISOString();
+            const formattedEndOfMonth = endOfMonth.toISOString();
+            
+            // Buscar dados financeiros
+            if (adminFunctions.getCashFlowSummary) {
+              const dailySummary = await adminFunctions.getCashFlowSummary(formattedStartOfDay, formattedEndOfDay);
+              const monthlySummary = await adminFunctions.getCashFlowSummary(formattedStartOfMonth, formattedEndOfMonth);
+              
+              // Adicionar dados financeiros
+              if (dailySummary && monthlySummary) {
+                financialData = {
+                  dailyRevenue: dailySummary.income || "0.00",
+                  monthlyRevenue: monthlySummary.income || "0.00"
+                };
+              }
+            }
+          } catch (financialError) {
+            console.error('Erro ao obter dados financeiros:', financialError);
+            // Continuar com os outros dados mesmo se os financeiros falharem
+          }
+        }
+        
+        // Montar estatísticas
+        const stats = {
+          appointments: {
+            total: todayAppointments.length,
+            pending: todayAppointments.filter(a => a.status === 'PENDING').length,
+            confirmed: todayAppointments.filter(a => a.status === 'CONFIRMED').length,
+            completed: todayAppointments.filter(a => a.status === 'COMPLETED').length,
+            cancelled: todayAppointments.filter(a => a.status === 'CANCELLED').length
+          },
+          professionals: professionals.length,
+          products: {
+            total: products.length,
+            lowStock: lowStockProducts.length
+          },
+          finance: financialData
+        };
+        
+        res.json(stats);
+      } catch (error) {
+        console.error('Erro ao buscar estatísticas do dashboard:', error);
+        res.status(500).json({ message: 'Erro ao buscar estatísticas' });
+      }
+    }
+  );
+
+  adminRouter.get('/dashboard/today-appointments',
+    requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
+    async (req: Request, res: Response) => {
+      try {
+        // Obter data de hoje (no formato que o banco espera)
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Filtrar por profissional se não for admin
+        let professionalId;
+        if ((req.user as any).role !== UserRole.ADMIN) {
+          const professional = await storage.getProfessionalByUserId((req.user as any).id);
+          if (professional) {
+            professionalId = professional.id;
+          }
+        }
+        
+        // Buscar agendamentos de hoje
+        let appointments = await storage.getAppointments({ 
+          date: today,
+          professionalId
+        });
+        
+        // Buscar dados complementares para cada agendamento
+        const enhancedAppointments = await Promise.all(
+          appointments.map(async (appointment) => {
+            // Buscar nome do cliente
+            const client = await storage.getUser(appointment.userId);
+            
+            // Buscar nome do profissional
+            const professional = await storage.getProfessional(appointment.professionalId);
+            
+            // Buscar serviços do agendamento
+            const appointmentServices = await storage.getAppointmentServices(appointment.id);
+            
+            // Buscar detalhes de cada serviço
+            const serviceDetails = await Promise.all(
+              appointmentServices.map(async (as) => {
+                const service = await storage.getService(as.serviceId);
+                return service;
+              })
+            );
+            
+            // Retornar agendamento com dados complementares
+            return {
+              ...appointment,
+              client_name: client?.name || client?.username || 'Cliente',
+              client_email: client?.email,
+              professional_name: professional?.name || 'Profissional',
+              service_names: serviceDetails.map(s => s?.name || 'Serviço').filter(Boolean)
+            };
+          })
+        );
+        
+        // Ordenar por horário
+        enhancedAppointments.sort((a, b) => {
+          return a.startTime.localeCompare(b.startTime);
+        });
+        
+        res.json(enhancedAppointments);
+      } catch (error) {
+        console.error('Erro ao buscar agendamentos do dia:', error);
+        res.status(500).json({ message: 'Erro ao buscar agendamentos do dia' });
+      }
+    }
+  );
+
   /**
    * Gerenciamento de bloqueios de agenda
    */
