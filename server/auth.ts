@@ -161,18 +161,18 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", async (req, res, next) => {
-    passport.authenticate("local", (err: Error | null, user: any, info: any) => {
+    passport.authenticate("local", async (err: Error | null, user: any, info: any) => {
       if (err) return next(err);
       
       if (!user) {
         return res.status(401).json({ message: "Nome de usuário ou senha incorretos" });
       }
       
-      req.login(user, (loginErr: Error | null) => {
+      req.login(user, async (loginErr: Error | null) => {
         if (loginErr) return next(loginErr);
         
         // Garantir que a sessão seja salva adequadamente
-        req.session.save((saveErr) => {
+        req.session.save(async (saveErr) => {
           if (saveErr) {
             console.error('Erro ao salvar sessão após login:', saveErr);
             return next(saveErr);
@@ -181,9 +181,26 @@ export function setupAuth(app: Express) {
           console.log('Login bem-sucedido para o usuário:', user.id);
           console.log('Sessão estabelecida:', req.isAuthenticated(), 'user ID:', req.user?.id);
           
+          // Buscar o papel do usuário usando o role-workaround
+          const { getUserRole } = await import('../shared/role-workaround');
+          const userRole = await getUserRole(user.id);
+          
+          // Converter o papel para o formato esperado pelo frontend (maiúsculas)
+          let role = 'USER';
+          if (userRole === 'admin') {
+            role = 'ADMIN';
+          } else if (userRole === 'professional') {
+            role = 'PROFESSIONAL';
+          }
+          
           // Removemos a senha antes de retornar ao cliente
           const { password, ...userWithoutPassword } = user;
-          res.status(200).json(userWithoutPassword);
+          
+          // Adicionar o papel ao objeto do usuário
+          res.status(200).json({
+            ...userWithoutPassword,
+            role
+          });
         });
       });
     })(req, res, next);
@@ -225,8 +242,27 @@ export function setupAuth(app: Express) {
       
       // Remover a senha antes de retornar ao cliente
       const { password, ...userWithoutPassword } = user;
-      console.log('Retornando dados do usuário:', userId, userWithoutPassword.username);
-      res.json(userWithoutPassword);
+      
+      // Buscar o papel do usuário usando o role-workaround
+      const { getUserRole } = await import('../shared/role-workaround');
+      const userRole = await getUserRole(userId);
+      
+      // Converter o papel para o formato esperado pelo frontend (maiúsculas)
+      let role = 'USER';
+      if (userRole === 'admin') {
+        role = 'ADMIN';
+      } else if (userRole === 'professional') {
+        role = 'PROFESSIONAL';
+      }
+      
+      // Adicionar o papel ao objeto do usuário
+      const userWithRole = {
+        ...userWithoutPassword,
+        role
+      };
+      
+      console.log('Retornando dados do usuário:', userId, userWithRole.username, 'com papel:', role);
+      res.json(userWithRole);
     } catch (error) {
       console.error('Erro ao buscar dados do usuário:', error);
       res.status(500).json({ message: 'Erro ao buscar dados do usuário' });
