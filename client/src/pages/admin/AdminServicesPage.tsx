@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -92,9 +92,12 @@ export default function AdminServicesPage() {
   });
 
   // Filtrar serviços por categoria
-  const filteredServices = activeTab === "all" 
-    ? services 
-    : services?.filter(service => service.category_id === parseInt(activeTab));
+  const filteredServices = useMemo(() => {
+    if (!services) return [];
+    return activeTab === "all" 
+      ? services 
+      : services.filter(service => service.category_id === parseInt(activeTab));
+  }, [services, activeTab]);
 
   // Agrupar serviços por categoria para exibição
   const servicesByCategory = services?.reduce<Record<number, Service[]>>((acc, service) => {

@@ -79,10 +79,10 @@ export default function AdminDashboardPage() {
               <div className="text-2xl font-bold">{stats.appointments.total}</div>
             )}
             <p className="text-xs text-muted-foreground">
-              {statsLoading ? (
+              {statsLoading || appointmentsLoading ? (
                 <Skeleton className="h-4 w-[120px]" />
               ) : (
-                `${stats.appointments.pending + stats.appointments.confirmed} agendamentos hoje`
+                `${todayAppointments?.length || 0} agendamentos hoje`
               )}
             </p>
           </CardContent>
