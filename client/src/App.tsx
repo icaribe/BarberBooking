@@ -21,6 +21,10 @@ import AdminServicesPage from "@/pages/admin/AdminServicesPage";
 import AdminProductsPage from "@/pages/admin/AdminProductsPage";
 import AdminProfessionalsPage from "@/pages/admin/AdminProfessionalsPage";
 import AdminAppointmentsPage from "@/pages/admin/AdminAppointmentsPage";
+import AdminLoyaltyPage from "@/pages/admin/AdminLoyaltyPage";
+import AdminFinancePage from "@/pages/admin/AdminFinancePage";
+import AdminReportsPage from "@/pages/admin/AdminReportsPage";
+import AdminSettingsPage from "@/pages/admin/AdminSettingsPage";
 
 // Admin Protected Route
 import { AdminProtectedRoute } from "@/lib/admin-protected-route";
@@ -48,6 +52,10 @@ function App() {
             <AdminProtectedRoute path="/admin/products" component={AdminProductsPage} />
             <AdminProtectedRoute path="/admin/professionals" component={AdminProfessionalsPage} />
             <AdminProtectedRoute path="/admin/appointments" component={AdminAppointmentsPage} />
+            <AdminProtectedRoute path="/admin/loyalty" component={AdminLoyaltyPage} />
+            <AdminProtectedRoute path="/admin/finance" component={AdminFinancePage} />
+            <AdminProtectedRoute path="/admin/reports" component={AdminReportsPage} />
+            <AdminProtectedRoute path="/admin/settings" component={AdminSettingsPage} />
             
             <Route component={NotFound} />
           </Switch>
