@@ -3,25 +3,41 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { getUserRole, UserRole as RoleEnum } from '../../shared/role-workaround';
 
+// Reexportar a enumeração para manter compatibilidade com o código existente
 export enum UserRole {
-  USER = 'USER',
-  PROFESSIONAL = 'PROFESSIONAL',
-  ADMIN = 'ADMIN'
+  USER = RoleEnum.CUSTOMER,
+  PROFESSIONAL = RoleEnum.PROFESSIONAL,
+  ADMIN = RoleEnum.ADMIN
 }
 
 /**
  * Middleware que verifica se o usuário possui pelo menos uma das roles especificadas
  */
 export function requireRole(allowedRoles: UserRole[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: 'Autenticação necessária' });
     }
 
-    const userRole = (req.user as any).role || UserRole.USER;
+    const userId = (req.user as any).id;
+    const userRole = await getUserRole(userId);
     
-    if (allowedRoles.includes(userRole)) {
+    // Armazenar o papel do usuário no objeto req.user para utilização posterior
+    (req.user as any).role = userRole;
+    
+    // Mapeando de RoleEnum para UserRole
+    let mappedRole: UserRole;
+    if (userRole === RoleEnum.ADMIN) {
+      mappedRole = UserRole.ADMIN;
+    } else if (userRole === RoleEnum.PROFESSIONAL) {
+      mappedRole = UserRole.PROFESSIONAL;
+    } else {
+      mappedRole = UserRole.USER;
+    }
+    
+    if (allowedRoles.includes(mappedRole)) {
       return next();
     }
     
@@ -39,23 +55,30 @@ export function ownUserOrAdmin(req: Request, res: Response, next: NextFunction) 
     return res.status(401).json({ message: 'Autenticação necessária' });
   }
 
-  const userRole = (req.user as any).role || UserRole.USER;
   const currentUserId = (req.user as any).id;
   const targetUserId = parseInt(req.params.userId);
   
-  // Administradores podem acessar qualquer recurso de usuário
-  if (userRole === UserRole.ADMIN) {
-    return next();
-  }
+  // Verificar o papel apenas se for necessário
+  const checkRole = async () => {
+    const userRole = await getUserRole(currentUserId);
+    
+    // Administradores podem acessar qualquer recurso de usuário
+    if (userRole === RoleEnum.ADMIN) {
+      return next();
+    } else {
+      return res.status(403).json({ 
+        message: 'Acesso negado. Você só pode gerenciar seus próprios recursos.' 
+      });
+    }
+  };
   
-  // Usuários só podem acessar seus próprios recursos
+  // Usuários podem acessar seus próprios recursos
   if (currentUserId === targetUserId) {
     return next();
   }
   
-  return res.status(403).json({ 
-    message: 'Acesso negado. Você só pode gerenciar seus próprios recursos.' 
-  });
+  // Se não for o próprio usuário, verificar se é admin
+  return checkRole();
 }
 
 /**
@@ -66,21 +89,27 @@ export function ownProfessionalOrAdmin(req: Request, res: Response, next: NextFu
     return res.status(401).json({ message: 'Autenticação necessária' });
   }
 
-  const userRole = (req.user as any).role || UserRole.USER;
+  const userId = (req.user as any).id;
   const userProfessionalId = (req.user as any).professionalId;
   const targetProfessionalId = parseInt(req.params.professionalId);
   
-  // Administradores podem acessar qualquer recurso de profissional
-  if (userRole === UserRole.ADMIN) {
-    return next();
-  }
+  const checkRole = async () => {
+    const userRole = await getUserRole(userId);
+    
+    // Administradores podem acessar qualquer recurso de profissional
+    if (userRole === RoleEnum.ADMIN) {
+      return next();
+    }
+    
+    // Profissionais só podem acessar seus próprios recursos
+    if (userRole === RoleEnum.PROFESSIONAL && userProfessionalId === targetProfessionalId) {
+      return next();
+    }
+    
+    return res.status(403).json({ 
+      message: 'Acesso negado. Você só pode gerenciar recursos associados ao seu perfil profissional.' 
+    });
+  };
   
-  // Profissionais só podem acessar seus próprios recursos
-  if (userRole === UserRole.PROFESSIONAL && userProfessionalId === targetProfessionalId) {
-    return next();
-  }
-  
-  return res.status(403).json({ 
-    message: 'Acesso negado. Você só pode gerenciar recursos associados ao seu perfil profissional.' 
-  });
+  return checkRole();
 }
