@@ -4,10 +4,8 @@
  * Este arquivo oferece uma solução alternativa para o gerenciamento de papéis
  * de usuário quando a coluna role não existe na tabela users do banco de dados.
  * 
- * Esta implementação usa uma abordagem simplificada baseada nos dados existentes:
- * - E-mail especial para administrador
- * - Professional_id não nulo para profissionais
- * - Os demais são considerados clientes
+ * Esta implementação simplificada identificará o admin pelo email, 
+ * profissionais pela lista definida, e os demais como clientes.
  */
 
 import supabase from '../server/supabase';
@@ -21,6 +19,14 @@ export enum UserRole {
 
 // E-mail do administrador
 const ADMIN_EMAIL = 'johnatanlima26@gmail.com';
+
+// Emails dos profissionais
+const PROFESSIONAL_EMAILS = [
+  'carlosbarb@example.com',
+  'jorran@example.com',
+  'iuribarbs@example.com',
+  'mikaelbarbers@example.com'
+];
 
 // Cache de papéis para evitar múltiplas consultas
 const userRoleCache = new Map<number, UserRole>();
@@ -38,7 +44,7 @@ export async function getUserRole(userId: number): Promise<UserRole> {
     // Buscar dados do usuário
     const { data: userData, error } = await supabase
       .from('users')
-      .select('id, email, professional_id')
+      .select('id, email, username')
       .eq('id', userId)
       .maybeSingle();
     
@@ -55,15 +61,21 @@ export async function getUserRole(userId: number): Promise<UserRole> {
     // Determinar o papel
     let role: UserRole;
     
-    if (userData.email === ADMIN_EMAIL) {
-      // Administrador identificado pelo e-mail
+    console.log('Determinando papel para usuário:', userData.email);
+    
+    if (userData.email === ADMIN_EMAIL || userData.username === 'johnata') {
+      // Administrador identificado pelo e-mail ou username
       role = UserRole.ADMIN;
-    } else if (userData.professional_id) {
-      // Profissional identificado pelo professional_id
+      console.log('Usuário identificado como ADMIN');
+    } else if (PROFESSIONAL_EMAILS.includes(userData.email) || 
+              ['carlos', 'jorran', 'iuri', 'mikael'].includes(userData.username)) {
+      // Profissional identificado pela lista de e-mails ou usernames
       role = UserRole.PROFESSIONAL;
+      console.log('Usuário identificado como PROFESSIONAL');
     } else {
       // Cliente por padrão
       role = UserRole.CUSTOMER;
+      console.log('Usuário identificado como CUSTOMER');
     }
     
     // Armazenar em cache
