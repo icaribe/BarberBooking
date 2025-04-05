@@ -32,12 +32,10 @@ export default function AdminInitPage() {
     setIsInitializing(true);
     
     try {
-      const response = await apiRequest('/admin/initialize', {
-        method: 'POST',
-        data: { userId: user.id }
-      });
+      const response = await apiRequest('POST', '/api/admin/initialize', { userId: user.id });
+      const responseData = await response.json();
       
-      if (response.success) {
+      if (responseData.success) {
         setInitialized(true);
         toast({
           title: 'Sistema inicializado',
@@ -51,7 +49,7 @@ export default function AdminInitPage() {
       } else {
         toast({
           title: 'Erro na inicialização',
-          description: response.message || 'Erro ao inicializar o sistema administrativo.',
+          description: responseData.message || 'Erro ao inicializar o sistema administrativo.',
           variant: 'destructive'
         });
       }

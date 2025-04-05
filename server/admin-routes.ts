@@ -572,6 +572,6 @@ export function registerAdminRoutes(app: Express): void {
   );
 
   // Montar as rotas na aplicação principal
-  app.use('/admin', adminRouter);
+  app.use('/api/admin', adminRouter);
   console.log("[Admin Routes] Rotas administrativas registradas com sucesso.");
 }
