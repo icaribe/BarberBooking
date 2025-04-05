@@ -5,11 +5,11 @@
  * utilizando o Supabase como backend.
  */
 
-// Importado diretamente de './storage' para evitar referência cíclica
 import { createClient } from '@supabase/supabase-js';
 import { eq, and, or, gte, lte, desc, sql } from 'drizzle-orm';
 import * as schema from '@shared/schema';
 import { db } from './db';
+import { storage } from './storage'; // Importamos storage diretamente
 
 // Funções para atualização de serviços
 export async function updateService(id: number, data: Partial<schema.InsertService>) {
@@ -344,31 +344,24 @@ export async function addLoyaltyPoints(userId: number, points: number) {
 // Inicialização do sistema administrativo
 export async function initializeAdminSystem(userId: number) {
   try {
-    // Verificar se o usuário existe
-    const users = await db.select().from(schema.users).where(eq(schema.users.id, userId));
-    const user = users[0];
+    // Verificar se o usuário existe usando a camada de storage
+    const user = await storage.getUser(userId);
     
     if (!user) {
       return { success: false, message: 'Usuário não encontrado' };
     }
     
-    // Atualizar o papel do usuário para administrador
-    const updated = await db.update(schema.users)
-      .set({
-        role: 'ADMIN',
-        updatedAt: new Date().toISOString()
-      })
-      .where(eq(schema.users.id, userId))
-      .returning();
+    // Atualizar o papel do usuário para administrador através da camada de storage
+    const updated = await storage.updateUser(userId, { role: 'admin' });
     
-    if (!updated || updated.length === 0) {
+    if (!updated) {
       return { success: false, message: 'Erro ao atualizar o papel do usuário' };
     }
     
     return {
       success: true,
       message: 'Sistema administrativo inicializado com sucesso',
-      user: updated[0]
+      user: updated
     };
   } catch (error) {
     console.error('Erro ao inicializar sistema administrativo:', error);
