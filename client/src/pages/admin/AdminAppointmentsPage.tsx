@@ -335,7 +335,7 @@ export default function AdminAppointmentsPage() {
                           </div>
                           <div className="flex items-center">
                             <Clock className="mr-1 h-3.5 w-3.5" />
-                            {formatAppointmentTime(appointment.start_time)} - {formatAppointmentTime(appointment.end_time)}
+                            {formatAppointmentTime(appointment.startTime || appointment.start_time)} - {formatAppointmentTime(appointment.endTime || appointment.end_time)}
                           </div>
                           <div className="flex items-center">
                             <User className="mr-1 h-3.5 w-3.5" />
@@ -385,7 +385,7 @@ export default function AdminAppointmentsPage() {
               </div>
               <div className="flex items-center">
                 <Clock className="mr-1 h-3.5 w-3.5" />
-                {selectedAppointment?.start_time && formatAppointmentTime(selectedAppointment.start_time)} - {selectedAppointment?.end_time && formatAppointmentTime(selectedAppointment.end_time)}
+                {formatAppointmentTime(selectedAppointment?.startTime || selectedAppointment?.start_time)} - {formatAppointmentTime(selectedAppointment?.endTime || selectedAppointment?.end_time)}
               </div>
               <div className="flex items-center">
                 <User className="mr-1 h-3.5 w-3.5" />

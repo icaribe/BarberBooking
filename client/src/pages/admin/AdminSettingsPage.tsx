@@ -39,6 +39,11 @@ const notificationSettingsSchema = z.object({
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState("geral");
   
+  // Buscar os dados de usuários e profissionais
+  const { data: professionals, isLoading: professionalsLoading } = useQuery({
+    queryKey: ['/api/admin/professionals'],
+  });
+  
   // Formulário para configurações do negócio
   const businessForm = useForm<z.infer<typeof businessSettingsSchema>>({
     resolver: zodResolver(businessSettingsSchema),
@@ -523,6 +528,7 @@ export default function AdminSettingsPage() {
                       </tr>
                     </thead>
                     <tbody className="bg-background divide-y divide-border">
+                      {/* Admin (Johnata) sempre fixo */}
                       <tr>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex items-center">
@@ -545,27 +551,38 @@ export default function AdminSettingsPage() {
                         </td>
                       </tr>
                       
-                      <tr>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                              CB
-                            </div>
-                            <div>Carlos Barbeiro</div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          carlosbarb@example.com
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-300">
-                            Profissional
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-right">
-                          <Button variant="ghost" size="sm">Editar</Button>
-                        </td>
-                      </tr>
+                      {/* Profissionais dinâmicos */}
+                      {professionalsLoading ? (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-4 text-center">
+                            Carregando profissionais...
+                          </td>
+                        </tr>
+                      ) : (
+                        professionals && professionals.map((professional) => (
+                          <tr key={professional.id}>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                                  {professional.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                                </div>
+                                <div>{professional.name}</div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              {`${professional.name.toLowerCase().replace(/\s/g, '')}@example.com`}
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-300">
+                                Profissional
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-right">
+                              <Button variant="ghost" size="sm">Editar</Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>

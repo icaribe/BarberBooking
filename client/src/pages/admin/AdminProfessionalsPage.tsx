@@ -226,7 +226,7 @@ export default function AdminProfessionalsPage() {
                       )}
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between mb-2">
                         <div>
                           <h3 className="font-medium">{professional.name}</h3>
                           <div className="flex items-center text-sm text-muted-foreground mt-1">
@@ -236,12 +236,8 @@ export default function AdminProfessionalsPage() {
                             <MessageSquare className="mr-1 h-3.5 w-3.5" />
                             {professional.review_count || 0} avaliações
                           </div>
-                          <p className="text-sm font-medium mt-2">Especialidades:</p>
-                          <p className="text-sm text-muted-foreground">
-                            {professional.specialties}
-                          </p>
                         </div>
-                        <div className="flex space-x-1">
+                        <div className="flex space-x-1 flex-shrink-0">
                           <Button 
                             size="icon" 
                             variant="ghost" 
@@ -259,6 +255,10 @@ export default function AdminProfessionalsPage() {
                           </Button>
                         </div>
                       </div>
+                      <p className="text-sm font-medium">Especialidades:</p>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {professional.specialties}
+                      </p>
                       <p className="text-sm mt-2 line-clamp-2 text-muted-foreground">
                         {professional.bio}
                       </p>
