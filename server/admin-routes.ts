@@ -656,16 +656,71 @@ export function registerAdminRoutes(app: Express): void {
     requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
     async (req: Request, res: Response) => {
       try {
+        console.log('Obtendo estatísticas do dashboard para o usuário:', (req.user as any).id, 'com papel:', (req.user as any).role);
+        
         // Obter data de hoje (no formato que o banco espera)
         const today = new Date().toISOString().split('T')[0];
+        console.log('Data de hoje:', today);
         
-        // Buscar agendamentos de hoje
-        const todayAppointments = await storage.getAppointments({ date: today });
+        // Filtrar por profissional se não for admin
+        let professionalId = undefined;
+        if ((req.user as any).role !== UserRole.ADMIN) {
+          // Buscar o profissional vinculado ao usuário atual
+          try {
+            // Verificar nos logs qual é o ID do profissional baseado no email/username
+            const username = (req.user as any).username;
+            console.log('Buscando profissional por username:', username);
+            
+            // Map de usernames para IDs de profissionais
+            const professionalMap: Record<string, number> = {
+              'carlos': 1,
+              'jorran': 2,
+              'iuri': 3,
+              'mikael': 4
+            };
+            
+            professionalId = professionalMap[username.toLowerCase()];
+            console.log('ID do profissional encontrado:', professionalId);
+          } catch (profError) {
+            console.error('Erro ao buscar profissional para o usuário:', profError);
+          }
+        }
+        
+        // Buscar agendamentos de hoje (aplicando filtro de profissional se necessário)
+        console.log('Buscando agendamentos com filtros:', { date: today, professionalId });
+        const todayAppointments = await supabaseStorage.getAppointments({ 
+          date: today,
+          professionalId
+        });
+        console.log('Agendamentos encontrados:', todayAppointments.length);
         
         // Buscar totais de cada entidade
-        const professionals = await storage.getProfessionals();
-        const products = await storage.getProducts();
-        const lowStockProducts = products.filter(p => p.stockQuantity <= 0);
+        let professionals = await storage.getProfessionals();
+        console.log('Total de profissionais:', professionals.length);
+        
+        // Se for profissional, filtrar apenas o próprio profissional
+        if (professionalId) {
+          professionals = professionals.filter(p => p.id === professionalId);
+        }
+        
+        // Buscar produtos (apenas para admin)
+        let products = [];
+        let lowStockProducts = [];
+        
+        if ((req.user as any).role === UserRole.ADMIN) {
+          products = await storage.getProducts();
+          console.log('Total de produtos:', products.length);
+          
+          // Verificar produtos com estoque baixo
+          // Alguns produtos usam stockQuantity, outros usam inStock
+          lowStockProducts = products.filter(p => {
+            if ('stockQuantity' in p && typeof p.stockQuantity === 'number') {
+              return p.stockQuantity <= 0;
+            }
+            return p.inStock === false;
+          });
+          console.log('Produtos com estoque baixo:', lowStockProducts.length);
+        }
         
         // Dados para estatísticas financeiras
         let financialData = {
@@ -698,15 +753,27 @@ export function registerAdminRoutes(app: Express): void {
             
             // Buscar dados financeiros
             if (adminFunctions.getCashFlowSummary) {
-              const dailySummary = await adminFunctions.getCashFlowSummary(formattedStartOfDay, formattedEndOfDay);
-              const monthlySummary = await adminFunctions.getCashFlowSummary(formattedStartOfMonth, formattedEndOfMonth);
-              
-              // Adicionar dados financeiros
-              if (dailySummary && monthlySummary) {
-                financialData = {
-                  dailyRevenue: dailySummary.income || "0.00",
-                  monthlyRevenue: monthlySummary.income || "0.00"
-                };
+              try {
+                const dailySummary = await adminFunctions.getCashFlowSummary(formattedStartOfDay, formattedEndOfDay);
+                const monthlySummary = await adminFunctions.getCashFlowSummary(formattedStartOfMonth, formattedEndOfMonth);
+                
+                // Adicionar dados financeiros
+                if (dailySummary && monthlySummary) {
+                  // Verificar qual estrutura de dados está disponível
+                  if (dailySummary.income) {
+                    financialData = {
+                      dailyRevenue: dailySummary.income,
+                      monthlyRevenue: monthlySummary.income
+                    };
+                  } else if (dailySummary.totalIncome) {
+                    financialData = {
+                      dailyRevenue: dailySummary.totalIncome.toString(),
+                      monthlyRevenue: monthlySummary.totalIncome.toString()
+                    };
+                  }
+                }
+              } catch (err) {
+                console.error('Erro específico ao obter dados financeiros:', err);
               }
             }
           } catch (financialError) {
@@ -732,6 +799,7 @@ export function registerAdminRoutes(app: Express): void {
           finance: financialData
         };
         
+        console.log('Estatísticas geradas:', stats);
         res.json(stats);
       } catch (error) {
         console.error('Erro ao buscar estatísticas do dashboard:', error);
@@ -744,35 +812,59 @@ export function registerAdminRoutes(app: Express): void {
     requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
     async (req: Request, res: Response) => {
       try {
+        console.log('Obtendo agendamentos de hoje para o usuário:', (req.user as any).id, 'com papel:', (req.user as any).role);
+        
         // Obter data de hoje (no formato que o banco espera)
         const today = new Date().toISOString().split('T')[0];
+        console.log('Data de hoje:', today);
         
         // Filtrar por profissional se não for admin
-        let professionalId;
+        let professionalId = undefined;
         if ((req.user as any).role !== UserRole.ADMIN) {
-          const professional = await storage.getProfessionalByUserId((req.user as any).id);
-          if (professional) {
-            professionalId = professional.id;
+          // Buscar o profissional vinculado ao usuário atual pelo username
+          try {
+            const username = (req.user as any).username;
+            console.log('Buscando profissional por username:', username);
+            
+            // Map de usernames para IDs de profissionais
+            const professionalMap: Record<string, number> = {
+              'carlos': 1,
+              'jorran': 2,
+              'iuri': 3,
+              'mikael': 4
+            };
+            
+            professionalId = professionalMap[username.toLowerCase()];
+            console.log('ID do profissional encontrado:', professionalId);
+          } catch (profError) {
+            console.error('Erro ao buscar profissional para o usuário:', profError);
           }
         }
         
-        // Buscar agendamentos de hoje
-        let appointments = await storage.getAppointments({ 
+        // Buscar agendamentos de hoje com filtro de profissional, se necessário
+        console.log('Buscando agendamentos com filtros:', { date: today, professionalId });
+        let appointments = await supabaseStorage.getAppointments({ 
           date: today,
           professionalId
         });
+        console.log('Agendamentos encontrados:', appointments.length);
         
         // Buscar dados complementares para cada agendamento
         const enhancedAppointments = await Promise.all(
           appointments.map(async (appointment) => {
+            console.log('Processando agendamento ID:', appointment.id);
+            
             // Buscar nome do cliente
             const client = await storage.getUser(appointment.userId);
+            console.log('Cliente:', client?.name || client?.username);
             
             // Buscar nome do profissional
             const professional = await storage.getProfessional(appointment.professionalId);
+            console.log('Profissional:', professional?.name);
             
             // Buscar serviços do agendamento
             const appointmentServices = await storage.getAppointmentServices(appointment.id);
+            console.log('Serviços encontrados:', appointmentServices.length);
             
             // Buscar detalhes de cada serviço
             const serviceDetails = await Promise.all(
@@ -781,6 +873,8 @@ export function registerAdminRoutes(app: Express): void {
                 return service;
               })
             );
+            
+            console.log('Serviços detalhados:', serviceDetails.map(s => s?.name));
             
             // Retornar agendamento com dados complementares
             return {
@@ -798,6 +892,7 @@ export function registerAdminRoutes(app: Express): void {
           return a.startTime.localeCompare(b.startTime);
         });
         
+        console.log('Agendamentos hoje (após processamento):', enhancedAppointments.length);
         res.json(enhancedAppointments);
       } catch (error) {
         console.error('Erro ao buscar agendamentos do dia:', error);

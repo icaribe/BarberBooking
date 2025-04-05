@@ -29,11 +29,20 @@ export default function AdminDashboardPage() {
     enabled: !!user,
   });
 
-  const stats = dashboardStats?.stats || {
-    appointments: { total: 0, today: 0 },
+  const stats = dashboardStats || {
+    appointments: { 
+      total: 0, 
+      pending: 0,
+      confirmed: 0,
+      completed: 0,
+      cancelled: 0
+    },
     products: { total: 0, lowStock: 0 },
-    professionals: { total: 0 },
-    revenue: { today: 0, month: 0 }
+    professionals: 0,
+    finance: { 
+      dailyRevenue: "0.00", 
+      monthlyRevenue: "0.00" 
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -43,9 +52,16 @@ export default function AdminDashboardPage() {
     }).format(value / 100);
   };
 
-  const formatAppointmentTime = (appointment: Appointment) => {
-    const start = new Date(`2000-01-01T${appointment.start_time}`);
-    return start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const formatAppointmentTime = (appointment: any) => {
+    try {
+      const time = appointment.startTime || appointment.start_time;
+      if (!time) return '';
+      const start = new Date(`2000-01-01T${time}`);
+      return start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      console.error('Erro ao formatar hora do agendamento:', error);
+      return '';
+    }
   };
 
   return (
@@ -66,7 +82,7 @@ export default function AdminDashboardPage() {
               {statsLoading ? (
                 <Skeleton className="h-4 w-[120px]" />
               ) : (
-                `${stats.appointments.today} agendamentos hoje`
+                `${stats.appointments.pending + stats.appointments.confirmed} agendamentos hoje`
               )}
             </p>
           </CardContent>
@@ -81,7 +97,7 @@ export default function AdminDashboardPage() {
             {statsLoading ? (
               <Skeleton className="h-8 w-[100px]" />
             ) : (
-              <div className="text-2xl font-bold">{stats.professionals.total}</div>
+              <div className="text-2xl font-bold">{stats.professionals}</div>
             )}
             <p className="text-xs text-muted-foreground">
               {statsLoading ? (
@@ -125,7 +141,7 @@ export default function AdminDashboardPage() {
                 {statsLoading ? (
                   <Skeleton className="h-8 w-[100px]" />
                 ) : (
-                  <div className="text-2xl font-bold">{formatCurrency(stats.revenue.today)}</div>
+                  <div className="text-2xl font-bold">R$ {stats.finance.dailyRevenue}</div>
                 )}
                 <p className="text-xs text-muted-foreground">
                   {statsLoading ? (
@@ -146,7 +162,7 @@ export default function AdminDashboardPage() {
                 {statsLoading ? (
                   <Skeleton className="h-8 w-[100px]" />
                 ) : (
-                  <div className="text-2xl font-bold">{formatCurrency(stats.revenue.month)}</div>
+                  <div className="text-2xl font-bold">R$ {stats.finance.monthlyRevenue}</div>
                 )}
                 <p className="text-xs text-muted-foreground">
                   {statsLoading ? (

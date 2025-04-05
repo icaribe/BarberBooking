@@ -149,21 +149,30 @@ export default function AdminAppointmentsPage() {
     return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
 
-  const formatAppointmentTime = (timeString: string) => {
+  const formatAppointmentTime = (timeString: string | null | undefined) => {
     try {
-      // Verificar se o timeString está no formato adequado
+      // Verificar se o timeString está definido
       if (!timeString) return "--:--";
       
-      // O formato esperado é HH:MM:SS, vamos garantir que é válido
+      // O formato esperado é HH:MM:SS ou HH:MM, vamos garantir que é válido
       // Adicionando validação através de regex
       if (!/^\d{2}:\d{2}(:\d{2})?$/.test(timeString)) {
         console.warn(`Formato de hora inválido: ${timeString}`);
         return timeString; // Retorna a string original se não estiver no formato esperado
       }
       
-      // Convertendo a string de tempo para um objeto Date para formatação
-      const timeDate = parseISO(`2000-01-01T${timeString}`);
-      return format(timeDate, "HH:mm", { locale: ptBR });
+      try {
+        // Convertendo a string de tempo para um objeto Date para formatação
+        const timeDate = parseISO(`2000-01-01T${timeString}`);
+        if (isNaN(timeDate.getTime())) {
+          console.warn(`Data inválida gerada para: ${timeString}`);
+          return timeString;
+        }
+        return format(timeDate, "HH:mm", { locale: ptBR });
+      } catch (parseError) {
+        console.error("Erro ao analisar data:", parseError);
+        return timeString;
+      }
     } catch (error) {
       console.error("Erro ao formatar hora:", error, timeString);
       return timeString || "--:--"; // Fallback para exibição
