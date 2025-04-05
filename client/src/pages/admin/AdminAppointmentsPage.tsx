@@ -150,9 +150,24 @@ export default function AdminAppointmentsPage() {
   };
 
   const formatAppointmentTime = (timeString: string) => {
-    // Convertendo a string de tempo para um objeto Date para formatação
-    const timeDate = parseISO(`2000-01-01T${timeString}`);
-    return format(timeDate, "HH:mm", { locale: ptBR });
+    try {
+      // Verificar se o timeString está no formato adequado
+      if (!timeString) return "--:--";
+      
+      // O formato esperado é HH:MM:SS, vamos garantir que é válido
+      // Adicionando validação através de regex
+      if (!/^\d{2}:\d{2}(:\d{2})?$/.test(timeString)) {
+        console.warn(`Formato de hora inválido: ${timeString}`);
+        return timeString; // Retorna a string original se não estiver no formato esperado
+      }
+      
+      // Convertendo a string de tempo para um objeto Date para formatação
+      const timeDate = parseISO(`2000-01-01T${timeString}`);
+      return format(timeDate, "HH:mm", { locale: ptBR });
+    } catch (error) {
+      console.error("Erro ao formatar hora:", error, timeString);
+      return timeString || "--:--"; // Fallback para exibição
+    }
   };
 
   const getStatusBadge = (status: string) => {
