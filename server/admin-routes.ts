@@ -793,27 +793,34 @@ export function registerAdminRoutes(app: Express): void {
             const formattedStartOfMonth = startOfMonth.toISOString();
             const formattedEndOfMonth = endOfMonth.toISOString();
             
-            // Buscar dados financeiros
-            if (adminFunctions.getCashFlowSummary) {
-              try {
-                const dailySummary = await adminFunctions.getCashFlowSummary(formattedStartOfDay, formattedEndOfDay);
-                const monthlySummary = await adminFunctions.getCashFlowSummary(formattedStartOfMonth, formattedEndOfMonth);
-                
-                // Adicionar dados financeiros
-                if (dailySummary && monthlySummary) {
-                  // Verificar qual estrutura de dados está disponível
-                  if (dailySummary.income) {
-                    financialData = {
-                      dailyRevenue: dailySummary.income,
-                      monthlyRevenue: monthlySummary.income
-                    };
-                  } else if (dailySummary.totalIncome) {
-                    financialData = {
-                      dailyRevenue: dailySummary.totalIncome.toString(),
-                      monthlyRevenue: monthlySummary.totalIncome.toString()
-                    };
-                  }
-                }
+            // Calcular faturamento diário e mensal com base nos agendamentos concluídos
+            try {
+              const startOfDay = new Date();
+              startOfDay.setHours(0, 0, 0, 0);
+              
+              const startOfMonth = new Date();
+              startOfMonth.setDate(1);
+              startOfMonth.setHours(0, 0, 0, 0);
+              
+              const { data: dailyTransactions } = await supabaseStorage.from('cash_flow')
+                .select('amount')
+                .gte('date', startOfDay.toISOString())
+                .eq('transaction_type', 'income')
+                .eq('category', 'services');
+
+              const { data: monthlyTransactions } = await supabaseStorage.from('cash_flow')
+                .select('amount')
+                .gte('date', startOfMonth.toISOString())
+                .eq('transaction_type', 'income')
+                .eq('category', 'services');
+
+              const dailyTotal = dailyTransactions?.reduce((sum, tx) => sum + (tx.amount || 0), 0) || 0;
+              const monthlyTotal = monthlyTransactions?.reduce((sum, tx) => sum + (tx.amount || 0), 0) || 0;
+
+              financialData = {
+                dailyRevenue: (dailyTotal / 100).toFixed(2),
+                monthlyRevenue: (monthlyTotal / 100).toFixed(2)
+              };
               } catch (err) {
                 console.error('Erro específico ao obter dados financeiros:', err);
               }
