@@ -620,25 +620,44 @@ export function registerAdminRoutes(app: Express): void {
         
         // Se o status foi alterado para COMPLETED, registrar no fluxo de caixa
         if (status === 'COMPLETED') {
-          // Buscar serviços do agendamento para calcular valor total
-          const appointmentServices = await storage.getAppointmentServices(id);
-          const serviceDetails = await Promise.all(
-            appointmentServices.map(as => storage.getService(as.serviceId))
-          );
-          
-          const totalAmount = serviceDetails.reduce((sum, service) => sum + (service?.price || 0), 0);
-          
-          // Registrar no fluxo de caixa
-          await adminFunctions.createCashFlowTransaction({
-            date: new Date().toISOString(),
-            amount: totalAmount,
-            description: `Pagamento do agendamento #${id}`,
-            transactionType: 'income',
-            category: 'services',
-            appointmentId: id,
-            professionalId: updatedAppointment.professionalId,
-            createdById: (req.user as any).id
-          });
+          try {
+            // Buscar serviços do agendamento para calcular valor total
+            const appointmentServices = await storage.getAppointmentServices(id);
+            const serviceDetails = await Promise.all(
+              appointmentServices.map(as => storage.getService(as.serviceId))
+            );
+            
+            const totalAmount = serviceDetails.reduce((sum, service) => sum + (service?.price || 0), 0);
+            
+            // Registrar no fluxo de caixa
+            const result = await supabaseStorage.sql`
+              INSERT INTO cash_flow (
+                date, 
+                amount, 
+                description, 
+                transaction_type, 
+                category,
+                appointment_id,
+                professional_id,
+                created_by_id
+              ) VALUES (
+                ${new Date().toISOString()},
+                ${totalAmount},
+                ${'Pagamento do agendamento #' + id},
+                ${'income'},
+                ${'services'},
+                ${id},
+                ${updatedAppointment.professionalId},
+                ${(req.user as any).id}
+              )
+              RETURNING *;
+            `;
+            
+            console.log('Transação financeira registrada:', result);
+          } catch (error) {
+            console.error('Erro ao registrar transação financeira:', error);
+            // Não impedir a conclusão do agendamento se houver erro no registro financeiro
+          }
         }
         
         res.json(updatedAppointment);
