@@ -821,9 +821,8 @@ export function registerAdminRoutes(app: Express): void {
                 dailyRevenue: (dailyTotal / 100).toFixed(2),
                 monthlyRevenue: (monthlyTotal / 100).toFixed(2)
               };
-              } catch (err) {
-                console.error('Erro específico ao obter dados financeiros:', err);
-              }
+            } catch (err) {
+              console.error('Erro específico ao obter dados financeiros:', err);
             }
           } catch (financialError) {
             console.error('Erro ao obter dados financeiros:', financialError);
