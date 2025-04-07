@@ -21,18 +21,24 @@ export default function AdminDashboardPage() {
   const { data: dashboardStats, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/admin/dashboard/stats'],
     enabled: !!user,
-    refetchInterval: 2000, // Recarrega a cada 2 segundos
+    refetchInterval: 1000, // Recarrega a cada 1 segundo
+    refetchOnMount: true,
     refetchOnWindowFocus: true,
-    staleTime: 0 // Sempre considerar os dados desatualizados
+    refetchOnReconnect: true,
+    staleTime: 0, // Sempre considerar os dados desatualizados
+    cacheTime: 0 // Não manter cache
   });
 
   // Buscar agendamentos para hoje
   const { data: todayAppointments, isLoading: appointmentsLoading } = useQuery({
     queryKey: ['/api/admin/dashboard/today-appointments'],
     enabled: !!user,
-    refetchInterval: 2000, // Recarrega a cada 2 segundos
+    refetchInterval: 1000, // Recarrega a cada 1 segundo
+    refetchOnMount: true,
     refetchOnWindowFocus: true,
-    staleTime: 0 // Sempre considerar os dados desatualizados
+    refetchOnReconnect: true,
+    staleTime: 0, // Sempre considerar os dados desatualizados
+    cacheTime: 0 // Não manter cache
   });
 
   const stats = dashboardStats || {
