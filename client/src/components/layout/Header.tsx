@@ -143,8 +143,8 @@ const SidebarMenu = () => {
                 </li>
               )}
               
-              {/* Link para inicialização do sistema admin - visível apenas para admin */}
-              {user?.role === 'ADMIN' && (
+              {/* Link para inicialização do sistema admin - visível apenas para admin que ainda não inicializou */}
+              {user?.role === 'ADMIN' && !isAdmin && (
                 <li>
                   <Link href="/admin/initialize">
                     <div className="flex items-center py-2 px-3 rounded-md bg-amber-100/50 hover:bg-amber-100 text-amber-800 border border-amber-200">
