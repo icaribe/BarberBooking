@@ -1,0 +1,85 @@
+Vejo que estamos enfrentando um erro ao tentar atualizar o status de agendamentos. O erro indica um problema com a URL da requisição: "/api/appointments/8/status" não é reconhecida como uma rota válida. Vou analisar e corrigir o problema.
+
+Primeiro, vamos verificar como estão configuradas as rotas para atualização de status de agendamentos:
+
+
+Searched for "buscar arquivos relacionados a rotas de agendamentos e atualização de status"
+Vamos verificar as rotas existentes para os agendamentos:
+
+
+Searched for "rotas relacionadas a agendamentos em server/routes.ts e buscar qualquer arquivo que implemente a rota para atualizar status de agendamentos"
+Agora vamos verificar o arquivo de rotas principal:
+
+
+Opened server/routes.ts
+Vamos buscar por rotas específicas de agendamentos na rota principal:
+
+
+Executed grep -n "appointments.*status" ./server/routes.ts
+Vamos verificar a rota na interface AdminAppointmentsPage:
+
+
+Opened client/src/pages/admin/AdminAppointmentsPage.tsx
+
+Opened client/src/pages/admin/AdminAppointmentsPage.tsx
+Vamos verificar o conteúdo da rota no servidor para atualização de status:
+
+
+Opened server/routes.ts
+Vamos verificar se há uma rota similar no AdminRouter:
+
+
+Executed grep -n -B 5 -A 10 "appointments.*status" ./server/admin-routes.ts
+Identificamos o problema! Há uma inconsistência entre as rotas:
+
+No lado do cliente, em AdminAppointmentsPage.tsx, a rota é chamada com:
+
+apiRequest(`/api/appointments/${data.id}/status`, {
+   method: 'PATCH',
+   ...
+})
+Na rota principal em server/routes.ts, há uma rota definida:
+
+app.patch("/api/appointments/:id/status", ...)
+Mas também existe uma rota específica nas rotas administrativas em server/admin-routes.ts:
+
+adminRouter.put('/appointments/:id/status', ...)
+Existem duas incompatibilidades:
+
+O método HTTP: Cliente usa PATCH mas a rota admin usa PUT
+O caminho: Cliente usa /api/appointments/... mas a rota admin usa /appointments/... (sem o prefixo /api/)
+Vamos corrigir isso editando a rota no AdminAppointmentsPage para usar a rota correta:
+
+
+Edited client/src/pages/admin/AdminAppointmentsPage.tsx
+Agora vamos verificar como são registradas as rotas administrativas:
+
+
+Opened server/admin-routes.ts
+Vamos verificar como o adminRouter é registrado:
+
+
+Executed grep -n "adminRouter" ./server/admin-routes.ts | head -n 30
+Vamos verificar como o adminRouter é montado na aplicação:
+
+
+Executed grep -A 10 "app.use" ./server/admin-routes.ts
+Agora temos a confirmação do problema. As rotas administrativas são registradas sob o prefixo /api/admin/, o que significa que a URL correta para atualizar o status deve ser:
+
+/api/admin/appointments/:id/status com método PUT
+
+Reiniciemos a aplicação para aplicar estas alterações:
+
+
+Restarted Start application
+
+Took a screenshot
+Checkpoint made
+2 minutes ago
+•
+Fix appointment status update error by correcting API endpoint and HTTP method
+✓ Corrigi o problema de atualização de status dos agendamentos
+✓ Atualizei a URL no AdminAppointmentsPage.tsx para usar o caminho correto (/api/admin/appointments/...)
+✓ Ajustei o método HTTP de PATCH para PUT para coincidir com a rota no servidor
+
+A funcionalidade de atualização de status agora deve funcionar corretamente. Por favor, teste e me informe se você encontrar mais algum problema com essa funcionalidade ou qualquer outra parte do sistema.
