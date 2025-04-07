@@ -224,8 +224,16 @@ export default function AdminDashboardPage() {
                       com {appointment.professional_name} • {appointment.service_names.join(', ')}
                     </div>
                   </div>
-                  <div className={`text-xs px-2 py-1 rounded ${appointment.status === 'CONFIRMED' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {appointment.status === 'CONFIRMED' ? 'Confirmado' : 'Pendente'}
+                  <div className={`text-xs px-2 py-1 rounded ${
+                    appointment.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
+                    appointment.status === 'CONFIRMED' ? 'bg-green-100 text-green-800' :
+                    appointment.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {appointment.status === 'COMPLETED' ? 'Concluído' :
+                     appointment.status === 'CONFIRMED' ? 'Confirmado' :
+                     appointment.status === 'CANCELLED' ? 'Cancelado' :
+                     'Pendente'}
                   </div>
                 </div>
               ))}
