@@ -618,6 +618,29 @@ export function registerAdminRoutes(app: Express): void {
         // Atualizar status do agendamento
         const updatedAppointment = await storage.updateAppointmentStatus(id, status, notes);
         
+        // Se o status foi alterado para COMPLETED, registrar no fluxo de caixa
+        if (status === 'COMPLETED') {
+          // Buscar serviços do agendamento para calcular valor total
+          const appointmentServices = await storage.getAppointmentServices(id);
+          const serviceDetails = await Promise.all(
+            appointmentServices.map(as => storage.getService(as.serviceId))
+          );
+          
+          const totalAmount = serviceDetails.reduce((sum, service) => sum + (service?.price || 0), 0);
+          
+          // Registrar no fluxo de caixa
+          await adminFunctions.createCashFlowTransaction({
+            date: new Date().toISOString(),
+            amount: totalAmount,
+            description: `Pagamento do agendamento #${id}`,
+            transactionType: 'income',
+            category: 'services',
+            appointmentId: id,
+            professionalId: updatedAppointment.professionalId,
+            createdById: (req.user as any).id
+          });
+        }
+        
         res.json(updatedAppointment);
       } catch (error) {
         console.error('Erro ao atualizar status do agendamento:', error);
