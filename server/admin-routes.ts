@@ -802,20 +802,22 @@ export function registerAdminRoutes(app: Express): void {
               startOfMonth.setDate(1);
               startOfMonth.setHours(0, 0, 0, 0);
               
-              const { data: dailyTransactions } = await supabaseStorage.from('cash_flow')
-                .select('amount')
-                .gte('date', startOfDay.toISOString())
-                .eq('transaction_type', 'income')
-                .eq('category', 'services');
+              const { rows: dailyTransactions } = await supabaseStorage.sql`
+                SELECT COALESCE(SUM(amount), 0) as total 
+                FROM cash_flow 
+                WHERE date >= ${startOfDay.toISOString()}
+                AND transaction_type = 'income' 
+                AND category = 'services'`;
 
-              const { data: monthlyTransactions } = await supabaseStorage.from('cash_flow')
-                .select('amount')
-                .gte('date', startOfMonth.toISOString())
-                .eq('transaction_type', 'income')
-                .eq('category', 'services');
+              const { rows: monthlyTransactions } = await supabaseStorage.sql`
+                SELECT COALESCE(SUM(amount), 0) as total 
+                FROM cash_flow 
+                WHERE date >= ${startOfMonth.toISOString()}
+                AND transaction_type = 'income' 
+                AND category = 'services'`;
 
-              const dailyTotal = dailyTransactions?.reduce((sum, tx) => sum + (tx.amount || 0), 0) || 0;
-              const monthlyTotal = monthlyTransactions?.reduce((sum, tx) => sum + (tx.amount || 0), 0) || 0;
+              const dailyTotal = dailyTransactions[0]?.total || 0;
+              const monthlyTotal = monthlyTransactions[0]?.total || 0;
 
               financialData = {
                 dailyRevenue: (dailyTotal / 100).toFixed(2),
