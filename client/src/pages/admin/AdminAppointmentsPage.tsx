@@ -89,9 +89,10 @@ export default function AdminAppointmentsPage() {
     mutationFn: (data: StatusFormValues & { id: number }) => 
       apiRequest(`/api/admin/appointments/${data.id}/status`, {
         method: 'PUT',
-        body: JSON.stringify({ status: data.status, notes: data.notes })
+        headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ status: data.status, notes: data.notes })
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/appointments'] });
