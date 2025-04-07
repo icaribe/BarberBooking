@@ -76,7 +76,7 @@ export default function AdminDashboardPage() {
             {statsLoading ? (
               <Skeleton className="h-8 w-[100px]" />
             ) : (
-              <div className="text-2xl font-bold">{appointments?.length || 0}</div>
+              <div className="text-2xl font-bold">{stats.appointments.total}</div>
             )}
             <p className="text-xs text-muted-foreground">
               {statsLoading || appointmentsLoading ? (
