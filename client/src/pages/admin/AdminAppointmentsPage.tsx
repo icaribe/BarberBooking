@@ -87,7 +87,7 @@ export default function AdminAppointmentsPage() {
   // Mutation para atualizar status do agendamento
   const updateStatusMutation = useMutation({
     mutationFn: (data: StatusFormValues & { id: number }) => 
-      apiRequest(`/api/admin/appointments/${data.id}/status`, { method: 'PUT', data }),
+      apiRequest(`/api/appointments/${data.id}/status`, { method: 'PATCH', data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/appointments'] });
       toast({
@@ -153,14 +153,14 @@ export default function AdminAppointmentsPage() {
     try {
       // Verificar se o timeString está definido
       if (!timeString) return "--:--";
-      
+
       // O formato esperado é HH:MM:SS ou HH:MM, vamos garantir que é válido
       // Adicionando validação através de regex
       if (!/^\d{2}:\d{2}(:\d{2})?$/.test(timeString)) {
         console.warn(`Formato de hora inválido: ${timeString}`);
         return timeString; // Retorna a string original se não estiver no formato esperado
       }
-      
+
       try {
         // Convertendo a string de tempo para um objeto Date para formatação
         const timeDate = parseISO(`2000-01-01T${timeString}`);
