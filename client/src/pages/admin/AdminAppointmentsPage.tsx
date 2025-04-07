@@ -92,9 +92,10 @@ export default function AdminAppointmentsPage() {
         notes: data.notes 
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/dashboard/stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/dashboard/today-appointments'] });
+      // Forçar atualização imediata de todas as queries relacionadas
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/appointments'], refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/dashboard/stats'], refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/dashboard/today-appointments'], refetchType: 'active' });
       toast({
         title: "Status atualizado com sucesso",
         description: "O agendamento foi atualizado",
