@@ -438,8 +438,8 @@ export default function AdminServicesPage() {
                       <FormLabel>Categoria</FormLabel>
                       <Select 
                         onValueChange={(value) => field.onChange(parseInt(value))} 
-                        defaultValue={field.value.toString()}
-                        value={field.value.toString()}
+                        defaultValue={field.value ? field.value.toString() : ''}
+                        value={field.value ? field.value.toString() : ''}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -602,8 +602,8 @@ export default function AdminServicesPage() {
                       <FormLabel>Categoria</FormLabel>
                       <Select 
                         onValueChange={(value) => field.onChange(parseInt(value))} 
-                        defaultValue={field.value.toString()}
-                        value={field.value.toString()}
+                        defaultValue={field.value ? field.value.toString() : ''}
+                        value={field.value ? field.value.toString() : ''}
                       >
                         <FormControl>
                           <SelectTrigger>
