@@ -87,9 +87,12 @@ export default function AdminAppointmentsPage() {
   // Mutation para atualizar status do agendamento
   const updateStatusMutation = useMutation({
     mutationFn: (data: StatusFormValues & { id: number }) => 
-      apiRequest(`/api/admin/appointments/${data.id}/status`, { 
-        method: 'PUT', 
-        data: { status: data.status, notes: data.notes }
+      apiRequest('/api/admin/appointments/' + data.id + '/status', {
+        method: 'PUT',
+        body: JSON.stringify({ status: data.status, notes: data.notes }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/appointments'] });
