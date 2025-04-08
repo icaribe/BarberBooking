@@ -13,6 +13,7 @@ import adminFunctions from './storage-supabase-admin';
 import * as schema from '@shared/schema';
 import { requireRole, ownProfessionalOrAdmin, UserRole } from './middleware/role-middleware';
 import { supabaseStorage } from './storage-supabase';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
 
 /**
  * Registra as rotas administrativas na aplicação
@@ -607,11 +608,25 @@ export function registerAdminRoutes(app: Express): void {
         // Verificar permissões extras
         if (req.user && (req.user as any).role !== UserRole.ADMIN) {
           const user = req.user as any;
-          const professional = await storage.getProfessionalByUserId(user.id);
-          
-          // Se o usuário é um profissional, só pode modificar seus próprios agendamentos
-          if (professional && existingAppointment.professionalId !== professional.id) {
-            return res.status(403).json({ message: 'Permissão negada' });
+          // Buscar o profissional vinculado ao usuário atual pelo username
+          try {
+            const username = user.username;
+            // Map de usernames para IDs de profissionais (solução temporária)
+            const professionalMap: Record<string, number> = {
+              'carlos': 1,
+              'jorran': 2,
+              'iuri': 3,
+              'mikael': 4
+            };
+            
+            const professionalId = professionalMap[username.toLowerCase()];
+            
+            // Se o usuário é um profissional, só pode modificar seus próprios agendamentos
+            if (professionalId && existingAppointment.professionalId !== professionalId) {
+              return res.status(403).json({ message: 'Permissão negada' });
+            }
+          } catch (error) {
+            console.error('Erro ao verificar profissional:', error);
           }
         }
         
@@ -629,22 +644,37 @@ export function registerAdminRoutes(app: Express): void {
             
             const totalAmount = serviceDetails.reduce((sum, service) => sum + (service?.price || 0), 0);
             
-            // Registrar no fluxo de caixa
-            const result = await supabaseStorage.db
-              .insert(schema.cashFlow)
-              .values({
-                date: new Date(),
-                amount: totalAmount,
-                description: `Pagamento do agendamento #${id}`,
-                type: 'income',
-                category: 'service',
-                appointmentId: id,
-                professionalId: updatedAppointment.professionalId,
-                createdById: (req.user as any).id
-              })
-              .returning();
-            
-            console.log('Transação financeira registrada:', result);
+            // Verificar se já existe registro financeiro para este agendamento
+            const { data: existingTransaction, error: txError } = await supabase
+              .from('cash_flow')
+              .select('*')
+              .eq('appointment_id', id)
+              .eq('category', 'service')
+              .eq('type', 'income');
+              
+            if (txError) {
+              console.error('Erro ao verificar transação existente:', txError);
+            }
+              
+            // Só registrar se não existir transação prévia para evitar duplicação
+            if (!existingTransaction || existingTransaction.length === 0) {
+              // Registrar no fluxo de caixa
+              const result = await supabaseStorage.db
+                .insert(schema.cashFlow)
+                .values({
+                  date: new Date(),
+                  amount: totalAmount,
+                  description: `Pagamento do agendamento #${id}`,
+                  type: 'income',
+                  category: 'service',
+                  appointmentId: id,
+                  professionalId: updatedAppointment?.professionalId,
+                  createdById: (req.user as any).id
+                })
+                .returning();
+                
+              console.log('Transação financeira registrada:', result);
+            }
           } catch (error) {
             console.error('Erro ao registrar transação financeira:', error);
             // Não impedir a conclusão do agendamento se houver erro no registro financeiro
@@ -793,6 +823,7 @@ export function registerAdminRoutes(app: Express): void {
               startOfMonth.setDate(1);
               startOfMonth.setHours(0, 0, 0, 0);
               
+              // Buscar transações diárias apenas para agendamentos COMPLETED
               const dailyTransactions = await supabaseStorage.db
                 .select({ amount: schema.cashFlow.amount })
                 .from(schema.cashFlow)
@@ -804,6 +835,7 @@ export function registerAdminRoutes(app: Express): void {
                   )
                 );
 
+              // Buscar transações mensais apenas para agendamentos COMPLETED
               const monthlyTransactions = await supabaseStorage.db
                 .select({ amount: schema.cashFlow.amount })
                 .from(schema.cashFlow)
