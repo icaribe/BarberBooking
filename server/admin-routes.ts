@@ -793,19 +793,27 @@ export function registerAdminRoutes(app: Express): void {
               startOfMonth.setDate(1);
               startOfMonth.setHours(0, 0, 0, 0);
               
-              const { data: dailyTransactions } = await supabaseStorage
-                .from('cash_flow')
-                .select('amount')
-                .gte('date', startOfDay.toISOString())
-                .eq('type', 'income')
-                .eq('category', 'service');
+              const dailyTransactions = await supabaseStorage.db
+                .select({ amount: schema.cashFlow.amount })
+                .from(schema.cashFlow)
+                .where(
+                  and(
+                    gte(schema.cashFlow.date, startOfDay),
+                    eq(schema.cashFlow.type, 'income'),
+                    eq(schema.cashFlow.category, 'service')
+                  )
+                );
 
-              const { data: monthlyTransactions } = await supabaseStorage
-                .from('cash_flow')
-                .select('amount')
-                .gte('date', startOfMonth.toISOString())
-                .eq('type', 'income')
-                .eq('category', 'service');
+              const monthlyTransactions = await supabaseStorage.db
+                .select({ amount: schema.cashFlow.amount })
+                .from(schema.cashFlow)
+                .where(
+                  and(
+                    gte(schema.cashFlow.date, startOfMonth),
+                    eq(schema.cashFlow.type, 'income'),
+                    eq(schema.cashFlow.category, 'service')
+                  )
+                );
 
               const dailyTotal = dailyTransactions?.reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
               const monthlyTotal = monthlyTransactions?.reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
