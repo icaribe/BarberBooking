@@ -630,28 +630,19 @@ export function registerAdminRoutes(app: Express): void {
             const totalAmount = serviceDetails.reduce((sum, service) => sum + (service?.price || 0), 0);
             
             // Registrar no fluxo de caixa
-            const result = await supabaseStorage.sql`
-              INSERT INTO cash_flow (
-                date, 
-                amount, 
-                description, 
-                transaction_type, 
-                category,
-                appointment_id,
-                professional_id,
-                created_by_id
-              ) VALUES (
-                ${new Date().toISOString()},
-                ${totalAmount},
-                ${'Pagamento do agendamento #' + id},
-                ${'income'},
-                ${'services'},
-                ${id},
-                ${updatedAppointment.professionalId},
-                ${(req.user as any).id}
-              )
-              RETURNING *;
-            `;
+            const result = await supabaseStorage.db
+              .insert(schema.cashFlow)
+              .values({
+                date: new Date(),
+                amount: totalAmount,
+                description: `Pagamento do agendamento #${id}`,
+                type: 'income',
+                category: 'service',
+                appointmentId: id,
+                professionalId: updatedAppointment.professionalId,
+                createdById: (req.user as any).id
+              })
+              .returning();
             
             console.log('Transação financeira registrada:', result);
           } catch (error) {
