@@ -642,7 +642,9 @@ export function registerAdminRoutes(app: Express): void {
               appointmentServices.map(as => storage.getService(as.serviceId))
             );
             
+            // Calcular o valor total dos serviços do agendamento
             const totalAmount = serviceDetails.reduce((sum, service) => sum + (service?.price || 0), 0);
+            console.log(`Valor total do agendamento #${id}:`, totalAmount, 'baseado em', serviceDetails.length, 'serviços');
             
             // Verificar se já existe registro financeiro para este agendamento
             const { data: existingTransaction, error: txError } = await supabase
@@ -655,15 +657,19 @@ export function registerAdminRoutes(app: Express): void {
             if (txError) {
               console.error('Erro ao verificar transação existente:', txError);
             }
+            
+            if (existingTransaction && existingTransaction.length > 0) {
+              console.log('Transação financeira já existe para este agendamento:', existingTransaction);
+            }
               
             // Só registrar se não existir transação prévia para evitar duplicação
             if (!existingTransaction || existingTransaction.length === 0) {
-              // Registrar no fluxo de caixa
+              // Registrar no fluxo de caixa com o valor exato (sem multiplicar/dividir por 100)
               const result = await supabaseStorage.db
                 .insert(schema.cashFlow)
                 .values({
                   date: new Date(),
-                  amount: totalAmount,
+                  amount: totalAmount, // Valor em reais, sem conversão para centavos
                   description: `Pagamento do agendamento #${id}`,
                   type: 'income',
                   category: 'service',
@@ -809,50 +815,67 @@ export function registerAdminRoutes(app: Express): void {
             const endOfMonth = new Date();
             
             // Formatação para o banco
-            const formattedStartOfDay = startOfDay.toISOString();
-            const formattedEndOfDay = endOfDay.toISOString();
-            const formattedStartOfMonth = startOfMonth.toISOString();
-            const formattedEndOfMonth = endOfMonth.toISOString();
+            const formattedStartOfDay = startOfDay.toISOString().split('T')[0];
+            const formattedEndOfDay = endOfDay.toISOString().split('T')[0];
+            const formattedStartOfMonth = startOfMonth.toISOString().split('T')[0];
+            const formattedEndOfMonth = endOfMonth.toISOString().split('T')[0];
             
-            // Calcular faturamento diário e mensal com base nos agendamentos concluídos
             try {
-              const startOfDay = new Date();
-              startOfDay.setHours(0, 0, 0, 0);
+              // MÉTODO ALTERNATIVO: Calcular faturamento com base nos agendamentos concluídos e seus serviços
+              console.log("Calculando faturamento diretamente dos agendamentos...");
               
-              const startOfMonth = new Date();
-              startOfMonth.setDate(1);
-              startOfMonth.setHours(0, 0, 0, 0);
+              // 1. Buscar todos os agendamentos concluídos do dia
+              const appointmentsToday = await storage.getAppointments({
+                startDate: formattedStartOfDay,
+                endDate: formattedEndOfDay,
+                status: 'COMPLETED'
+              });
               
-              // Buscar transações diárias apenas para agendamentos COMPLETED
-              const dailyTransactions = await supabaseStorage.db
-                .select({ amount: schema.cashFlow.amount })
-                .from(schema.cashFlow)
-                .where(
-                  and(
-                    gte(schema.cashFlow.date, startOfDay),
-                    eq(schema.cashFlow.type, 'income'),
-                    eq(schema.cashFlow.category, 'service')
-                  )
+              // 2. Buscar todos os agendamentos concluídos do mês
+              const appointmentsMonth = await storage.getAppointments({
+                startDate: formattedStartOfMonth,
+                endDate: formattedEndOfMonth,
+                status: 'COMPLETED'
+              });
+              
+              console.log(`Encontrados ${appointmentsToday.length} agendamentos concluídos hoje`);
+              console.log(`Encontrados ${appointmentsMonth.length} agendamentos concluídos este mês`);
+              
+              // 3. Calcular o valor total dos agendamentos do dia
+              let dailyTotal = 0;
+              for (const appointment of appointmentsToday) {
+                const appointmentServices = await storage.getAppointmentServices(appointment.id);
+                const serviceDetails = await Promise.all(
+                  appointmentServices.map(as => storage.getService(as.serviceId))
                 );
-
-              // Buscar transações mensais apenas para agendamentos COMPLETED
-              const monthlyTransactions = await supabaseStorage.db
-                .select({ amount: schema.cashFlow.amount })
-                .from(schema.cashFlow)
-                .where(
-                  and(
-                    gte(schema.cashFlow.date, startOfMonth),
-                    eq(schema.cashFlow.type, 'income'),
-                    eq(schema.cashFlow.category, 'service')
-                  )
+                
+                const appointmentValue = serviceDetails.reduce((sum, service) => {
+                  return sum + (service?.price || 0);
+                }, 0);
+                
+                dailyTotal += appointmentValue;
+              }
+              
+              // 4. Calcular o valor total dos agendamentos do mês
+              let monthlyTotal = 0;
+              for (const appointment of appointmentsMonth) {
+                const appointmentServices = await storage.getAppointmentServices(appointment.id);
+                const serviceDetails = await Promise.all(
+                  appointmentServices.map(as => storage.getService(as.serviceId))
                 );
-
-              const dailyTotal = dailyTransactions?.reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
-              const monthlyTotal = monthlyTransactions?.reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
-
+                
+                const appointmentValue = serviceDetails.reduce((sum, service) => {
+                  return sum + (service?.price || 0);
+                }, 0);
+                
+                monthlyTotal += appointmentValue;
+              }
+              
+              console.log('Valores de faturamento calculados - Diário:', dailyTotal, 'Mensal:', monthlyTotal);
+              
               financialData = {
-                dailyRevenue: (dailyTotal / 100).toFixed(2),
-                monthlyRevenue: (monthlyTotal / 100).toFixed(2)
+                dailyRevenue: dailyTotal.toFixed(2),
+                monthlyRevenue: monthlyTotal.toFixed(2)
               };
             } catch (err) {
               console.error('Erro específico ao obter dados financeiros:', err);

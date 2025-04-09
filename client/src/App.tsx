@@ -13,6 +13,9 @@ import AppointmentPage from "@/pages/AppointmentPage";
 import ProductsPage from "@/pages/ProductsPage";
 import AuthPage from "@/pages/auth-page";
 import Settings from "@/pages/Settings";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsOfUse from "@/pages/TermsOfUse";
+import HelpSupport from "@/pages/HelpSupport";
 import AdminInitPage from "@/pages/AdminInitPage";
 
 // Admin Pages
@@ -45,6 +48,11 @@ function App() {
             <ProtectedRoute path="/settings" component={Settings} />
             <Route path="/products" component={ProductsPage} />
             <Route path="/appointment/:serviceId" component={AppointmentPage} />
+            
+            {/* Informational Pages */}
+            <Route path="/privacy" component={PrivacyPolicy} />
+            <Route path="/terms" component={TermsOfUse} />
+            <Route path="/help" component={HelpSupport} />
             
             {/* Admin Routes */}
             <Route path="/admin/login" component={AdminLoginPage} />

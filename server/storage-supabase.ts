@@ -503,38 +503,88 @@ export const supabaseStorage = {
   },
 
   async updateAppointmentStatus(id: number, status: string, notes?: string) {
-    // Preparar os dados para atualização
-    const updateData: { status: string; notes?: string } = { status };
-    
-    // Adicionar notes se fornecido
-    if (notes !== undefined) {
-      updateData.notes = notes;
-    }
-    
-    const { data, error } = await supabase
-      .from('appointments')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Erro ao atualizar status do agendamento:', error);
+    try {
+      // Preparar os dados para atualização
+      const updateData: { status: string; notes?: string; completed_at?: string; total_value?: number } = { status };
+      
+      // Adicionar notes se fornecido
+      if (notes !== undefined) {
+        updateData.notes = notes;
+      }
+      
+      // Se o status for COMPLETED, adicionar data de conclusão e calcular o valor total
+      if (status === 'COMPLETED') {
+        // Adicionar data de conclusão
+        updateData.completed_at = new Date().toISOString();
+        
+        // Calcular valor total do agendamento
+        try {
+          // Buscar serviços do agendamento
+          const { data: appointmentServices, error: servicesError } = await supabase
+            .from('appointment_services')
+            .select('*')
+            .eq('appointment_id', id);
+          
+          if (servicesError) {
+            console.error('Erro ao buscar serviços do agendamento:', servicesError);
+          } else if (appointmentServices && appointmentServices.length > 0) {
+            // Buscar detalhes de cada serviço
+            let totalValue = 0;
+            
+            for (const as of appointmentServices) {
+              const { data: service, error: serviceError } = await supabase
+                .from('services')
+                .select('*')
+                .eq('id', as.service_id)
+                .single();
+              
+              if (!serviceError && service) {
+                totalValue += service.price || 0;
+              }
+            }
+            
+            // Adicionar valor total ao agendamento
+            if (totalValue > 0) {
+              updateData.total_value = totalValue;
+              console.log(`Valor total calculado para o agendamento #${id}:`, totalValue);
+            }
+          }
+        } catch (calcError) {
+          console.error('Erro ao calcular valor total do agendamento:', calcError);
+        }
+      }
+      
+      // Atualizar o agendamento no banco de dados
+      const { data, error } = await supabase
+        .from('appointments')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Erro ao atualizar status do agendamento:', error);
+        return null;
+      }
+      
+      // Transformar os nomes dos campos para camelCase para o frontend
+      return {
+        id: data.id,
+        userId: data.user_id,
+        professionalId: data.professional_id,
+        date: data.date,
+        startTime: data.start_time,
+        endTime: data.end_time,
+        status: data.status,
+        notes: data.notes,
+        createdAt: data.created_at,
+        completedAt: data.completed_at,
+        totalValue: data.total_value
+      };
+    } catch (error) {
+      console.error('Erro geral ao atualizar status do agendamento:', error);
       return null;
     }
-    
-    // Transformar os nomes dos campos para camelCase para o frontend
-    return {
-      id: data.id,
-      userId: data.user_id,
-      professionalId: data.professional_id,
-      date: data.date,
-      startTime: data.start_time,
-      endTime: data.end_time,
-      status: data.status,
-      notes: data.notes,
-      createdAt: data.created_at
-    };
   },
 
   // Serviços de Agendamento
