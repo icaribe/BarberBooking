@@ -33,6 +33,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <ThemeProvider>
         <div className="bg-background text-foreground min-h-screen">
           <Switch>
             {/* Client Routes */}
@@ -61,6 +62,7 @@ function App() {
           </Switch>
         </div>
         <Toaster />
+      </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

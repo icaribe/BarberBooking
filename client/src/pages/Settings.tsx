@@ -20,7 +20,7 @@ import type { User as UserType } from '@/lib/types';
 
 const SettingsPage = () => {
   const { user: authUser } = useAuth();
-  const [darkMode, setDarkMode] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const [notifications, setNotifications] = useState(true);
   
   // Fetch user data
@@ -52,8 +52,8 @@ const SettingsPage = () => {
                     <span>Modo escuro</span>
                   </div>
                   <Switch 
-                    checked={darkMode} 
-                    onCheckedChange={setDarkMode} 
+                    checked={theme === 'dark'}
+                    onCheckedChange={toggleTheme} 
                   />
                 </div>
                 
