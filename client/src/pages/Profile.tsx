@@ -213,10 +213,10 @@ const ProfilePage = () => {
                 className="w-full justify-start font-normal text-left h-auto py-3"
                 asChild
               >
-                <a href="/settings">
+                <Link href="/settings">
                   <Settings className="mr-2 h-5 w-5 text-primary" />
                   Configurações
-                </a>
+                </Link>
               </Button>
               <Button
                 variant="secondary"
