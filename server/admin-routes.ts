@@ -14,6 +14,13 @@ import * as schema from '@shared/schema';
 import { requireRole, ownProfessionalOrAdmin, UserRole } from './middleware/role-middleware';
 import { supabaseStorage } from './storage-supabase';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import { createClient } from '@supabase/supabase-js';
+
+// Criar cliente Supabase para consultas diretas
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!
+);
 
 /**
  * Registra as rotas administrativas na aplicação
@@ -824,52 +831,130 @@ export function registerAdminRoutes(app: Express): void {
               // MÉTODO ALTERNATIVO: Calcular faturamento com base nos agendamentos concluídos e seus serviços
               console.log("Calculando faturamento diretamente dos agendamentos...");
               
-              // 1. Buscar todos os agendamentos concluídos do dia
-              const appointmentsToday = await storage.getAppointments({
-                startDate: formattedStartOfDay,
-                endDate: formattedEndOfDay,
-                status: 'COMPLETED'
-              });
+              // 1. Buscar todos os agendamentos concluídos do dia - usando date exato com o formato correto
+              const todayDateFormatted = new Date().toISOString().split('T')[0];
+              console.log("Calculando agendamentos do dia, data:", todayDateFormatted);
               
-              // 2. Buscar todos os agendamentos concluídos do mês
-              const appointmentsMonth = await storage.getAppointments({
-                startDate: formattedStartOfMonth,
-                endDate: formattedEndOfMonth,
-                status: 'COMPLETED'
-              });
+              const appointmentsTodayResult = await supabase
+                .from('appointments')
+                .select('id, professional_id')
+                .eq('date', todayDateFormatted)
+                .eq('status', 'COMPLETED');
               
-              console.log(`Encontrados ${appointmentsToday.length} agendamentos concluídos hoje`);
-              console.log(`Encontrados ${appointmentsMonth.length} agendamentos concluídos este mês`);
+              // 2. Buscar todos os agendamentos concluídos do mês - usando a data atual
+              // Primeiro dia do mês
+              const startOfMonthDate = new Date();
+              startOfMonthDate.setDate(1);
+              const startOfMonthFormatted = startOfMonthDate.toISOString().split('T')[0];
+              
+              // Último dia do mês - para precisão
+              const endOfMonthDate = new Date();
+              endOfMonthDate.setMonth(endOfMonthDate.getMonth() + 1);
+              endOfMonthDate.setDate(0);
+              const endOfMonthFormatted = endOfMonthDate.toISOString().split('T')[0];
+              
+              console.log("Calculando agendamentos do mês, período:", startOfMonthFormatted, "até", endOfMonthFormatted);
+              
+              const appointmentsMonthResult = await supabase
+                .from('appointments')
+                .select('id, professional_id')
+                .gte('date', startOfMonthFormatted)
+                .lte('date', endOfMonthFormatted)
+                .eq('status', 'COMPLETED');
+              
+              // Verificar e processar os resultados das consultas
+              if (appointmentsTodayResult.error) {
+                console.error('Erro ao buscar agendamentos do dia:', appointmentsTodayResult.error);
+              }
+              
+              if (appointmentsMonthResult.error) {
+                console.error('Erro ao buscar agendamentos do mês:', appointmentsMonthResult.error);
+              }
+              
+              const todayAppointments = appointmentsTodayResult.data || [];
+              const monthAppointments = appointmentsMonthResult.data || [];
+              
+              console.log("Agendamentos do dia encontrados:", todayAppointments.length);
+              console.log("Agendamentos do mês encontrados:", monthAppointments.length);
               
               // 3. Calcular o valor total dos agendamentos do dia
               let dailyTotal = 0;
-              for (const appointment of appointmentsToday) {
-                const appointmentServices = await storage.getAppointmentServices(appointment.id);
-                const serviceDetails = await Promise.all(
-                  appointmentServices.map(as => storage.getService(as.serviceId))
-                );
+              
+              // Para cada agendamento do dia, buscar serviços e calcular valor
+              for (const appointment of todayAppointments) {
+                // Buscar serviços associados a este agendamento
+                const { data: services, error: servicesError } = await supabase
+                  .from('appointment_services')
+                  .select('service_id')
+                  .eq('appointment_id', appointment.id);
                 
-                const appointmentValue = serviceDetails.reduce((sum, service) => {
-                  return sum + (service?.price || 0);
-                }, 0);
+                if (servicesError) {
+                  console.error(`Erro ao buscar serviços do agendamento #${appointment.id}:`, servicesError);
+                  continue;
+                }
                 
-                dailyTotal += appointmentValue;
+                // Para cada serviço, buscar preço
+                let appointmentTotal = 0;
+                for (const service of services || []) {
+                  const { data: serviceDetails, error: serviceError } = await supabase
+                    .from('services')
+                    .select('price')
+                    .eq('id', service.service_id)
+                    .single();
+                  
+                  if (serviceError) {
+                    console.error(`Erro ao buscar detalhes do serviço #${service.service_id}:`, serviceError);
+                    continue;
+                  }
+                  
+                  // Os preços são armazenados em centavos, converter para reais
+                  appointmentTotal += (serviceDetails?.price || 0) / 100;
+                }
+                
+                console.log(`Agendamento #${appointment.id}: R$ ${appointmentTotal}`);
+                dailyTotal += appointmentTotal;
               }
               
               // 4. Calcular o valor total dos agendamentos do mês
               let monthlyTotal = 0;
-              for (const appointment of appointmentsMonth) {
-                const appointmentServices = await storage.getAppointmentServices(appointment.id);
-                const serviceDetails = await Promise.all(
-                  appointmentServices.map(as => storage.getService(as.serviceId))
-                );
+              
+              // Para cada agendamento do mês, buscar serviços e calcular valor
+              for (const appointment of monthAppointments) {
+                // Buscar serviços associados a este agendamento
+                const { data: services, error: servicesError } = await supabase
+                  .from('appointment_services')
+                  .select('service_id')
+                  .eq('appointment_id', appointment.id);
                 
-                const appointmentValue = serviceDetails.reduce((sum, service) => {
-                  return sum + (service?.price || 0);
-                }, 0);
+                if (servicesError) {
+                  console.error(`Erro ao buscar serviços do agendamento #${appointment.id}:`, servicesError);
+                  continue;
+                }
                 
-                monthlyTotal += appointmentValue;
+                // Para cada serviço, buscar preço
+                let appointmentTotal = 0;
+                for (const service of services || []) {
+                  const { data: serviceDetails, error: serviceError } = await supabase
+                    .from('services')
+                    .select('price')
+                    .eq('id', service.service_id)
+                    .single();
+                  
+                  if (serviceError) {
+                    console.error(`Erro ao buscar detalhes do serviço #${service.service_id}:`, serviceError);
+                    continue;
+                  }
+                  
+                  // Os preços são armazenados em centavos, converter para reais
+                  appointmentTotal += (serviceDetails?.price || 0) / 100;
+                }
+                
+                monthlyTotal += appointmentTotal;
               }
+              
+              console.log('Valores calculados diretamente do campo total_value:');
+              console.log('- Faturamento diário:', dailyTotal);
+              console.log('- Faturamento mensal:', monthlyTotal);
               
               console.log('Valores de faturamento calculados - Diário:', dailyTotal, 'Mensal:', monthlyTotal);
               
