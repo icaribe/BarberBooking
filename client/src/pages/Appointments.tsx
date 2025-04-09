@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Clock, User, XCircle, CheckCircle } from 'lucide-react';
-import { useAppointments } from '@/lib/hooks/useAppointments';
+import { useAppointments } from '@/hooks/useAppointments';  // Usar o hook local em vez do lib/hooks
 import { useServices } from '@/lib/hooks/useServices';
 import { useProfessionals } from '@/lib/hooks/useProfessionals';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -156,12 +156,32 @@ const AppointmentCard = ({
   showCancelButton
 }: AppointmentCardProps) => {
   const [appointmentServices, setAppointmentServices] = useState<any[]>([]);
-  const { getAppointmentServices } = useAppointments();
-  
   const professional = getProfessionalById(appointment.professionalId);
   
-  // Get the services for this appointment
-  const { data: servicesData, isLoading } = getAppointmentServices(appointment.id);
+  // Buscar serviços do agendamento diretamente da API
+  const [isLoading, setIsLoading] = useState(true);
+  const [servicesData, setServicesData] = useState<any[]>([]);
+  
+  useEffect(() => {
+    // Função para buscar os serviços do agendamento
+    const fetchAppointmentServices = async () => {
+      try {
+        const response = await fetch(`/api/appointments/${appointment.id}/services`);
+        if (response.ok) {
+          const data = await response.json();
+          setServicesData(data);
+        } else {
+          console.error('Erro ao buscar serviços do agendamento:', await response.text());
+        }
+      } catch (error) {
+        console.error('Erro ao buscar serviços do agendamento:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchAppointmentServices();
+  }, [appointment.id]);
   
   useEffect(() => {
     if (servicesData) {

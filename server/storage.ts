@@ -13,6 +13,66 @@ import {
 // Importar a extensão administrativa do Supabase storage
 import './storage-supabase-admin';
 
+// Definir a interface de armazenamento para garantir consistência entre implementações
+export interface IStorage {
+  // Usuários
+  getUsers(): Promise<any[]>;
+  getUser(id: number): Promise<any>;
+  getUserByUsername(username: string): Promise<any>;
+  createUser(userData: InsertUser): Promise<any>;
+  updateUser(id: number, userData: Partial<InsertUser>): Promise<any>;
+  
+  // Categorias de Serviços
+  getServiceCategories(): Promise<any[]>;
+  getServiceCategory(id: number): Promise<any>;
+  createServiceCategory(categoryData: InsertServiceCategory): Promise<any>;
+  
+  // Serviços
+  getServices(): Promise<any[]>;
+  getServicesByCategory(categoryId: number): Promise<any[]>;
+  getService(id: number): Promise<any>;
+  createService(serviceData: InsertService): Promise<any>;
+  
+  // Profissionais
+  getProfessionals(): Promise<any[]>;
+  getProfessional(id: number): Promise<any>;
+  createProfessional(professionalData: InsertProfessional): Promise<any>;
+  
+  // Agendas
+  getSchedules(professionalId: number): Promise<any[]>;
+  createSchedule(scheduleData: InsertSchedule): Promise<any>;
+  
+  // Agendamentos
+  getAppointments(options?: { userId?: number; professionalId?: number; date?: string }): Promise<any[]>;
+  getAppointment(id: number): Promise<any>;
+  createAppointment(appointmentData: InsertAppointment): Promise<any>;
+  updateAppointmentStatus(id: number, status: string): Promise<any>;
+  
+  // Serviços de Agendamento
+  getAppointmentServices(appointmentId: number): Promise<any[]>;
+  createAppointmentService(appointmentServiceData: InsertAppointmentService): Promise<any>;
+  
+  // Categorias de Produtos
+  getProductCategories(): Promise<any[]>;
+  getProductCategory(id: number): Promise<any>;
+  createProductCategory(categoryData: InsertProductCategory): Promise<any>;
+  
+  // Produtos
+  getProducts(): Promise<any[]>;
+  getProductsByCategory(categoryId: number): Promise<any[]>;
+  getProduct(id: number): Promise<any>;
+  createProduct(productData: InsertProduct): Promise<any>;
+  
+  // Recompensas de Fidelidade
+  getLoyaltyRewards(): Promise<any[]>;
+  getLoyaltyReward(id: number): Promise<any>;
+  createLoyaltyReward(rewardData: InsertLoyaltyReward): Promise<any>;
+  
+  // Extras
+  sessionStore?: any;
+  initializeDemoData?: () => void;
+}
+
 // Verificar se devemos usar Supabase ou o banco de dados local
 // Definido como true para forçar o uso do Supabase
 const useSupabase = process.env.USE_SUPABASE === 'true' || true; // Sempre usar Supabase
@@ -120,19 +180,21 @@ export const storage = useSupabase ? supabaseStorage : {
   },
 
   // Agendamentos
-  async getAppointments(userId?: number, professionalId?: number, date?: string) {
+  async getAppointments(options?: { userId?: number; professionalId?: number; date?: string }) {
     let query = db.select().from(schema.appointments);
 
-    if (userId) {
-      query = query.where(({ userId: id }) => id.eq(userId));
-    }
+    if (options) {
+      if (options.userId) {
+        query = query.where(({ userId: id }) => id.eq(options.userId));
+      }
 
-    if (professionalId) {
-      query = query.where(({ professionalId: id }) => id.eq(professionalId));
-    }
+      if (options.professionalId) {
+        query = query.where(({ professionalId: id }) => id.eq(options.professionalId));
+      }
 
-    if (date) {
-      query = query.where(({ date: d }) => d.eq(date));
+      if (options.date) {
+        query = query.where(({ date: d }) => d.eq(options.date));
+      }
     }
 
     return query;

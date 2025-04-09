@@ -36,6 +36,9 @@ export const useAppointments = (userId?: number, professionalId?: number, date?:
     queryKey: [apiUrl],
     // Sempre habilitar a consulta, mesmo que os parâmetros sejam undefined
     // Nesse caso, retornará todos os agendamentos
+    staleTime: 0, // Sempre buscar dados atualizados
+    refetchOnMount: true, // Refazer a consulta sempre que o componente montar
+    refetchOnWindowFocus: true // Refazer a consulta quando o usuário focar na janela
   });
 
   // Create a new appointment
@@ -45,7 +48,17 @@ export const useAppointments = (userId?: number, professionalId?: number, date?:
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.APPOINTMENTS] });
+      // Invalidar todas as queries de agendamentos para atualizar todas as visualizações
+      queryClient.invalidateQueries({ 
+        queryKey: [API_ENDPOINTS.APPOINTMENTS],
+        refetchType: 'all',
+        exact: false 
+      });
+      
+      // Se temos parâmetros específicos, também invalidamos a consulta específica
+      if (userId || professionalId || date) {
+        queryClient.invalidateQueries({ queryKey: [apiUrl] });
+      }
     }
   });
 
@@ -56,8 +69,22 @@ export const useAppointments = (userId?: number, professionalId?: number, date?:
       return response.json();
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.APPOINTMENTS] });
-      queryClient.invalidateQueries({ queryKey: [`${API_ENDPOINTS.APPOINTMENTS}/${variables.id}`] });
+      // Invalidar todas as queries de agendamentos para garantir atualização em todas as telas
+      queryClient.invalidateQueries({ 
+        queryKey: [API_ENDPOINTS.APPOINTMENTS],
+        refetchType: 'all',
+        exact: false 
+      });
+      
+      // Invalidar também a query específica do appointment atualizado
+      queryClient.invalidateQueries({ 
+        queryKey: [`${API_ENDPOINTS.APPOINTMENTS}/${variables.id}`] 
+      });
+      
+      // Se temos parâmetros específicos, também invalidamos a consulta específica
+      if (userId || professionalId || date) {
+        queryClient.invalidateQueries({ queryKey: [apiUrl] });
+      }
     }
   });
 

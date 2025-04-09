@@ -89,12 +89,33 @@ export default function AdminProductsPage() {
     },
   });
 
-  // Filtrar produtos por categoria e termo de pesquisa
+  // Adicionar log para depuração dos dados recebidos
+  console.log('Produtos recebidos da API:', products);
+  console.log('Categorias recebidas da API:', categories);
+  console.log('Aba ativa:', activeTab);
+
+  // Filtrar produtos por categoria e termo de pesquisa - abordagem totalmente simplificada
   const filteredProducts = products?.filter(product => {
-    const matchesCategory = activeTab === "all" || product.category_id === parseInt(activeTab);
+    let matchesCategory = false;
+    
+    // Se a aba for "all", sempre corresponde
+    if (activeTab === "all") {
+      matchesCategory = true;
+    } else {
+      // Converter ambos para string e comparar
+      const productCategoryId = String(product.category_id);
+      matchesCategory = productCategoryId === activeTab;
+    }
+    
+    // Verificar se corresponde ao termo de pesquisa
+    const productName = product.name?.toLowerCase() || "";
+    const productDesc = product.description?.toLowerCase() || "";
+    const searchTermLower = searchTerm.toLowerCase();
+    
     const matchesSearch = searchTerm === "" || 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase());
+      productName.includes(searchTermLower) ||
+      productDesc.includes(searchTermLower);
+    
     return matchesCategory && matchesSearch;
   });
 
@@ -212,7 +233,16 @@ export default function AdminProductsPage() {
 
   // Encontrar nome da categoria pelo ID
   const getCategoryName = (categoryId: number) => {
-    const category = categories?.find(cat => cat.id === categoryId);
+    console.log(`Buscando categoria para ID: ${categoryId}`, categories);
+    // Se não há categorias, retornar uma mensagem padrão
+    if (!categories || categories.length === 0) {
+      return "Categorias não carregadas";
+    }
+    
+    // Buscar a categoria pelo ID
+    const category = categories.find(cat => cat.id === categoryId);
+    console.log(`Categoria encontrada:`, category);
+    
     return category ? category.name : "Categoria não encontrada";
   };
 

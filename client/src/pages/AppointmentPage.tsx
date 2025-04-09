@@ -187,7 +187,15 @@ const AppointmentPage = () => {
       const appointmentsArray = Array.isArray(appointments) ? appointments : [];
       
       if (appointmentsArray.length > 0) {
-        appointmentsArray.forEach(appointment => {
+        // Filtrar apenas os agendamentos do profissional selecionado e data selecionada
+        const filteredAppointments = appointmentsArray.filter(appointment => 
+          appointment.professionalId === selectedProfessional.id && 
+          appointment.date === format(selectedDate, 'yyyy-MM-dd')
+        );
+        
+        console.log(`Bloqueando ${filteredAppointments.length} agendamentos para o profissional ${selectedProfessional.id} na data ${format(selectedDate, 'yyyy-MM-dd')}`);
+        
+        filteredAppointments.forEach(appointment => {
           // For each appointment, block all slots within its duration
           if (appointment && appointment.startTime && appointment.endTime) {
             const [startHour, startMinute] = appointment.startTime.split(':').map(Number);

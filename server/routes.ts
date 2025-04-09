@@ -238,7 +238,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log('Buscando agendamentos com:', { userId, professionalId, date });
-      const appointments = await storage.getAppointments(userId, professionalId, date);
+      
+      // Criar objeto de opções para filtro
+      const options: { userId?: number; professionalId?: number; date?: string } = {};
+      if (userId) options.userId = userId;
+      if (professionalId) options.professionalId = professionalId;
+      if (date) options.date = date;
+      
+      const appointments = await storage.getAppointments(options);
       return res.json(appointments);
     } catch (error) {
       console.error('Erro na rota /api/appointments:', error);
