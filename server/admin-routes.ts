@@ -13,6 +13,7 @@ import adminFunctions from './storage-supabase-admin';
 import * as schema from '@shared/schema';
 import { requireRole, ownProfessionalOrAdmin, UserRole } from './middleware/role-middleware';
 import { supabaseStorage } from './storage-supabase';
+import * as cashFlowManager from './cash-flow-manager';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { createClient } from '@supabase/supabase-js';
 
@@ -650,43 +651,89 @@ export function registerAdminRoutes(app: Express): void {
             );
             
             // Calcular o valor total dos serviços do agendamento
-            const totalAmount = serviceDetails.reduce((sum, service) => sum + (service?.price || 0), 0);
-            console.log(`Valor total do agendamento #${id}:`, totalAmount, 'baseado em', serviceDetails.length, 'serviços');
-            
-            // Verificar se já existe registro financeiro para este agendamento
-            const { data: existingTransaction, error: txError } = await supabase
-              .from('cash_flow')
-              .select('*')
-              .eq('appointment_id', id)
-              .eq('category', 'service')
-              .eq('type', 'income');
-              
-            if (txError) {
-              console.error('Erro ao verificar transação existente:', txError);
+            let totalAmount = 0;
+            for (const service of serviceDetails) {
+              // Os preços estão em centavos, converter para reais
+              totalAmount += (service?.price || 0) / 100;
             }
             
-            if (existingTransaction && existingTransaction.length > 0) {
-              console.log('Transação financeira já existe para este agendamento:', existingTransaction);
-            }
+            console.log(`Valor total do agendamento #${id}: R$ ${totalAmount.toFixed(2)} baseado em ${serviceDetails.length} serviços`);
+            
+            // 1. Primeiro tentar usar o módulo de fluxo de caixa
+            try {
+              // Verificar se já existe registro para este agendamento
+              const { data: existingCashFlow, error: existingError } = await supabase
+                .from('cash_flow')
+                .select('id')
+                .eq('appointment_id', id)
+                .eq('type', 'INCOME')
+                .limit(1);
               
-            // Só registrar se não existir transação prévia para evitar duplicação
-            if (!existingTransaction || existingTransaction.length === 0) {
-              // Registrar no fluxo de caixa com o valor exato (sem multiplicar/dividir por 100)
-              const result = await supabaseStorage.db
-                .insert(schema.cashFlow)
-                .values({
-                  date: new Date(),
-                  amount: totalAmount, // Valor em reais, sem conversão para centavos
-                  description: `Pagamento do agendamento #${id}`,
-                  type: 'income',
-                  category: 'service',
-                  appointmentId: id,
-                  professionalId: updatedAppointment?.professionalId,
-                  createdById: (req.user as any).id
-                })
-                .returning();
+              // Se não existir, criar o registro
+              if ((!existingCashFlow || existingCashFlow.length === 0) && !existingError) {
+                // Registrar receita no fluxo de caixa
+                const result = await cashFlowManager.recordAppointmentIncome(
+                  id,
+                  existingAppointment.date,
+                  totalAmount
+                );
                 
-              console.log('Transação financeira registrada:', result);
+                if (result.success) {
+                  console.log('Faturamento registrado no fluxo de caixa com sucesso:', result.data);
+                } else {
+                  console.error('Erro ao registrar faturamento no fluxo de caixa:', result.error);
+                }
+              } else {
+                if (existingError) {
+                  console.error('Erro ao verificar registro existente:', existingError);
+                } else {
+                  console.log('Faturamento já registrado anteriormente para este agendamento');
+                }
+              }
+            } catch (cashFlowError) {
+              console.error('Erro ao utilizar o módulo de fluxo de caixa:', cashFlowError);
+              
+              // 2. Método alternativo: tentar inserir diretamente na tabela
+              try {
+                // Verificar se já existe registro financeiro para este agendamento
+                const { data: existingTransaction, error: txError } = await supabase
+                  .from('cash_flow')
+                  .select('*')
+                  .eq('appointment_id', id)
+                  .eq('type', 'INCOME');
+                  
+                if (txError) {
+                  console.error('Erro ao verificar transação existente:', txError);
+                }
+                
+                if (existingTransaction && existingTransaction.length > 0) {
+                  console.log('Transação financeira já existe para este agendamento:', existingTransaction);
+                }
+                  
+                // Só registrar se não existir transação prévia para evitar duplicação
+                if (!existingTransaction || existingTransaction.length === 0) {
+                  // Registrar no fluxo de caixa
+                  const { data: insertResult, error: insertError } = await supabase
+                    .from('cash_flow')
+                    .insert([{
+                      date: existingAppointment.date,
+                      appointment_id: id,
+                      amount: totalAmount,
+                      type: 'INCOME',
+                      description: `Agendamento concluído #${id}`
+                    }])
+                    .select();
+                    
+                  if (insertError) {
+                    console.error('Erro ao inserir transação financeira:', insertError);
+                  } else {
+                    console.log('Transação financeira registrada:', insertResult);
+                  }
+                }
+              } catch (directInsertError) {
+                console.error('Erro ao inserir diretamente no fluxo de caixa:', directInsertError);
+                // Não impedir a conclusão do agendamento se houver erro no registro financeiro
+              }
             }
           } catch (error) {
             console.error('Erro ao registrar transação financeira:', error);
@@ -828,73 +875,180 @@ export function registerAdminRoutes(app: Express): void {
             const formattedEndOfMonth = endOfMonth.toISOString().split('T')[0];
             
             try {
-              // MÉTODO ALTERNATIVO: Calcular faturamento com base nos agendamentos concluídos e seus serviços
-              console.log("Calculando faturamento diretamente dos agendamentos...");
+              // Primeiro, tentar buscar dados da tabela cash_flow
+              console.log("Buscando dados financeiros da tabela cash_flow...");
               
-              // 1. Buscar todos os agendamentos concluídos do dia - usando date exato com o formato correto
-              const todayDateFormatted = new Date().toISOString().split('T')[0];
-              console.log("Calculando agendamentos do dia, data:", todayDateFormatted);
-              
-              const appointmentsTodayResult = await supabase
-                .from('appointments')
-                .select('id, professional_id')
-                .eq('date', todayDateFormatted)
-                .eq('status', 'COMPLETED');
-              
-              // 2. Buscar todos os agendamentos concluídos do mês - usando a data atual
-              // Primeiro dia do mês
-              const startOfMonthDate = new Date();
-              startOfMonthDate.setDate(1);
-              const startOfMonthFormatted = startOfMonthDate.toISOString().split('T')[0];
-              
-              // Último dia do mês - para precisão
-              const endOfMonthDate = new Date();
-              endOfMonthDate.setMonth(endOfMonthDate.getMonth() + 1);
-              endOfMonthDate.setDate(0);
-              const endOfMonthFormatted = endOfMonthDate.toISOString().split('T')[0];
-              
-              console.log("Calculando agendamentos do mês, período:", startOfMonthFormatted, "até", endOfMonthFormatted);
-              
-              const appointmentsMonthResult = await supabase
-                .from('appointments')
-                .select('id, professional_id')
-                .gte('date', startOfMonthFormatted)
-                .lte('date', endOfMonthFormatted)
-                .eq('status', 'COMPLETED');
-              
-              // Verificar e processar os resultados das consultas
-              if (appointmentsTodayResult.error) {
-                console.error('Erro ao buscar agendamentos do dia:', appointmentsTodayResult.error);
+              try {
+                // Verificar se a tabela cash_flow existe
+                const { data: tableCheck, error: tableError } = await supabase
+                  .from('cash_flow')
+                  .select('id')
+                  .limit(1);
+                
+                if (tableError && tableError.code === '42P01') {
+                  console.log("Tabela cash_flow não existe, usando cálculo alternativo...");
+                  await calculateFinancialsFromAppointments();
+                } else if (tableError) {
+                  console.error("Erro ao verificar tabela cash_flow:", tableError);
+                  await calculateFinancialsFromAppointments();
+                } else {
+                  // Tabela existe, vamos usar ela
+                  console.log("Tabela cash_flow encontrada, calculando a partir dela...");
+                  
+                  // Data de hoje
+                  const today = new Date().toISOString().split('T')[0];
+                  
+                  // Buscar receitas do dia
+                  const { data: todayData, error: todayError } = await supabase
+                    .from('cash_flow')
+                    .select('amount, type')
+                    .eq('date', today);
+                  
+                  if (todayError) {
+                    console.error("Erro ao buscar dados diários de cash_flow:", todayError);
+                    await calculateFinancialsFromAppointments();
+                  } else {
+                    // Calcular receita do dia (soma de INCOME e PRODUCT_SALE)
+                    let dailyRevenue = 0;
+                    for (const item of todayData || []) {
+                      if (item.type === 'INCOME' || item.type === 'PRODUCT_SALE') {
+                        dailyRevenue += item.amount;
+                      }
+                    }
+                    
+                    // Buscar receitas do mês
+                    const startOfMonth = new Date();
+                    startOfMonth.setDate(1);
+                    const startOfMonthFormatted = startOfMonth.toISOString().split('T')[0];
+                    
+                    const endOfMonth = new Date();
+                    endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+                    endOfMonth.setDate(0);
+                    const endOfMonthFormatted = endOfMonth.toISOString().split('T')[0];
+                    
+                    const { data: monthData, error: monthError } = await supabase
+                      .from('cash_flow')
+                      .select('amount, type')
+                      .gte('date', startOfMonthFormatted)
+                      .lte('date', endOfMonthFormatted);
+                    
+                    if (monthError) {
+                      console.error("Erro ao buscar dados mensais de cash_flow:", monthError);
+                      await calculateFinancialsFromAppointments();
+                    } else {
+                      // Calcular receita do mês
+                      let monthlyRevenue = 0;
+                      for (const item of monthData || []) {
+                        if (item.type === 'INCOME' || item.type === 'PRODUCT_SALE') {
+                          monthlyRevenue += item.amount;
+                        }
+                      }
+                      
+                      console.log('Valores calculados da tabela cash_flow:');
+                      console.log('- Faturamento diário:', dailyRevenue);
+                      console.log('- Faturamento mensal:', monthlyRevenue);
+                      
+                      financialData = {
+                        dailyRevenue: dailyRevenue.toFixed(2),
+                        monthlyRevenue: monthlyRevenue.toFixed(2)
+                      };
+                    }
+                  }
+                }
+              } catch (cashFlowError) {
+                console.error("Erro ao acessar tabela cash_flow:", cashFlowError);
+                await calculateFinancialsFromAppointments();
               }
               
-              if (appointmentsMonthResult.error) {
-                console.error('Erro ao buscar agendamentos do mês:', appointmentsMonthResult.error);
+              // Função interna para cálculo alternativo com base nos agendamentos
+              async function calculateFinancialsFromAppointments() {
+                console.log("Calculando faturamento diretamente dos agendamentos...");
+                
+                // 1. Buscar todos os agendamentos concluídos do dia
+                const todayDateFormatted = new Date().toISOString().split('T')[0];
+                console.log("Calculando agendamentos do dia, data:", todayDateFormatted);
+                
+                const appointmentsTodayResult = await supabase
+                  .from('appointments')
+                  .select('id, professional_id')
+                  .eq('date', todayDateFormatted)
+                  .eq('status', 'COMPLETED');
+                
+                // 2. Buscar todos os agendamentos concluídos do mês
+                const startOfMonthDate = new Date();
+                startOfMonthDate.setDate(1);
+                const startOfMonthFormatted = startOfMonthDate.toISOString().split('T')[0];
+                
+                const endOfMonthDate = new Date();
+                endOfMonthDate.setMonth(endOfMonthDate.getMonth() + 1);
+                endOfMonthDate.setDate(0);
+                const endOfMonthFormatted = endOfMonthDate.toISOString().split('T')[0];
+                
+                console.log("Calculando agendamentos do mês, período:", startOfMonthFormatted, "até", endOfMonthFormatted);
+                
+                const appointmentsMonthResult = await supabase
+                  .from('appointments')
+                  .select('id, professional_id')
+                  .gte('date', startOfMonthFormatted)
+                  .lte('date', endOfMonthFormatted)
+                  .eq('status', 'COMPLETED');
+                
+                // Processar resultados
+                if (appointmentsTodayResult.error) {
+                  console.error('Erro ao buscar agendamentos do dia:', appointmentsTodayResult.error);
+                }
+                
+                if (appointmentsMonthResult.error) {
+                  console.error('Erro ao buscar agendamentos do mês:', appointmentsMonthResult.error);
+                }
+                
+                const todayAppointments = appointmentsTodayResult.data || [];
+                const monthAppointments = appointmentsMonthResult.data || [];
+                
+                console.log("Agendamentos do dia encontrados:", todayAppointments.length);
+                console.log("Agendamentos do mês encontrados:", monthAppointments.length);
+                
+                // 3. Calcular valor total diário
+                let dailyTotal = 0;
+                
+                for (const appointment of todayAppointments) {
+                  let appointmentTotal = await calculateAppointmentValue(appointment.id);
+                  dailyTotal += appointmentTotal;
+                }
+                
+                // 4. Calcular valor total mensal
+                let monthlyTotal = 0;
+                
+                for (const appointment of monthAppointments) {
+                  let appointmentTotal = await calculateAppointmentValue(appointment.id);
+                  monthlyTotal += appointmentTotal;
+                }
+                
+                console.log('Valores calculados diretamente dos agendamentos:');
+                console.log('- Faturamento diário:', dailyTotal);
+                console.log('- Faturamento mensal:', monthlyTotal);
+                
+                financialData = {
+                  dailyRevenue: dailyTotal.toFixed(2),
+                  monthlyRevenue: monthlyTotal.toFixed(2)
+                };
               }
               
-              const todayAppointments = appointmentsTodayResult.data || [];
-              const monthAppointments = appointmentsMonthResult.data || [];
-              
-              console.log("Agendamentos do dia encontrados:", todayAppointments.length);
-              console.log("Agendamentos do mês encontrados:", monthAppointments.length);
-              
-              // 3. Calcular o valor total dos agendamentos do dia
-              let dailyTotal = 0;
-              
-              // Para cada agendamento do dia, buscar serviços e calcular valor
-              for (const appointment of todayAppointments) {
-                // Buscar serviços associados a este agendamento
+              // Função auxiliar para calcular valor de um agendamento
+              async function calculateAppointmentValue(appointmentId: number): Promise<number> {
+                // Buscar serviços associados
                 const { data: services, error: servicesError } = await supabase
                   .from('appointment_services')
                   .select('service_id')
-                  .eq('appointment_id', appointment.id);
+                  .eq('appointment_id', appointmentId);
                 
                 if (servicesError) {
-                  console.error(`Erro ao buscar serviços do agendamento #${appointment.id}:`, servicesError);
-                  continue;
+                  console.error(`Erro ao buscar serviços do agendamento #${appointmentId}:`, servicesError);
+                  return 0;
                 }
                 
                 // Para cada serviço, buscar preço
-                let appointmentTotal = 0;
+                let total = 0;
                 for (const service of services || []) {
                   const { data: serviceDetails, error: serviceError } = await supabase
                     .from('services')
@@ -908,60 +1062,12 @@ export function registerAdminRoutes(app: Express): void {
                   }
                   
                   // Os preços são armazenados em centavos, converter para reais
-                  appointmentTotal += (serviceDetails?.price || 0) / 100;
+                  total += (serviceDetails?.price || 0) / 100;
                 }
                 
-                console.log(`Agendamento #${appointment.id}: R$ ${appointmentTotal}`);
-                dailyTotal += appointmentTotal;
+                console.log(`Agendamento #${appointmentId}: R$ ${total}`);
+                return total;
               }
-              
-              // 4. Calcular o valor total dos agendamentos do mês
-              let monthlyTotal = 0;
-              
-              // Para cada agendamento do mês, buscar serviços e calcular valor
-              for (const appointment of monthAppointments) {
-                // Buscar serviços associados a este agendamento
-                const { data: services, error: servicesError } = await supabase
-                  .from('appointment_services')
-                  .select('service_id')
-                  .eq('appointment_id', appointment.id);
-                
-                if (servicesError) {
-                  console.error(`Erro ao buscar serviços do agendamento #${appointment.id}:`, servicesError);
-                  continue;
-                }
-                
-                // Para cada serviço, buscar preço
-                let appointmentTotal = 0;
-                for (const service of services || []) {
-                  const { data: serviceDetails, error: serviceError } = await supabase
-                    .from('services')
-                    .select('price')
-                    .eq('id', service.service_id)
-                    .single();
-                  
-                  if (serviceError) {
-                    console.error(`Erro ao buscar detalhes do serviço #${service.service_id}:`, serviceError);
-                    continue;
-                  }
-                  
-                  // Os preços são armazenados em centavos, converter para reais
-                  appointmentTotal += (serviceDetails?.price || 0) / 100;
-                }
-                
-                monthlyTotal += appointmentTotal;
-              }
-              
-              console.log('Valores calculados diretamente do campo total_value:');
-              console.log('- Faturamento diário:', dailyTotal);
-              console.log('- Faturamento mensal:', monthlyTotal);
-              
-              console.log('Valores de faturamento calculados - Diário:', dailyTotal, 'Mensal:', monthlyTotal);
-              
-              financialData = {
-                dailyRevenue: dailyTotal.toFixed(2),
-                monthlyRevenue: monthlyTotal.toFixed(2)
-              };
             } catch (err) {
               console.error('Erro específico ao obter dados financeiros:', err);
             }

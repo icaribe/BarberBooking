@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { registerAdminRoutes } from "./admin-routes";
+import cashFlowRouter from './routes/cash-flow-routes';
 import { 
   insertUserSchema, 
   insertServiceCategorySchema, 
@@ -466,6 +467,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Registrar rotas de fluxo de caixa
+  app.use('/api/cash-flow', cashFlowRouter);
+  
   // Registrar rotas do sistema administrativo
   registerAdminRoutes(app);
 
