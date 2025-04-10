@@ -644,99 +644,42 @@ export function registerAdminRoutes(app: Express): void {
         // Se o status foi alterado para COMPLETED, registrar no fluxo de caixa
         if (status === 'COMPLETED') {
           try {
-            // Buscar serviços do agendamento para calcular valor total
+            // Buscar serviços do agendamento
             const appointmentServices = await storage.getAppointmentServices(id);
             const serviceDetails = await Promise.all(
               appointmentServices.map(as => storage.getService(as.serviceId))
             );
             
-            // Calcular o valor total dos serviços do agendamento
+            // Calcular o valor total dos serviços em centavos (formato original no banco)
             let totalAmount = 0;
             for (const service of serviceDetails) {
-              // Os preços estão em centavos, converter para reais
-              totalAmount += (service?.price || 0) / 100;
+              if (service && service.price) {
+                totalAmount += service.price;
+              }
             }
             
-            console.log(`Valor total do agendamento #${id}: R$ ${totalAmount.toFixed(2)} baseado em ${serviceDetails.length} serviços`);
+            console.log(`Valor total do agendamento #${id}: R$ ${(totalAmount/100).toFixed(2)} baseado em ${serviceDetails.length} serviços`);
             
-            // 1. Primeiro tentar usar o módulo de fluxo de caixa
+            // Registrar a transação usando o novo módulo de fluxo de caixa
             try {
-              // Verificar se já existe registro para este agendamento
-              const { data: existingCashFlow, error: existingError } = await supabase
-                .from('cash_flow')
-                .select('id')
-                .eq('appointment_id', id)
-                .eq('type', 'INCOME')
-                .limit(1);
+              const appointmentDate = existingAppointment.date ? new Date(existingAppointment.date) : new Date();
               
-              // Se não existir, criar o registro
-              if ((!existingCashFlow || existingCashFlow.length === 0) && !existingError) {
-                // Registrar receita no fluxo de caixa
-                const result = await cashFlowManager.recordAppointmentIncome(
-                  id,
-                  existingAppointment.date,
-                  totalAmount
-                );
-                
-                if (result.success) {
-                  console.log('Faturamento registrado no fluxo de caixa com sucesso:', result.data);
-                } else {
-                  console.error('Erro ao registrar faturamento no fluxo de caixa:', result.error);
-                }
+              const transactionResult = await cashFlowManager.recordAppointmentTransaction(
+                id,
+                totalAmount,
+                appointmentDate
+              );
+              
+              if (transactionResult) {
+                console.log('Transação financeira registrada com sucesso:', transactionResult);
               } else {
-                if (existingError) {
-                  console.error('Erro ao verificar registro existente:', existingError);
-                } else {
-                  console.log('Faturamento já registrado anteriormente para este agendamento');
-                }
+                console.log('Transação já existente para este agendamento ou não foi possível registrar');
               }
             } catch (cashFlowError) {
-              console.error('Erro ao utilizar o módulo de fluxo de caixa:', cashFlowError);
-              
-              // 2. Método alternativo: tentar inserir diretamente na tabela
-              try {
-                // Verificar se já existe registro financeiro para este agendamento
-                const { data: existingTransaction, error: txError } = await supabase
-                  .from('cash_flow')
-                  .select('*')
-                  .eq('appointment_id', id)
-                  .eq('type', 'INCOME');
-                  
-                if (txError) {
-                  console.error('Erro ao verificar transação existente:', txError);
-                }
-                
-                if (existingTransaction && existingTransaction.length > 0) {
-                  console.log('Transação financeira já existe para este agendamento:', existingTransaction);
-                }
-                  
-                // Só registrar se não existir transação prévia para evitar duplicação
-                if (!existingTransaction || existingTransaction.length === 0) {
-                  // Registrar no fluxo de caixa
-                  const { data: insertResult, error: insertError } = await supabase
-                    .from('cash_flow')
-                    .insert([{
-                      date: existingAppointment.date,
-                      appointment_id: id,
-                      amount: totalAmount,
-                      type: 'INCOME',
-                      description: `Agendamento concluído #${id}`
-                    }])
-                    .select();
-                    
-                  if (insertError) {
-                    console.error('Erro ao inserir transação financeira:', insertError);
-                  } else {
-                    console.log('Transação financeira registrada:', insertResult);
-                  }
-                }
-              } catch (directInsertError) {
-                console.error('Erro ao inserir diretamente no fluxo de caixa:', directInsertError);
-                // Não impedir a conclusão do agendamento se houver erro no registro financeiro
-              }
+              console.error('Erro ao registrar transação financeira:', cashFlowError);
             }
           } catch (error) {
-            console.error('Erro ao registrar transação financeira:', error);
+            console.error('Erro ao processar serviços do agendamento:', error);
             // Não impedir a conclusão do agendamento se houver erro no registro financeiro
           }
         }

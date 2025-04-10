@@ -1,296 +1,111 @@
 /**
- * Rotas para gerenciamento do fluxo de caixa
+ * Rotas para o sistema de fluxo de caixa
+ * 
+ * Este arquivo define as rotas da API para operações relacionadas ao fluxo de caixa,
+ * como registro e consulta de transações financeiras.
  */
 
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 import { requireRole, UserRole } from '../middleware/role-middleware';
 import * as cashFlowManager from '../cash-flow-manager';
-import supabase from '../supabase';
 
-const cashFlowRouter = Router();
-
-/**
- * Obter registros de fluxo de caixa com filtros
- */
-cashFlowRouter.get('/', 
-  requireRole([UserRole.ADMIN]),
-  async (req: Request, res: Response) => {
-    try {
-      const { startDate, endDate, type } = req.query;
-      
-      console.log('Buscando registros de fluxo de caixa com filtros:', { startDate, endDate, type });
-      
-      // Construir consulta com base nos filtros
-      let query = supabase.from('cash_flow').select('*');
-      
-      // Adicionar filtros, se fornecidos
-      if (startDate) {
-        query = query.gte('date', startDate as string);
-      }
-      
-      if (endDate) {
-        query = query.lte('date', endDate as string);
-      }
-      
-      if (type) {
-        query = query.eq('type', type as string);
-      }
-      
-      // Ordenar por data (mais recente primeiro)
-      query = query.order('date', { ascending: false });
-      
-      // Executar consulta
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Erro ao buscar registros de fluxo de caixa:', error);
-        return res.status(500).json({ 
-          success: false,
-          message: 'Erro ao buscar registros de fluxo de caixa' 
-        });
-      }
-      
-      res.json({
-        success: true,
-        data
-      });
-    } catch (error) {
-      console.error('Erro ao processar requisição de fluxo de caixa:', error);
-      res.status(500).json({ 
-        success: false,
-        message: 'Erro ao processar requisição de fluxo de caixa' 
-      });
-    }
-  }
-);
+const router = Router();
 
 /**
- * Obter resumo financeiro do período
+ * GET /api/cash-flow
+ * Retorna transações com base nos filtros fornecidos
  */
-cashFlowRouter.get('/summary', 
-  requireRole([UserRole.ADMIN]),
-  async (req: Request, res: Response) => {
-    try {
-      // Obter parâmetros de período
-      let { startDate, endDate } = req.query;
-      
-      // Se não forem fornecidos, usar período do mês atual
-      if (!startDate || !endDate) {
-        const now = new Date();
-        const start = new Date(now.getFullYear(), now.getMonth(), 1);
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        
-        startDate = start.toISOString().split('T')[0];
-        endDate = end.toISOString().split('T')[0];
-      }
-      
-      console.log('Calculando resumo financeiro para o período:', { startDate, endDate });
-      
-      // Buscar todos os registros do período
-      const { data, error } = await supabase
-        .from('cash_flow')
-        .select('*')
-        .gte('date', startDate as string)
-        .lte('date', endDate as string);
-      
-      if (error) {
-        console.error('Erro ao buscar dados para o resumo financeiro:', error);
-        return res.status(500).json({ 
-          success: false,
-          message: 'Erro ao buscar dados para o resumo financeiro' 
-        });
-      }
-      
-      // Calcular totais por tipo
-      let totalIncome = 0;
-      let totalExpense = 0;
-      let totalProductSales = 0;
-      
-      for (const record of data || []) {
-        if (record.type === 'INCOME') {
-          totalIncome += record.amount;
-        } else if (record.type === 'EXPENSE') {
-          totalExpense += record.amount;
-        } else if (record.type === 'PRODUCT_SALE') {
-          totalProductSales += record.amount;
-        }
-      }
-      
-      // Calcular saldo líquido
-      const netBalance = totalIncome + totalProductSales - totalExpense;
-      
-      res.json({
-        success: true,
-        data: {
-          period: {
-            startDate,
-            endDate
-          },
-          totals: {
-            income: totalIncome.toFixed(2),
-            expense: totalExpense.toFixed(2),
-            productSales: totalProductSales.toFixed(2),
-            netBalance: netBalance.toFixed(2)
-          },
-          recordCount: data?.length || 0
-        }
-      });
-    } catch (error) {
-      console.error('Erro ao calcular resumo financeiro:', error);
-      res.status(500).json({ 
-        success: false,
-        message: 'Erro ao calcular resumo financeiro' 
-      });
+router.get('/', requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]), async (req, res) => {
+  try {
+    const filter: cashFlowManager.TransactionFilter = {};
+    
+    // Processar parâmetros de filtro
+    if (req.query.startDate) {
+      filter.startDate = new Date(req.query.startDate as string);
     }
+    
+    if (req.query.endDate) {
+      filter.endDate = new Date(req.query.endDate as string);
+    }
+    
+    if (req.query.type) {
+      filter.type = req.query.type as cashFlowManager.TransactionType;
+    }
+    
+    if (req.query.appointmentId) {
+      filter.appointmentId = parseInt(req.query.appointmentId as string);
+    }
+    
+    const transactions = await cashFlowManager.getTransactions(filter);
+    
+    // Manter os valores como reais, já que estão armazenados como reais no banco
+    res.json(transactions);
+  } catch (error: any) {
+    console.error('Erro ao buscar transações:', error);
+    res.status(500).json({ message: `Erro ao buscar transações: ${error.message}` });
   }
-);
+});
 
 /**
- * Registrar transação manual
+ * GET /api/cash-flow/balance
+ * Calcula o saldo do caixa em um período
  */
-cashFlowRouter.post('/', 
-  requireRole([UserRole.ADMIN]),
-  async (req: Request, res: Response) => {
-    try {
-      const { date, amount, type, description } = req.body;
-      
-      // Validar dados
-      if (!date || amount === undefined || !type || !description) {
-        return res.status(400).json({ 
-          success: false,
-          message: 'Data, valor, tipo e descrição são obrigatórios' 
-        });
-      }
-      
-      console.log('Registrando transação manual:', { date, amount, type, description });
-      
-      // Registrar transação utilizando o módulo de fluxo de caixa
-      const result = await cashFlowManager.recordTransaction({
-        date,
-        amount: parseFloat(amount),
-        type: type as any,
-        description
-      });
-      
-      if (!result.success) {
-        return res.status(500).json({ 
-          success: false,
-          message: 'Erro ao registrar transação',
-          error: result.error
-        });
-      }
-      
-      res.status(201).json({
-        success: true,
-        data: result.data,
-        message: 'Transação registrada com sucesso'
-      });
-    } catch (error) {
-      console.error('Erro ao registrar transação manual:', error);
-      res.status(500).json({ 
-        success: false,
-        message: 'Erro ao registrar transação manual' 
-      });
+router.get('/balance', requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]), async (req, res) => {
+  try {
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+    
+    if (req.query.startDate) {
+      startDate = new Date(req.query.startDate as string);
     }
+    
+    if (req.query.endDate) {
+      endDate = new Date(req.query.endDate as string);
+    }
+    
+    const balance = await cashFlowManager.calculateBalance(startDate, endDate);
+    
+    res.json({ balance: balance });
+  } catch (error: any) {
+    console.error('Erro ao calcular saldo:', error);
+    res.status(500).json({ message: `Erro ao calcular saldo: ${error.message}` });
   }
-);
+});
 
 /**
- * Registrar despesa
+ * POST /api/cash-flow
+ * Registra uma nova transação
  */
-cashFlowRouter.post('/expense', 
-  requireRole([UserRole.ADMIN]),
-  async (req: Request, res: Response) => {
-    try {
-      const { date, amount, description } = req.body;
-      
-      // Validar dados
-      if (!date || amount === undefined || !description) {
-        return res.status(400).json({ 
-          success: false,
-          message: 'Data, valor e descrição são obrigatórios' 
-        });
-      }
-      
-      console.log('Registrando despesa:', { date, amount, description });
-      
-      // Registrar despesa
-      const result = await cashFlowManager.recordExpense(
-        date,
-        parseFloat(amount),
-        description
-      );
-      
-      if (!result.success) {
-        return res.status(500).json({ 
-          success: false,
-          message: 'Erro ao registrar despesa',
-          error: result.error
-        });
-      }
-      
-      res.status(201).json({
-        success: true,
-        data: result.data,
-        message: 'Despesa registrada com sucesso'
-      });
-    } catch (error) {
-      console.error('Erro ao registrar despesa:', error);
-      res.status(500).json({ 
-        success: false,
-        message: 'Erro ao registrar despesa' 
-      });
+router.post('/', requireRole([UserRole.ADMIN]), async (req, res) => {
+  try {
+    const { date, appointmentId, amount, type, description } = req.body;
+    
+    if (!date || amount === undefined || !type) {
+      return res.status(400).json({ message: 'Data, valor e tipo são obrigatórios' });
     }
-  }
-);
-
-/**
- * Registrar venda de produto
- */
-cashFlowRouter.post('/product-sale', 
-  requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
-  async (req: Request, res: Response) => {
-    try {
-      const { date, amount, description } = req.body;
-      
-      // Validar dados
-      if (!date || amount === undefined || !description) {
-        return res.status(400).json({ 
-          success: false,
-          message: 'Data, valor e descrição são obrigatórios' 
-        });
-      }
-      
-      console.log('Registrando venda de produto:', { date, amount, description });
-      
-      // Registrar venda de produto
-      const result = await cashFlowManager.recordProductSale(
-        date,
-        parseFloat(amount),
-        description
-      );
-      
-      if (!result.success) {
-        return res.status(500).json({ 
-          success: false,
-          message: 'Erro ao registrar venda de produto',
-          error: result.error
-        });
-      }
-      
-      res.status(201).json({
-        success: true,
-        data: result.data,
-        message: 'Venda de produto registrada com sucesso'
-      });
-    } catch (error) {
-      console.error('Erro ao registrar venda de produto:', error);
-      res.status(500).json({ 
-        success: false,
-        message: 'Erro ao registrar venda de produto' 
-      });
+    
+    // Converter data para objeto Date
+    const transactionDate = new Date(date);
+    
+    // Verificar se o tipo é válido
+    if (!Object.values(cashFlowManager.TransactionType).includes(type)) {
+      return res.status(400).json({ message: 'Tipo de transação inválido' });
     }
+    
+    // Presumir que o valor vem em centavos do frontend
+    const transaction = await cashFlowManager.recordTransaction({
+      date: transactionDate,
+      appointmentId,
+      amount, // Será convertido para reais dentro da função
+      type: type as cashFlowManager.TransactionType,
+      description
+    });
+    
+    res.status(201).json(transaction);
+  } catch (error: any) {
+    console.error('Erro ao registrar transação:', error);
+    res.status(500).json({ message: `Erro ao registrar transação: ${error.message}` });
   }
-);
+});
 
-export default cashFlowRouter;
+export default router;

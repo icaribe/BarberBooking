@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,7 @@ export default function AdminAppointmentsPage() {
   const [activeTab, setActiveTab] = useState("today");
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [appointmentsState, setAppointmentsState] = useState<Appointment[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -77,7 +78,15 @@ export default function AdminAppointmentsPage() {
   // Buscar agendamentos
   const { data: appointments, isLoading: appointmentsLoading } = useQuery({
     queryKey: ['/api/admin/appointments'],
+    staleTime: 60000 // 1 minuto
   });
+  
+  // Atualizar o estado local quando os dados são carregados
+  useEffect(() => {
+    if (appointments) {
+      setAppointmentsState(appointments);
+    }
+  }, [appointments]);
 
   // Buscar profissionais para filtro
   const { data: professionals } = useQuery({
@@ -91,7 +100,7 @@ export default function AdminAppointmentsPage() {
         status: data.status, 
         notes: data.notes 
       }),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       // Forçar atualização imediata de todas as queries relacionadas
       queryClient.invalidateQueries({ 
         queryKey: ['/api/admin/appointments'],
@@ -103,6 +112,25 @@ export default function AdminAppointmentsPage() {
         refetchType: 'all',
         exact: false
       });
+      
+      // Atualizar o status do agendamento localmente para refletir imediatamente na interface
+      if (selectedAppointment && appointments) {
+        // Encontrar e atualizar o agendamento na lista local
+        const updatedAppointments = [...appointments].map(appointment => {
+          if (appointment.id === variables.id) {
+            return {
+              ...appointment,
+              status: variables.status,
+              notes: variables.notes
+            };
+          }
+          return appointment;
+        });
+        
+        // Atualizar os estados locais
+        setAppointmentsState(updatedAppointments);
+      }
+      
       toast({
         title: "Status atualizado com sucesso",
         description: "O agendamento foi atualizado",
@@ -119,8 +147,8 @@ export default function AdminAppointmentsPage() {
     },
   });
 
-  // Filtrar agendamentos com base na aba selecionada
-  const filteredAppointments = appointments?.filter(appointment => {
+  // Usar o estado local para filtragem, que será atualizado em tempo real
+  const filteredAppointments = appointmentsState.filter(appointment => {
     const appointmentDate = parseISO(appointment.date);
 
     switch (activeTab) {

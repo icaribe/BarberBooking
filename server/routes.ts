@@ -467,11 +467,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Registrar rotas de fluxo de caixa
-  app.use('/api/cash-flow', cashFlowRouter);
-  
   // Registrar rotas do sistema administrativo
   registerAdminRoutes(app);
+  
+  // Registrar rotas de fluxo de caixa
+  app.use('/api/cash-flow', cashFlowRouter);
 
   const httpServer = createServer(app);
   return httpServer;

@@ -1,356 +1,242 @@
 /**
- * Gerenciador de fluxo de caixa
+ * Gerenciador de Fluxo de Caixa
  * 
- * Este módulo contém funções para gerenciar registros financeiros no sistema,
- * incluindo registro de receitas de agendamentos, despesas, etc.
+ * Este módulo centraliza todas as operações relacionadas ao fluxo de caixa,
+ * permitindo o registro e consulta de transações financeiras.
  */
 
 import supabase from './supabase';
 
-/**
- * Enum para tipos de transações financeiras
- */
+// Tipos de transação
 export enum TransactionType {
-  INCOME = 'INCOME',       // Receita
-  EXPENSE = 'EXPENSE',     // Despesa
-  REFUND = 'REFUND',       // Reembolso/Estorno
-  ADJUSTMENT = 'ADJUSTMENT', // Ajuste manual
-  PRODUCT_SALE = 'PRODUCT_SALE', // Venda de produto
+  INCOME = 'INCOME',         // Entrada de dinheiro (ex: pagamento de serviço)
+  EXPENSE = 'EXPENSE',       // Saída de dinheiro (ex: pagamento de fornecedor)
+  REFUND = 'REFUND',         // Devolução de dinheiro ao cliente
+  ADJUSTMENT = 'ADJUSTMENT', // Ajuste manual no caixa
+  PRODUCT_SALE = 'PRODUCT_SALE' // Venda de produto
+}
+
+// Interface para criação de uma transação
+export interface CreateTransaction {
+  date: Date;
+  appointmentId?: number;
+  amount: number;
+  type: TransactionType;
+  description?: string;
+}
+
+// Interface para consulta de transações
+export interface TransactionFilter {
+  startDate?: Date;
+  endDate?: Date;
+  type?: TransactionType;
+  appointmentId?: number;
 }
 
 /**
- * Interface para criação de um registro financeiro
+ * Registra uma transação no fluxo de caixa
  */
-export interface CashFlowRecord {
-  date: string; // Data no formato YYYY-MM-DD
-  appointment_id?: number; // ID do agendamento relacionado (opcional)
-  amount: number; // Valor em reais (não em centavos)
-  type: TransactionType; // Tipo da transação
-  description: string; // Descrição ou observação
-}
-
-/**
- * Interface para resposta padronizada
- */
-interface CashFlowResponse {
-  success: boolean;
-  data?: any;
-  error?: any;
-}
-
-/**
- * Verifica se a tabela cash_flow existe e tenta criá-la se não existir
- */
-async function ensureCashFlowTableExists(): Promise<boolean> {
-  // Verificar se a tabela existe
+export async function recordTransaction(transaction: CreateTransaction) {
   try {
+    console.log(`Registrando transação: ${transaction.type} de R$ ${(transaction.amount/100).toFixed(2)}`);
+    
+    // Converter de centavos para reais no registro
+    const amountInReais = transaction.amount / 100;
+    
     const { data, error } = await supabase
       .from('cash_flow')
-      .select('id')
-      .limit(1);
-    
-    if (error && error.code === '42P01') {
-      // Tabela não existe, tentar criar
-      return await createCashFlowTable();
-    } else if (error) {
-      console.error("Erro ao verificar tabela cash_flow:", error);
-      return false;
-    }
-    
-    // Tabela existe
-    return true;
-  } catch (error) {
-    console.error("Erro ao verificar tabela cash_flow:", error);
-    return false;
-  }
-}
-
-/**
- * Registra uma nova transação financeira
- */
-export async function recordTransaction(transaction: CashFlowRecord): Promise<CashFlowResponse> {
-  try {
-    // Verificar se a tabela existe
-    const tableExists = await ensureCashFlowTableExists();
-    if (!tableExists) {
-      return {
-        success: false,
-        error: "Tabela cash_flow não está disponível"
-      };
-    }
-    
-    // Preparar dados para inserção
-    const record = {
-      date: transaction.date,
-      appointment_id: transaction.appointment_id,
-      amount: transaction.amount,
-      type: transaction.type,
-      description: transaction.description,
-    };
-    
-    // Registrar na tabela
-    const { data, error } = await supabase
-      .from('cash_flow')
-      .insert([record])
-      .select();
-    
+      .insert({
+        date: transaction.date.toISOString().split('T')[0],
+        appointment_id: transaction.appointmentId,
+        amount: amountInReais,
+        type: transaction.type,
+        description: transaction.description
+      })
+      .select()
+      .single();
+      
     if (error) {
-      console.error('Erro ao registrar transação financeira:', error);
-      return {
-        success: false,
-        error
-      };
+      console.error('Erro ao registrar transação:', error);
+      throw new Error(`Falha ao registrar transação: ${error.message}`);
     }
     
-    return {
-      success: true,
-      data
-    };
+    console.log('Transação registrada com sucesso:', data.id);
+    return data;
   } catch (error) {
-    console.error('Erro ao processar registro financeiro:', error);
-    return {
-      success: false,
-      error
-    };
+    console.error('Erro ao processar transação:', error);
+    throw error;
   }
 }
 
 /**
- * Registra receita de um agendamento concluído
+ * Busca transações com base nos filtros fornecidos
  */
-export async function recordAppointmentIncome(
-  appointmentId: number,
-  date: string,
-  amount: number
-): Promise<CashFlowResponse> {
+export async function getTransactions(filter: TransactionFilter) {
   try {
-    // Verificar se já existe registro para este agendamento
-    const { data: existingRecords, error: checkError } = await supabase
+    console.log('Buscando transações com filtros:', filter);
+    
+    let query = supabase
+      .from('cash_flow')
+      .select('*');
+      
+    if (filter.startDate) {
+      query = query.gte('date', filter.startDate.toISOString().split('T')[0]);
+    }
+    
+    if (filter.endDate) {
+      query = query.lte('date', filter.endDate.toISOString().split('T')[0]);
+    }
+    
+    if (filter.type) {
+      query = query.eq('type', filter.type);
+    }
+    
+    if (filter.appointmentId) {
+      query = query.eq('appointment_id', filter.appointmentId);
+    }
+    
+    const { data, error } = await query.order('date', { ascending: false });
+      
+    if (error) {
+      console.error('Erro ao buscar transações:', error);
+      throw new Error(`Falha ao buscar transações: ${error.message}`);
+    }
+    
+    console.log(`${data.length} transações encontradas`);
+    return data;
+  } catch (error) {
+    console.error('Erro ao buscar transações:', error);
+    throw error;
+  }
+}
+
+/**
+ * Calcula o saldo total do caixa em um período
+ */
+export async function calculateBalance(startDate?: Date, endDate?: Date) {
+  try {
+    console.log(`Calculando saldo no período: ${startDate?.toISOString().split('T')[0] || 'início'} até ${endDate?.toISOString().split('T')[0] || 'hoje'}`);
+    
+    // Construir a consulta
+    let query = supabase
+      .from('cash_flow')
+      .select('*');
+      
+    if (startDate) {
+      query = query.gte('date', startDate.toISOString().split('T')[0]);
+    }
+    
+    if (endDate) {
+      query = query.lte('date', endDate.toISOString().split('T')[0]);
+    }
+    
+    const { data, error } = await query;
+      
+    if (error) {
+      console.error('Erro ao calcular saldo:', error);
+      throw new Error(`Falha ao calcular saldo: ${error.message}`);
+    }
+    
+    // Calcular o saldo
+    let balance = 0;
+    
+    for (const transaction of data) {
+      if (transaction.type === TransactionType.INCOME || transaction.type === TransactionType.PRODUCT_SALE) {
+        balance += parseFloat(transaction.amount);
+      } else if (transaction.type === TransactionType.EXPENSE || transaction.type === TransactionType.REFUND) {
+        balance -= parseFloat(transaction.amount);
+      } else if (transaction.type === TransactionType.ADJUSTMENT) {
+        // Para ajustes, o valor pode ser positivo ou negativo
+        balance += parseFloat(transaction.amount);
+      }
+    }
+    
+    console.log(`Saldo calculado: R$ ${balance.toFixed(2)}`);
+    return balance;
+  } catch (error) {
+    console.error('Erro ao calcular saldo:', error);
+    throw error;
+  }
+}
+
+/**
+ * Registra automaticamente uma transação de entrada quando um agendamento é marcado como concluído
+ */
+export async function recordAppointmentTransaction(appointmentId: number, appointmentValue: number, date: Date) {
+  try {
+    console.log(`Registrando transação para agendamento #${appointmentId} no valor de R$ ${(appointmentValue/100).toFixed(2)}`);
+    
+    // Verificar se já existe transação para este agendamento
+    const { data: existingTransactions, error: checkError } = await supabase
       .from('cash_flow')
       .select('id')
       .eq('appointment_id', appointmentId)
       .eq('type', TransactionType.INCOME);
-    
+      
     if (checkError) {
-      console.error('Erro ao verificar registros existentes:', checkError);
-      return {
-        success: false,
-        error: checkError
-      };
+      console.error('Erro ao verificar transações existentes:', checkError);
+      throw new Error(`Falha ao verificar transações existentes: ${checkError.message}`);
     }
     
-    // Se já existir, não registrar novamente
-    if (existingRecords && existingRecords.length > 0) {
-      console.log('Registro financeiro já existe para este agendamento');
-      return {
-        success: true,
-        data: existingRecords[0]
-      };
+    if (existingTransactions && existingTransactions.length > 0) {
+      console.log(`Transação já existente para o agendamento #${appointmentId}, ignorando.`);
+      return null;
     }
     
-    // Preparar transação
-    const transaction: CashFlowRecord = {
-      date,
-      appointment_id: appointmentId,
-      amount,
+    // Registrar a transação
+    return await recordTransaction({
+      date: date || new Date(),
+      appointmentId,
+      amount: appointmentValue,
       type: TransactionType.INCOME,
-      description: `Agendamento concluído #${appointmentId}`
-    };
-    
-    // Registrar transação
-    return await recordTransaction(transaction);
+      description: `Pagamento de serviço - Agendamento #${appointmentId}`
+    });
   } catch (error) {
-    console.error('Erro ao registrar receita de agendamento:', error);
-    return {
-      success: false,
-      error
-    };
+    console.error('Erro ao registrar transação de agendamento:', error);
+    throw error;
   }
 }
 
 /**
- * Registra despesa no sistema
+ * Função para compatibilidade com código existente
+ * Esta função existe para manter compatibilidade com código que usa o formato antigo
  */
-export async function recordExpense(
-  date: string,
-  amount: number,
-  description: string
-): Promise<CashFlowResponse> {
+export async function recordAppointmentIncome(
+  appointmentId: number, 
+  appointmentDate: string, 
+  amountInReais: number
+): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    // Preparar transação
-    const transaction: CashFlowRecord = {
-      date,
-      amount,
-      type: TransactionType.EXPENSE,
-      description
-    };
+    // Converter a data de string para objeto Date
+    const date = new Date(appointmentDate);
     
-    // Registrar transação
-    return await recordTransaction(transaction);
-  } catch (error) {
-    console.error('Erro ao registrar despesa:', error);
-    return {
-      success: false,
-      error
-    };
-  }
-}
-
-/**
- * Registra venda de produto
- */
-export async function recordProductSale(
-  date: string,
-  amount: number,
-  description: string
-): Promise<CashFlowResponse> {
-  try {
-    // Preparar transação
-    const transaction: CashFlowRecord = {
-      date,
-      amount,
-      type: TransactionType.PRODUCT_SALE,
-      description
-    };
+    // Converter o valor de reais para centavos
+    const amountInCents = Math.round(amountInReais * 100);
     
-    // Registrar transação
-    return await recordTransaction(transaction);
-  } catch (error) {
-    console.error('Erro ao registrar venda de produto:', error);
-    return {
-      success: false,
-      error
-    };
-  }
-}
-
-/**
- * Obtém o saldo do caixa para uma data específica
- */
-export async function getDailyBalance(date: string): Promise<number> {
-  try {
-    // Buscar transações da data
-    const { data, error } = await supabase
-      .from('cash_flow')
-      .select('amount, type')
-      .eq('date', date);
-    
-    if (error) {
-      console.error('Erro ao buscar saldo diário:', error);
-      return 0;
-    }
-    
-    // Calcular saldo
-    let balance = 0;
-    for (const record of data || []) {
-      if (record.type === TransactionType.INCOME || record.type === TransactionType.PRODUCT_SALE) {
-        balance += record.amount;
-      } else if (record.type === TransactionType.EXPENSE || record.type === TransactionType.REFUND) {
-        balance -= record.amount;
-      }
-    }
-    
-    return balance;
-  } catch (error) {
-    console.error('Erro ao calcular saldo diário:', error);
-    return 0;
-  }
-}
-
-/**
- * Obtém o saldo do caixa para um mês específico
- */
-export async function getMonthlyBalance(year: number, month: number): Promise<number> {
-  try {
-    // Definir período do mês
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0);
-    
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
-    
-    // Buscar transações do período
-    const { data, error } = await supabase
-      .from('cash_flow')
-      .select('amount, type')
-      .gte('date', startDateStr)
-      .lte('date', endDateStr);
-    
-    if (error) {
-      console.error('Erro ao buscar saldo mensal:', error);
-      return 0;
-    }
-    
-    // Calcular saldo
-    let balance = 0;
-    for (const record of data || []) {
-      if (record.type === TransactionType.INCOME || record.type === TransactionType.PRODUCT_SALE) {
-        balance += record.amount;
-      } else if (record.type === TransactionType.EXPENSE || record.type === TransactionType.REFUND) {
-        balance -= record.amount;
-      }
-    }
-    
-    return balance;
-  } catch (error) {
-    console.error('Erro ao calcular saldo mensal:', error);
-    return 0;
-  }
-}
-
-/**
- * Obtém dados financeiros para o dashboard
- * Retorna o faturamento do dia e do mês atual
- */
-export async function getDashboardFinancials(): Promise<{
-  dailyRevenue: number;
-  monthlyRevenue: number;
-}> {
-  try {
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    
-    // Faturamento do dia
-    const dailyRevenue = await getDailyBalance(todayStr);
-    
-    // Faturamento do mês
-    const monthlyRevenue = await getMonthlyBalance(
-      today.getFullYear(),
-      today.getMonth() + 1
+    // Registrar a transação usando a função principal
+    const result = await recordAppointmentTransaction(
+      appointmentId,
+      amountInCents,
+      date
     );
     
-    return {
-      dailyRevenue,
-      monthlyRevenue
-    };
-  } catch (error) {
-    console.error('Erro ao obter dados financeiros para o dashboard:', error);
-    return {
-      dailyRevenue: 0,
-      monthlyRevenue: 0
-    };
-  }
-}
-
-/**
- * Função para criar a tabela cash_flow programaticamente
- * Esta função provavelmente falhará devido a permissões, mas estamos
- * incluindo para tentativa.
- */
-async function createCashFlowTable(): Promise<boolean> {
-  try {
-    // Tentar criar a tabela via SQL
-    const { error } = await supabase.rpc('create_cash_flow_table');
-    
-    if (error) {
-      console.error('Erro ao criar tabela cash_flow:', error);
-      return false;
+    if (result) {
+      return { 
+        success: true, 
+        data: result 
+      };
+    } else {
+      return { 
+        success: false, 
+        error: 'Transação já existente ou não foi possível registrar' 
+      };
     }
-    
-    console.log('Tabela cash_flow criada com sucesso');
-    return true;
   } catch (error) {
-    console.error('Erro ao tentar criar tabela cash_flow:', error);
-    return false;
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('Erro em recordAppointmentIncome:', errorMessage);
+    return { 
+      success: false, 
+      error: errorMessage 
+    };
   }
 }

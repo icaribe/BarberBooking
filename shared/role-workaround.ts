@@ -33,6 +33,9 @@ const userRoleCache = new Map<number, UserRole>();
 
 /**
  * Obtém o papel de um usuário a partir do seu ID
+ * 
+ * Esta função agora usa a coluna 'role' da tabela users diretamente,
+ * mas mantém a lógica de fallback do workaround original para compatibilidade.
  */
 export async function getUserRole(userId: number): Promise<UserRole> {
   try {
@@ -41,10 +44,10 @@ export async function getUserRole(userId: number): Promise<UserRole> {
       return userRoleCache.get(userId)!;
     }
     
-    // Buscar dados do usuário
+    // Buscar dados do usuário, incluindo a coluna role
     const { data: userData, error } = await supabase
       .from('users')
-      .select('id, email, username')
+      .select('id, email, username, role')
       .eq('id', userId)
       .maybeSingle();
     
@@ -58,24 +61,44 @@ export async function getUserRole(userId: number): Promise<UserRole> {
       return UserRole.CUSTOMER;
     }
     
-    // Determinar o papel
+    // Usar o papel da coluna role se disponível
     let role: UserRole;
     
-    console.log('Determinando papel para usuário:', userData.email);
-    
-    if (userData.email === ADMIN_EMAIL || userData.username === 'johnata') {
-      // Administrador identificado pelo e-mail ou username
-      role = UserRole.ADMIN;
-      console.log('Usuário identificado como ADMIN');
-    } else if (PROFESSIONAL_EMAILS.includes(userData.email) || 
-              ['carlos', 'jorran', 'iuri', 'mikael'].includes(userData.username)) {
-      // Profissional identificado pela lista de e-mails ou usernames
-      role = UserRole.PROFESSIONAL;
-      console.log('Usuário identificado como PROFESSIONAL');
+    if (userData.role && Object.values(UserRole).includes(userData.role as UserRole)) {
+      // Usar o valor da coluna role
+      role = userData.role as UserRole;
+      console.log(`Papel obtido da coluna role: ${role}`);
     } else {
-      // Cliente por padrão
-      role = UserRole.CUSTOMER;
-      console.log('Usuário identificado como CUSTOMER');
+      // Fallback para a lógica antiga (workaround) se a coluna não estiver definida
+      console.log('Fallback: Determinando papel para usuário:', userData.email);
+      
+      if (userData.email === ADMIN_EMAIL || userData.username === 'johnata') {
+        role = UserRole.ADMIN;
+        console.log('Fallback: Usuário identificado como ADMIN');
+      } else if (PROFESSIONAL_EMAILS.includes(userData.email) || 
+                ['carlos', 'jorran', 'iuri', 'mikael'].includes(userData.username)) {
+        role = UserRole.PROFESSIONAL;
+        console.log('Fallback: Usuário identificado como PROFESSIONAL');
+      } else {
+        role = UserRole.CUSTOMER;
+        console.log('Fallback: Usuário identificado como CUSTOMER');
+      }
+      
+      // Atualizar a coluna role no banco de dados para o próximo acesso
+      try {
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ role })
+          .eq('id', userId);
+          
+        if (updateError) {
+          console.error('Erro ao atualizar coluna role:', updateError);
+        } else {
+          console.log(`Coluna role atualizada para ${role}`);
+        }
+      } catch (updateError) {
+        console.error('Erro ao atualizar coluna role:', updateError);
+      }
     }
     
     // Armazenar em cache
