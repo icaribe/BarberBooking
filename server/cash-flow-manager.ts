@@ -39,10 +39,10 @@ export interface TransactionFilter {
 export async function recordTransaction(transaction: CreateTransaction) {
   try {
     console.log(`Registrando transação: ${transaction.type} de R$ ${(transaction.amount/100).toFixed(2)}`);
-    
+
     // Converter de centavos para reais no registro
     const amountInReais = transaction.amount / 100;
-    
+
     const { data, error } = await supabase
       .from('cash_flow')
       .insert({
@@ -54,12 +54,12 @@ export async function recordTransaction(transaction: CreateTransaction) {
       })
       .select()
       .single();
-      
+
     if (error) {
       console.error('Erro ao registrar transação:', error);
       throw new Error(`Falha ao registrar transação: ${error.message}`);
     }
-    
+
     console.log('Transação registrada com sucesso:', data.id);
     return data;
   } catch (error) {
@@ -74,34 +74,34 @@ export async function recordTransaction(transaction: CreateTransaction) {
 export async function getTransactions(filter: TransactionFilter) {
   try {
     console.log('Buscando transações com filtros:', filter);
-    
+
     let query = supabase
       .from('cash_flow')
       .select('*');
-      
+
     if (filter.startDate) {
       query = query.gte('date', filter.startDate.toISOString().split('T')[0]);
     }
-    
+
     if (filter.endDate) {
       query = query.lte('date', filter.endDate.toISOString().split('T')[0]);
     }
-    
+
     if (filter.type) {
       query = query.eq('type', filter.type);
     }
-    
+
     if (filter.appointmentId) {
       query = query.eq('appointment_id', filter.appointmentId);
     }
-    
+
     const { data, error } = await query.order('date', { ascending: false });
-      
+
     if (error) {
       console.error('Erro ao buscar transações:', error);
       throw new Error(`Falha ao buscar transações: ${error.message}`);
     }
-    
+
     console.log(`${data.length} transações encontradas`);
     return data;
   } catch (error) {
@@ -116,30 +116,30 @@ export async function getTransactions(filter: TransactionFilter) {
 export async function calculateBalance(startDate?: Date, endDate?: Date) {
   try {
     console.log(`Calculando saldo no período: ${startDate?.toISOString().split('T')[0] || 'início'} até ${endDate?.toISOString().split('T')[0] || 'hoje'}`);
-    
+
     // Construir a consulta
     let query = supabase
       .from('cash_flow')
       .select('*');
-      
+
     if (startDate) {
       query = query.gte('date', startDate.toISOString().split('T')[0]);
     }
-    
+
     if (endDate) {
       query = query.lte('date', endDate.toISOString().split('T')[0]);
     }
-    
+
     const { data, error } = await query;
-      
+
     if (error) {
       console.error('Erro ao calcular saldo:', error);
       throw new Error(`Falha ao calcular saldo: ${error.message}`);
     }
-    
+
     // Calcular o saldo
     let balance = 0;
-    
+
     for (const transaction of data) {
       if (transaction.type === TransactionType.INCOME || transaction.type === TransactionType.PRODUCT_SALE) {
         balance += parseFloat(transaction.amount);
@@ -150,7 +150,7 @@ export async function calculateBalance(startDate?: Date, endDate?: Date) {
         balance += parseFloat(transaction.amount);
       }
     }
-    
+
     console.log(`Saldo calculado: R$ ${balance.toFixed(2)}`);
     return balance;
   } catch (error) {
@@ -162,32 +162,49 @@ export async function calculateBalance(startDate?: Date, endDate?: Date) {
 /**
  * Registra automaticamente uma transação de entrada quando um agendamento é marcado como concluído
  */
-export async function recordAppointmentTransaction(appointmentId: number, appointmentValue: number, date: Date) {
+export async function recordAppointmentTransaction(appointmentId: number, serviceDetails: {name: string, price: number}[], date: Date) {
   try {
-    console.log(`Registrando transação para agendamento #${appointmentId} no valor de R$ ${(appointmentValue/100).toFixed(2)}`);
-    
+    console.log(`Registrando transação para agendamento #${appointmentId}`);
+
+    // Calcular o valor total dos serviços (os preços já estão em centavos no banco)
+    let totalAmount = 0;
+    for (const service of serviceDetails) {
+      if (service && service.price) {
+        totalAmount += service.price;
+        console.log(`Adicionando serviço ${service.name}: R$ ${(service.price/100).toFixed(2)}`);
+      }
+    }
+
+    console.log(`Valor total calculado: R$ ${(totalAmount/100).toFixed(2)}`);
+
+    // Não usar totalValue do appointment pois pode estar desatualizado
+    if (totalAmount === 0) {
+      console.log('ALERTA: Nenhum valor de serviço encontrado para o agendamento');
+      return null; // Retorna null se não houver valor
+    }
+
     // Verificar se já existe transação para este agendamento
     const { data: existingTransactions, error: checkError } = await supabase
       .from('cash_flow')
       .select('id')
       .eq('appointment_id', appointmentId)
       .eq('type', TransactionType.INCOME);
-      
+
     if (checkError) {
       console.error('Erro ao verificar transações existentes:', checkError);
       throw new Error(`Falha ao verificar transações existentes: ${checkError.message}`);
     }
-    
+
     if (existingTransactions && existingTransactions.length > 0) {
       console.log(`Transação já existente para o agendamento #${appointmentId}, ignorando.`);
       return existingTransactions[0]; // Retornar a transação existente em vez de null
     }
-    
+
     // Registrar a transação
     return await recordTransaction({
       date: date || new Date(),
       appointmentId,
-      amount: appointmentValue,
+      amount: totalAmount,
       type: TransactionType.INCOME,
       description: `Pagamento de serviço - Agendamento #${appointmentId}`
     });
@@ -209,17 +226,17 @@ export async function recordAppointmentIncome(
   try {
     // Converter a data de string para objeto Date
     const date = new Date(appointmentDate);
-    
+
     // Converter o valor de reais para centavos
     const amountInCents = Math.round(amountInReais * 100);
-    
+
     // Registrar a transação usando a função principal
     const result = await recordAppointmentTransaction(
       appointmentId,
-      amountInCents,
+      [{name: "Unknown Service", price: amountInCents}], //Added a dummy service detail for compatibility.
       date
     );
-    
+
     if (result) {
       return { 
         success: true, 
@@ -249,41 +266,41 @@ export async function recordAppointmentIncome(
 export async function removeAppointmentTransaction(appointmentId: number) {
   try {
     console.log(`Removendo transação financeira para agendamento #${appointmentId}`);
-    
+
     // Verificar se existe transação para este agendamento
     const { data: existingTransactions, error: checkError } = await supabase
       .from('cash_flow')
       .select('*')
       .eq('appointment_id', appointmentId)
       .eq('type', TransactionType.INCOME);
-      
+
     if (checkError) {
       console.error('Erro ao verificar transações existentes:', checkError);
       throw new Error(`Falha ao verificar transações existentes: ${checkError.message}`);
     }
-    
+
     if (!existingTransactions || existingTransactions.length === 0) {
       console.log(`Nenhuma transação encontrada para o agendamento #${appointmentId}, nada a remover.`);
       return null;
     }
-    
+
     console.log(`Encontrada(s) ${existingTransactions.length} transação(ões) para remover do agendamento #${appointmentId}`);
-    
+
     // Capturar o ID da transação a ser removida
     const transactionId = existingTransactions[0].id;
-    
+
     // Remover a transação
     const { data, error } = await supabase
       .from('cash_flow')
       .delete()
       .eq('id', transactionId)
       .select();
-      
+
     if (error) {
       console.error(`Erro ao remover transação #${transactionId}:`, error);
       throw new Error(`Falha ao remover transação: ${error.message}`);
     }
-    
+
     console.log(`Transação #${transactionId} removida com sucesso para o agendamento #${appointmentId}`);
     return data ? data[0] : null;
   } catch (error) {
