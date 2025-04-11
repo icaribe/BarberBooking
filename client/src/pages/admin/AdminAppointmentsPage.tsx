@@ -422,13 +422,14 @@ export default function AdminAppointmentsPage() {
     return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
 
-  // Formatação de valores monetários
+  // Formatação de valores monetários - MODIFICADA PARA DIVIDIR POR 100
   const formatCurrency = (value: number | undefined | null) => {
     if (value === undefined || value === null) return 'R$ 0,00';
+    const valueInReais = value / 100; // Divide o valor por 100 para converter de centavos para reais
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(value);
+    }).format(valueInReais);
   };
 
   const formatAppointmentTime = (timeString: string | null | undefined) => {
@@ -664,12 +665,12 @@ export default function AdminAppointmentsPage() {
                           <Scissors className="mr-1 h-3.5 w-3.5 mt-0.5" />
                           <span>{appointment.service_names?.join(', ') || "Serviço não especificado"}</span>
                         </div>
-                        
+
                         {/* Adicionando informação de valor do serviço */}
                         <div className="flex items-start gap-1 text-sm mt-1 text-muted-foreground">
                           <DollarSign className="mr-1 h-3.5 w-3.5 mt-0.5" />
                           <span className="font-medium">
-                            {formatCurrency(appointment.totalValue || 0)}
+                            {formatCurrency(appointment.totalValue)}
                             {appointment.service_prices && appointment.service_prices.length > 0 && (
                               <span className="ml-2 text-xs text-muted-foreground/70">
                                 ({appointment.service_prices.length} {appointment.service_prices.length === 1 ? 'serviço' : 'serviços'})
@@ -677,7 +678,7 @@ export default function AdminAppointmentsPage() {
                             )}
                           </span>
                         </div>
-                        
+
                         {appointment.notes && (
                           <div className="mt-2 text-sm border-l-2 border-muted-foreground/20 pl-2 italic text-muted-foreground">
                             {appointment.notes}
@@ -729,7 +730,7 @@ export default function AdminAppointmentsPage() {
               </div>
               <div className="flex items-center mt-1">
                 <DollarSign className="mr-1 h-3.5 w-3.5" />
-                <span className="font-medium">{formatCurrency(selectedAppointment?.totalValue || 0)}</span>
+                <span className="font-medium">{formatCurrency(selectedAppointment?.totalValue)}</span>
               </div>
             </div>
           </div>
@@ -818,7 +819,7 @@ export default function AdminAppointmentsPage() {
                     </>
                   ) : (
                     <>
-                      <Check className="mr-2 h-4 w-4" />
+                      <Check className="mr-2h-4 w-4" />
                       Salvar
                     </>
                   )}
