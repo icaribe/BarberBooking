@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { DollarSign } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { 
@@ -71,6 +72,8 @@ interface EnhancedAppointment {
   professional_name?: string;
   service_names?: string[];
   service_ids?: number[];
+  service_prices?: number[]; // Preços dos serviços individuais
+  totalValue?: number; // Valor total do agendamento
   start_time?: string;
   end_time?: string;
   notes: string | null;
@@ -419,6 +422,15 @@ export default function AdminAppointmentsPage() {
     return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
 
+  // Formatação de valores monetários
+  const formatCurrency = (value: number | undefined | null) => {
+    if (value === undefined || value === null) return 'R$ 0,00';
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
   const formatAppointmentTime = (timeString: string | null | undefined) => {
     try {
       // Verificar se o timeString está definido
@@ -652,6 +664,20 @@ export default function AdminAppointmentsPage() {
                           <Scissors className="mr-1 h-3.5 w-3.5 mt-0.5" />
                           <span>{appointment.service_names?.join(', ') || "Serviço não especificado"}</span>
                         </div>
+                        
+                        {/* Adicionando informação de valor do serviço */}
+                        <div className="flex items-start gap-1 text-sm mt-1 text-muted-foreground">
+                          <DollarSign className="mr-1 h-3.5 w-3.5 mt-0.5" />
+                          <span className="font-medium">
+                            {formatCurrency(appointment.totalValue || 0)}
+                            {appointment.service_prices && appointment.service_prices.length > 0 && (
+                              <span className="ml-2 text-xs text-muted-foreground/70">
+                                ({appointment.service_prices.length} {appointment.service_prices.length === 1 ? 'serviço' : 'serviços'})
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        
                         {appointment.notes && (
                           <div className="mt-2 text-sm border-l-2 border-muted-foreground/20 pl-2 italic text-muted-foreground">
                             {appointment.notes}
@@ -700,6 +726,10 @@ export default function AdminAppointmentsPage() {
               <div className="flex items-center">
                 <Scissors className="mr-1 h-3.5 w-3.5" />
                 {selectedAppointment?.service_names?.join(', ')}
+              </div>
+              <div className="flex items-center mt-1">
+                <DollarSign className="mr-1 h-3.5 w-3.5" />
+                <span className="font-medium">{formatCurrency(selectedAppointment?.totalValue || 0)}</span>
               </div>
             </div>
           </div>

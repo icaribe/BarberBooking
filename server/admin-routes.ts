@@ -547,7 +547,9 @@ export function registerAdminRoutes(app: Express): void {
               client_email: client?.email,
               professional_name: professional?.name || 'Profissional',
               service_names: serviceDetails.map(s => s?.name || 'Serviço').filter(Boolean),
-              service_ids: appointmentServices.map(as => as.serviceId)
+              service_ids: appointmentServices.map(as => as.serviceId),
+              service_prices: serviceDetails.map(s => s?.price || 0),
+              totalValue: serviceDetails.reduce((sum, service) => sum + (service?.price || 0), 0)
             };
           })
         );
@@ -589,7 +591,9 @@ export function registerAdminRoutes(app: Express): void {
           client_email: client?.email,
           professional_name: professional?.name || 'Profissional',
           service_names: serviceDetails.map(s => s?.name || 'Serviço').filter(Boolean),
-          service_ids: appointmentServices.map(as => as.serviceId)
+          service_ids: appointmentServices.map(as => as.serviceId),
+          service_prices: serviceDetails.map(s => s?.price || 0),
+          totalValue: serviceDetails.reduce((sum, service) => sum + (service?.price || 0), 0)
         };
 
         res.json(enhancedAppointment);
@@ -656,15 +660,59 @@ export function registerAdminRoutes(app: Express): void {
           try {
             // Buscar serviços do agendamento
             const appointmentServices = await storage.getAppointmentServices(id);
-            const serviceDetails = await Promise.all(
-              appointmentServices.map(as => storage.getService(as.serviceId))
-            );
-
+            console.log(`Buscando serviços para agendamento #${id}, encontrados: ${appointmentServices.length}`);
+            
+            // Buscar detalhes de cada serviço - método aprimorado
+            let serviceDetails = [];
+            
+            // Primeiro, tentar buscar com o método padrão
+            for (const as of appointmentServices) {
+              try {
+                // Primeiro, tentar buscar via storage.getService
+                const service = await storage.getService(as.serviceId);
+                
+                if (service) {
+                  serviceDetails.push(service);
+                  console.log(`Serviço #${as.serviceId} (${service.name}) encontrado com valor: R$ ${(service.price/100).toFixed(2)}`);
+                } else {
+                  // Se não encontrou com getService, tentar buscar diretamente da tabela
+                  console.log(`Serviço #${as.serviceId} não encontrado via getService, tentando busca direta...`);
+                  const { data: directService, error } = await supabase
+                    .from('services')
+                    .select('*')
+                    .eq('id', as.serviceId)
+                    .single();
+                    
+                  if (!error && directService) {
+                    // Converter para o formato esperado
+                    const mappedService = {
+                      id: directService.id,
+                      name: directService.name,
+                      description: directService.description || '',
+                      price: directService.price,
+                      priceType: directService.price_type,
+                      durationMinutes: directService.duration_minutes,
+                      categoryId: directService.category_id
+                    };
+                    serviceDetails.push(mappedService);
+                    console.log(`Serviço #${as.serviceId} (${mappedService.name}) recuperado via busca direta com valor: R$ ${(mappedService.price/100).toFixed(2)}`);
+                  } else {
+                    console.error(`Serviço #${as.serviceId} não encontrado mesmo via busca direta:`, error);
+                  }
+                }
+              } catch (serviceError) {
+                console.error(`Erro ao buscar serviço #${as.serviceId}:`, serviceError);
+              }
+            }
+            
             // Calcular o valor total dos serviços em centavos (formato original no banco)
             let totalAmount = 0;
             for (const service of serviceDetails) {
               if (service && service.price) {
                 totalAmount += service.price;
+                console.log(`Adicionando valor do serviço ${service.name}: R$ ${(service.price/100).toFixed(2)} ao total`);
+              } else if (service) {
+                console.warn(`Serviço ${service.name} (ID: ${service.id}) encontrado, mas sem preço definido`);
               }
             }
 
@@ -684,9 +732,31 @@ export function registerAdminRoutes(app: Express): void {
               // AÇÃO 1: Se o agendamento foi concluído, registrar transação
               if (isCompleted && !wasCompleted) {
                 console.log(`Agendamento #${id} marcado como concluído - criando registro financeiro`);
+                // Converter valores para o formato esperado pela função
+                // Log detalhado de cada serviço antes da formatação
+                console.log('Detalhes brutos dos serviços antes da formatação:');
+                serviceDetails.forEach((service, index) => {
+                  if (service) {
+                    console.log(`  Serviço ${index+1}: ID=${service.id}, Nome="${service.name}", Preço=${service.price ? `R$ ${(service.price/100).toFixed(2)}` : 'não definido'}`);
+                  } else {
+                    console.log(`  Serviço ${index+1}: NULL (não encontrado)`);
+                  }
+                });
+                
+                // Converter valores para o formato esperado pela função com tratamento aprimorado
+                const formattedServiceDetails = serviceDetails
+                  .filter(service => service !== null) // Garantir que não há serviços nulos
+                  .map(service => ({
+                    id: service?.id || 0,
+                    name: service?.name || 'Serviço não identificado',
+                    price: service?.price || 0
+                  }));
+                
+                console.log(`Serviços incluídos para faturamento: ${formattedServiceDetails.map(s => `${s.name} (R$ ${(s.price/100).toFixed(2)})`).join(', ')}`);
+                
                 const transactionResult = await cashFlowManager.recordAppointmentTransaction(
                   id,
-                  totalAmount,
+                  formattedServiceDetails, // Passar detalhes de serviços, não apenas o valor total
                   appointmentDate
                 );
 

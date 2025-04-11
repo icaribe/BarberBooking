@@ -315,13 +315,51 @@ export const supabaseStorage = {
   },
 
   async getService(id: number) {
+    console.log(`Buscando serviço ID: ${id}`);
+    
     const { data, error } = await supabase
       .from('services')
       .select('*, service_categories(*)')
       .eq('id', id)
       .single();
     
-    if (error) return null;
+    if (error) {
+      console.error(`Erro ao buscar serviço ID ${id}:`, error);
+      
+      // Tentar novamente com uma consulta mais simples sem relacionamentos
+      console.log(`Tentando busca alternativa para serviço ID ${id}...`);
+      const { data: simpleData, error: simpleError } = await supabase
+        .from('services')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (simpleError) {
+        console.error(`Falha também na busca alternativa para serviço ID ${id}:`, simpleError);
+        return null;
+      }
+      
+      if (!simpleData) {
+        console.error(`Serviço ID ${id} não encontrado mesmo na busca alternativa`);
+        return null;
+      }
+      
+      console.log(`Serviço ID ${id} recuperado via busca alternativa: ${simpleData.name}, preço: ${simpleData.price}`);
+      
+      // Transformar os nomes dos campos para camelCase para o frontend
+      return {
+        id: simpleData.id,
+        name: simpleData.name,
+        description: simpleData.description || '',
+        price: simpleData.price,
+        priceType: simpleData.price_type,
+        durationMinutes: simpleData.duration_minutes,
+        categoryId: simpleData.category_id,
+        category: null // Não temos a categoria na busca alternativa
+      };
+    }
+    
+    console.log(`Serviço ID ${id} recuperado com sucesso: ${data.name}, preço: ${data.price}`);
     
     // Transformar os nomes dos campos para camelCase para o frontend
     return {
@@ -528,19 +566,30 @@ export const supabaseStorage = {
           if (servicesError) {
             console.error('Erro ao buscar serviços do agendamento:', servicesError);
           } else if (appointmentServices && appointmentServices.length > 0) {
-            // Buscar detalhes de cada serviço
+            // Buscar detalhes de cada serviço com logs detalhados
             let totalValue = 0;
             
             for (const as of appointmentServices) {
+              console.log(`Buscando detalhes do serviço ID ${as.service_id} para o agendamento ${id}...`);
+              
               const { data: service, error: serviceError } = await supabase
                 .from('services')
                 .select('*')
                 .eq('id', as.service_id)
                 .single();
               
-              if (!serviceError && service) {
-                totalValue += service.price || 0;
+              if (serviceError) {
+                console.error(`Erro ao buscar serviço ID ${as.service_id}:`, serviceError);
+                continue;
               }
+              
+              if (!service) {
+                console.error(`Serviço ID ${as.service_id} não encontrado no banco de dados.`);
+                continue;
+              }
+              
+              totalValue += service.price || 0;
+              console.log(`Adicionando valor do serviço ID ${as.service_id} (${service.name}): R$ ${(service.price/100).toFixed(2)}`);
             }
             
             // Adicionar valor total ao agendamento
