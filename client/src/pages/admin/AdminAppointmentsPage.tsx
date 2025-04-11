@@ -124,7 +124,12 @@ export default function AdminAppointmentsPage() {
         notes: data.notes 
       });
     },
-    onSuccess: (data, variables) => {
+    onMutate: () => {
+      // Salvar o estado atual da aba
+      const currentTab = activeTab;
+      return { currentTab };
+    },
+    onSuccess: (data, variables, context) => {
       // Log para verificar se a função está sendo chamada com o status correto
       console.log(`Agendamento #${variables.id} marcado como ${variables.status} - atualizando queries relacionadas`);
       
@@ -216,6 +221,11 @@ export default function AdminAppointmentsPage() {
       });
       setIsUpdateDialogOpen(false);
       setSelectedAppointment(null);
+      
+      // Garantir que a aba atual seja mantida
+      if (context?.currentTab) {
+        setActiveTab(context.currentTab);
+      }
     },
     onError: (error) => {
       toast({
