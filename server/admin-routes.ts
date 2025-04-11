@@ -686,6 +686,22 @@ export function registerAdminRoutes(app: Express): void {
               // Forçar o recálculo do resumo financeiro
               // Isso garante que o balanço do mês na interface será atualizado
               console.log('Forçando atualização do resumo financeiro para refletir na interface');
+              
+              try {
+                // Calcular o saldo atual para atualizar o cache
+                const today = new Date();
+                
+                // Calcular primeiro e último dia do mês para forçar atualização do balanço mensal
+                const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                
+                // Forçar atualização do saldo
+                const currentBalance = await cashFlowManager.calculateBalance(firstDayOfMonth, lastDayOfMonth);
+                
+                console.log(`Resumo financeiro atualizado. Novo saldo mensal: R$ ${currentBalance.toFixed(2)}`);
+              } catch (summaryError) {
+                console.error('Erro ao atualizar resumo financeiro:', summaryError);
+              }
             } catch (cashFlowError) {
               console.error('Erro ao registrar transação financeira:', cashFlowError);
             }
