@@ -225,14 +225,14 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                   <div className={`text-xs px-2 py-1 rounded ${
-                    appointment.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
-                    appointment.status === 'CONFIRMED' ? 'bg-green-100 text-green-800' :
-                    appointment.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                    appointment.status?.trim().toUpperCase() === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
+                    appointment.status?.trim().toUpperCase() === 'CONFIRMED' ? 'bg-green-100 text-green-800' :
+                    appointment.status?.trim().toUpperCase() === 'CANCELLED' ? 'bg-red-100 text-red-800' :
                     'bg-yellow-100 text-yellow-800'
                   }`}>
-                    {appointment.status === 'COMPLETED' ? 'Concluído' :
-                     appointment.status === 'CONFIRMED' ? 'Confirmado' :
-                     appointment.status === 'CANCELLED' ? 'Cancelado' :
+                    {appointment.status?.trim().toUpperCase() === 'COMPLETED' ? 'Concluído' :
+                     appointment.status?.trim().toUpperCase() === 'CONFIRMED' ? 'Confirmado' :
+                     appointment.status?.trim().toUpperCase() === 'CANCELLED' ? 'Cancelado' :
                      'Pendente'}
                   </div>
                 </div>

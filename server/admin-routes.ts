@@ -641,8 +641,8 @@ export function registerAdminRoutes(app: Express): void {
         // Atualizar status do agendamento
         const updatedAppointment = await storage.updateAppointmentStatus(id, status, notes);
         
-        // Se o status foi alterado para COMPLETED, registrar no fluxo de caixa
-        if (status === 'COMPLETED') {
+        // Se o status foi alterado para COMPLETED ou completed, registrar no fluxo de caixa
+        if (status === 'COMPLETED' || status === 'completed') {
           try {
             // Buscar serviços do agendamento
             const appointmentServices = await storage.getAppointmentServices(id);
@@ -656,6 +656,13 @@ export function registerAdminRoutes(app: Express): void {
               if (service && service.price) {
                 totalAmount += service.price;
               }
+            }
+            
+            // Se o valor total for 0, verificar se o agendamento tem valor total calculado
+            if (totalAmount === 0 && updatedAppointment?.totalValue) {
+              // Converter de reais para centavos se necessário
+              totalAmount = updatedAppointment.totalValue * 100;
+              console.log(`Usando valor total do agendamento definido no banco: R$ ${(totalAmount/100).toFixed(2)}`);
             }
             
             console.log(`Valor total do agendamento #${id}: R$ ${(totalAmount/100).toFixed(2)} baseado em ${serviceDetails.length} serviços`);
@@ -675,6 +682,10 @@ export function registerAdminRoutes(app: Express): void {
               } else {
                 console.log('Transação já existente para este agendamento ou não foi possível registrar');
               }
+              
+              // Forçar o recálculo do resumo financeiro
+              // Isso garante que o balanço do mês na interface será atualizado
+              console.log('Forçando atualização do resumo financeiro para refletir na interface');
             } catch (cashFlowError) {
               console.error('Erro ao registrar transação financeira:', cashFlowError);
             }

@@ -73,6 +73,105 @@ router.get('/balance', requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]), asy
 });
 
 /**
+ * GET /api/cash-flow/summary
+ * Retorna um resumo financeiro para o período especificado
+ */
+router.get('/summary', requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]), async (req, res) => {
+  try {
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+    
+    if (req.query.startDate) {
+      startDate = new Date(req.query.startDate as string);
+    }
+    
+    if (req.query.endDate) {
+      endDate = new Date(req.query.endDate as string);
+    }
+    
+    // Buscar todas as transações no período
+    const filter: cashFlowManager.TransactionFilter = {};
+    if (startDate) filter.startDate = startDate;
+    if (endDate) filter.endDate = endDate;
+    
+    const transactions = await cashFlowManager.getTransactions(filter);
+    
+    // Calcular totais
+    let totalIncome = 0;
+    let totalExpense = 0;
+    
+    // Calcular totais por categoria
+    const categories: Record<string, { income: number, expense: number, balance: number }> = {};
+    
+    for (const transaction of transactions) {
+      const amount = parseFloat(transaction.amount);
+      
+      // Somar aos totais
+      if (transaction.type === cashFlowManager.TransactionType.INCOME || 
+          transaction.type === cashFlowManager.TransactionType.PRODUCT_SALE) {
+        totalIncome += amount;
+      } else if (transaction.type === cashFlowManager.TransactionType.EXPENSE || 
+                transaction.type === cashFlowManager.TransactionType.REFUND) {
+        totalExpense += amount;
+      } else if (transaction.type === cashFlowManager.TransactionType.ADJUSTMENT) {
+        if (amount > 0) {
+          totalIncome += amount;
+        } else {
+          totalExpense += Math.abs(amount);
+        }
+      }
+      
+      // Contabilizar por categoria
+      const category = transaction.description ? transaction.description.split(' - ')[0] : 'Outros';
+      
+      if (!categories[category]) {
+        categories[category] = { income: 0, expense: 0, balance: 0 };
+      }
+      
+      if (transaction.type === cashFlowManager.TransactionType.INCOME || 
+          transaction.type === cashFlowManager.TransactionType.PRODUCT_SALE) {
+        categories[category].income += amount;
+      } else if (transaction.type === cashFlowManager.TransactionType.EXPENSE || 
+                transaction.type === cashFlowManager.TransactionType.REFUND) {
+        categories[category].expense += amount;
+      } else if (transaction.type === cashFlowManager.TransactionType.ADJUSTMENT) {
+        if (amount > 0) {
+          categories[category].income += amount;
+        } else {
+          categories[category].expense += Math.abs(amount);
+        }
+      }
+      
+      categories[category].balance = categories[category].income - categories[category].expense;
+    }
+    
+    const balance = totalIncome - totalExpense;
+    
+    // Preparar array de categorias
+    const categoriesArray = Object.entries(categories).map(([category, data]) => ({
+      category,
+      ...data
+    }));
+    
+    res.json({
+      totalIncome,
+      totalExpense,
+      balance,
+      income: totalIncome.toFixed(2),
+      expense: totalExpense.toFixed(2),
+      categories: categoriesArray,
+      period: {
+        start: startDate?.toISOString() || null,
+        end: endDate?.toISOString() || null
+      }
+    });
+  } catch (error: any) {
+    console.error('Erro ao gerar resumo financeiro:', error);
+    res.status(500).json({ message: `Erro ao gerar resumo financeiro: ${error.message}` });
+  }
+});
+
+/**
  * POST /api/cash-flow
  * Registra uma nova transação
  */

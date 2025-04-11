@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -57,12 +57,32 @@ const updateStatusSchema = z.object({
 
 type StatusFormValues = z.infer<typeof updateStatusSchema>;
 
+// Interface estendida para incluir os campos adicionais retornados pela API
+interface EnhancedAppointment {
+  id: number;
+  status: string | null;
+  date: string;
+  userId: number;
+  professionalId: number;
+  startTime: string | null;
+  endTime: string | null;
+  client_name?: string;
+  client_email?: string;
+  professional_name?: string;
+  service_names?: string[];
+  service_ids?: number[];
+  start_time?: string;
+  end_time?: string;
+  notes: string | null;
+  createdAt: Date | null;
+}
+
 export default function AdminAppointmentsPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [activeTab, setActiveTab] = useState("today");
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [appointmentsState, setAppointmentsState] = useState<Appointment[]>([]);
+  const [selectedAppointment, setSelectedAppointment] = useState<EnhancedAppointment | null>(null);
+  const [appointmentsState, setAppointmentsState] = useState<EnhancedAppointment[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -76,7 +96,7 @@ export default function AdminAppointmentsPage() {
   });
 
   // Buscar agendamentos
-  const { data: appointments, isLoading: appointmentsLoading } = useQuery({
+  const { data: appointments, isLoading: appointmentsLoading } = useQuery<EnhancedAppointment[]>({
     queryKey: ['/api/admin/appointments'],
     staleTime: 60000 // 1 minuto
   });
@@ -95,12 +115,19 @@ export default function AdminAppointmentsPage() {
 
   // Mutation para atualizar status do agendamento
   const updateStatusMutation = useMutation({
-    mutationFn: (data: StatusFormValues & { id: number }) => 
-      apiRequest('PUT', `/api/admin/appointments/${data.id}/status`, { 
-        status: data.status, 
+    mutationFn: (data: (StatusFormValues & { id: number, status: string })) => {
+      // Garantir que estamos enviando o status no formato correto para o backend
+      console.log("Enviando para API - status:", data.status);
+      
+      return apiRequest('PUT', `/api/admin/appointments/${data.id}/status`, { 
+        status: data.status,  // Já deve estar no formato do backend (minúsculo)
         notes: data.notes 
-      }),
+      });
+    },
     onSuccess: (data, variables) => {
+      // Log para verificar se a função está sendo chamada com o status correto
+      console.log(`Agendamento #${variables.id} marcado como ${variables.status} - atualizando queries relacionadas`);
+      
       // Forçar atualização imediata de todas as queries relacionadas
       queryClient.invalidateQueries({ 
         queryKey: ['/api/admin/appointments'],
@@ -113,22 +140,58 @@ export default function AdminAppointmentsPage() {
         exact: false
       });
       
+      // Se o agendamento foi marcado como concluído, garantir que as queries financeiras sejam atualizadas
+      if (variables.status === 'completed' || variables.status === 'COMPLETED') {
+        console.log('Agendamento marcado como COMPLETED - atualizando resumo financeiro');
+        // Invalidar todas as queries relacionadas ao fluxo de caixa
+        queryClient.invalidateQueries({
+          queryKey: ['/api/admin/cash-flow'],
+          refetchType: 'all',
+          exact: false
+        });
+        
+        // Invalidar especificamente o resumo financeiro
+        queryClient.invalidateQueries({
+          queryKey: ['/api/admin/cash-flow/summary'],
+          refetchType: 'all',
+          exact: false
+        });
+      }
+      
       // Atualizar o status do agendamento localmente para refletir imediatamente na interface
       if (selectedAppointment && appointments) {
+        // Log de depuração para rastrear o valor do status recebido
+        console.log("Status recebido do backend:", data?.status);
+        console.log("Status enviado no request:", variables.status);
+        
         // Encontrar e atualizar o agendamento na lista local
         const updatedAppointments = [...appointments].map(appointment => {
           if (appointment.id === variables.id) {
+            // Garantindo que notes não é undefined
+            const updatedNotes = variables.notes === undefined ? null : variables.notes;
+            
+            // Verificar se o valor retornado pelo backend é um código HTTP
+            // Se for, usamos o status enviado no request, caso contrário usamos o retornado pelo backend
+            const isHttpStatusCode = typeof data?.status === 'number' && data?.status >= 100 && data?.status < 600;
+            
+            // Usar o status do request se o backend retornou apenas o código HTTP
+            const updatedStatus = isHttpStatusCode ? variables.status : (data?.status || variables.status);
+            
+            // Garantir que o status seja uma string
+            const normalizedStatus = String(updatedStatus);
+            console.log(`Atualizando agendamento ${appointment.id} para status: ${normalizedStatus}, (código HTTP: ${isHttpStatusCode ? 'sim' : 'não'})`);
+            
             return {
               ...appointment,
-              status: variables.status,
-              notes: variables.notes
+              status: normalizedStatus, // Usar a versão normalizada do status (já como string)
+              notes: updatedNotes
             };
           }
           return appointment;
         });
         
-        // Atualizar os estados locais
-        setAppointmentsState(updatedAppointments);
+        // Atualizar os estados locais - garantir que o tipo seja EnhancedAppointment[]
+        setAppointmentsState(updatedAppointments as EnhancedAppointment[]);
       }
       
       toast({
@@ -169,18 +232,69 @@ export default function AdminAppointmentsPage() {
   });
 
   // Manipuladores de eventos
-  const handleUpdateStatus = (appointment: Appointment) => {
+  const handleUpdateStatus = (appointment: EnhancedAppointment) => {
     setSelectedAppointment(appointment);
+    
+    // Mapear o status do backend para o frontend
+    let mappedStatus = appointment.status?.trim().toLowerCase() || "";
+    
+    // Mapeamento de status em minúsculo do backend para maiúsculo do frontend
+    if (mappedStatus === "scheduled") mappedStatus = "pending";
+    if (mappedStatus === "completed") mappedStatus = "completed";
+    if (mappedStatus === "cancelled") mappedStatus = "cancelled";
+    if (mappedStatus === "confirmed") mappedStatus = "confirmed";
+    
+    // Normalizar para maiúsculo
+    let normalizedStatus = mappedStatus.toUpperCase();
+    
+    // Garantir que o status é um dos valores aceitáveis pelo schema
+    if (normalizedStatus !== "PENDING" && normalizedStatus !== "CONFIRMED" && 
+        normalizedStatus !== "CANCELLED" && normalizedStatus !== "COMPLETED") {
+      console.warn(`Status desconhecido normalizado para PENDING: ${appointment.status} -> ${normalizedStatus}`);
+      normalizedStatus = "PENDING";
+    }
+    
+    console.log("Abrindo dialog com status:", normalizedStatus);
+    
     form.reset({
-      status: appointment.status,
+      status: normalizedStatus as "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED",
       notes: appointment.notes || "",
     });
+    
     setIsUpdateDialogOpen(true);
+  };
+
+  // Função de mapeamento de status do frontend para o backend
+  const mapFrontendStatusToBackend = (frontendStatus: string): string => {
+    // Converter formato do frontend (MAIÚSCULO) para o backend (minúsculo)
+    switch (frontendStatus) {
+      case "PENDING":
+        return "scheduled"; // No backend, agendamentos pendentes usam "scheduled"
+      case "COMPLETED":
+        return "completed";
+      case "CANCELLED":
+        return "cancelled";
+      case "CONFIRMED":
+        return "confirmed";
+      default:
+        console.warn(`Status desconhecido no frontend: ${frontendStatus}`);
+        return frontendStatus.toLowerCase();
+    }
   };
 
   const handleUpdateSubmit = (data: StatusFormValues) => {
     if (selectedAppointment) {
-      updateStatusMutation.mutate({ ...data, id: selectedAppointment.id });
+      console.log("Atualizando para status:", data.status);
+      console.log("Mapeado para backend como:", mapFrontendStatusToBackend(data.status));
+      
+      // Mapear o status do frontend para o formato esperado pelo backend
+      const backendStatus = mapFrontendStatusToBackend(data.status);
+      
+      updateStatusMutation.mutate({ 
+        ...data, 
+        id: selectedAppointment.id,
+        status: backendStatus as any // Usar o status no formato do backend
+      });
     }
   };
 
@@ -220,21 +334,57 @@ export default function AdminAppointmentsPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (status: string | null) => {
+    // Log para depuração do valor do status
+    console.log("Renderizando badge para status:", status);
+    
+    if (!status) return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pendente</Badge>;
+    
+    // Mapear os status do backend para os status do frontend
+    let mappedStatus = status.trim().toLowerCase();
+    
+    // Mapeamento de status antigos para novos (minúsculo para maiúsculo)
+    if (mappedStatus === "scheduled") mappedStatus = "pending";
+    if (mappedStatus === "completed") mappedStatus = "completed";
+    if (mappedStatus === "cancelled") mappedStatus = "cancelled";
+    
+    // Garantir que estamos trabalhando com uma string limpa e em maiúsculo
+    const normalizedStatus = mappedStatus.toUpperCase();
+    console.log("Status normalizado:", normalizedStatus);
+    
+    switch (normalizedStatus) {
       case "CONFIRMED":
         return <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">Confirmado</Badge>;
       case "CANCELLED":
         return <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100">Cancelado</Badge>;
       case "COMPLETED":
         return <Badge variant="outline" className="bg-blue-100 text-blue-800 hover:bg-blue-100">Concluído</Badge>;
+      case "PENDING":
+        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pendente</Badge>;
+      case "SCHEDULED": // Adicionar suporte ao status "scheduled" vindo do backend
+        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pendente</Badge>;
       default:
+        console.log("Status não reconhecido após normalização:", status);
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pendente</Badge>;
     }
   };
 
-  const getStatusActions = (appointment: Appointment) => {
-    if (appointment.status === "PENDING") {
+  const getStatusActions = (appointment: EnhancedAppointment) => {
+    // Mapear os status do backend para os status do frontend
+    let mappedStatus = appointment.status?.trim().toLowerCase() || "";
+    
+    // Mapeamento de status antigos para novos (minúsculo para maiúsculo)
+    if (mappedStatus === "scheduled") mappedStatus = "pending";
+    if (mappedStatus === "completed") mappedStatus = "completed";
+    if (mappedStatus === "cancelled") mappedStatus = "cancelled";
+    
+    // Normalizar para maiúsculo
+    const normalizedStatus = mappedStatus.toUpperCase();
+    
+    // Log para debug
+    console.log("getStatusActions para appointment:", appointment.id, "status original:", appointment.status, "mapeado para:", normalizedStatus);
+    
+    if (normalizedStatus === "PENDING" || normalizedStatus === "SCHEDULED") {
       return (
         <div className="flex space-x-1">
           <Button 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DateRange } from "react-day-picker";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,6 +60,16 @@ export default function AdminFinancePage() {
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     to: new Date()
   });
+  
+  // Handler para DateRange que lida com null/undefined
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    if (range && range.from) {
+      setDateRange({
+        from: range.from,
+        to: range.to || range.from
+      });
+    }
+  };
 
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
@@ -71,24 +82,56 @@ export default function AdminFinancePage() {
     }
   });
 
-  // Carregar transações
-  const { data: transactions, isLoading, refetch } = useQuery({
+  // Interface para transações
+interface Transaction {
+  id: number;
+  date: string;
+  type: string;
+  category: string;
+  description: string;
+  amount: number;
+}
+
+// Carregar transações
+  const { data: transactions, isLoading, refetch } = useQuery<Transaction[]>({
     queryKey: [
-      '/api/admin/finance/transactions', 
+      '/api/admin/cash-flow', 
       dateRange.from.toISOString(), 
       dateRange.to.toISOString()
     ],
     retry: 1
   });
 
-  // Obter resumo financeiro
-  const { data: summary, isLoading: isLoadingSummary } = useQuery({
+  // Interface para o resumo financeiro
+interface FinancialSummary {
+  totalIncome: number;
+  totalExpense: number;
+  balance: number;
+  income?: string;
+  expense?: string;
+  categories?: Array<{
+    category: string;
+    income: number;
+    expense: number;
+    balance: number;
+  }>;
+  period?: {
+    start: string;
+    end: string;
+  };
+}
+
+// Obter resumo financeiro
+  const { data: summary, isLoading: isLoadingSummary, refetch: refetchSummary } = useQuery<FinancialSummary>({
     queryKey: [
-      '/api/admin/finance/summary', 
+      '/api/admin/cash-flow/summary', 
       dateRange.from.toISOString(), 
       dateRange.to.toISOString()
     ],
-    retry: 1
+    retry: 1,
+    // Garantir que o resumo será sempre atualizado
+    staleTime: 0, 
+    refetchOnWindowFocus: true
   });
 
   // Lidar com o envio de uma nova transação
@@ -99,17 +142,14 @@ export default function AdminFinancePage() {
         amount: parseFloat(values.amount).toString(), // Garante que o valor está em formato numérico
       };
       
-      await apiRequest('/api/admin/finance/transactions', {
-        method: 'POST',
-        data: formattedData
-      });
+      await apiRequest('POST', '/api/admin/cash-flow', formattedData);
       
       toast({
         title: "Transação registrada",
         description: `A transação foi registrada com sucesso.`
       });
       
-      // Limpar formulário e recarregar dados
+      // Limpar formulário e recarregar todos os dados
       form.reset({
         type: "income",
         category: "service",
@@ -117,7 +157,13 @@ export default function AdminFinancePage() {
         description: "",
         date: new Date()
       });
+      
+      // Recarregar tanto as transações quanto o resumo financeiro
       refetch();
+      refetchSummary();
+      
+      // Log para depuração
+      console.log('Solicitando atualização do resumo financeiro após registrar nova transação');
     } catch (error) {
       console.error("Erro ao registrar transação:", error);
       toast({
@@ -314,13 +360,13 @@ export default function AdminFinancePage() {
                       <div className="flex justify-between items-center border-b pb-2">
                         <span className="text-sm">Entradas</span>
                         <span className="font-medium text-green-600">
-                          R$ {summary.income ? parseFloat(summary.income).toFixed(2).replace('.', ',') : '0,00'}
+                          R$ {summary.totalIncome ? summary.totalIncome.toFixed(2).replace('.', ',') : '0,00'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center border-b pb-2">
                         <span className="text-sm">Saídas</span>
                         <span className="font-medium text-red-600">
-                          R$ {summary.expense ? parseFloat(summary.expense).toFixed(2).replace('.', ',') : '0,00'}
+                          R$ {summary.totalExpense ? summary.totalExpense.toFixed(2).replace('.', ',') : '0,00'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center pt-2">
@@ -329,7 +375,7 @@ export default function AdminFinancePage() {
                           "font-bold",
                           summary.balance >= 0 ? "text-green-600" : "text-red-600"
                         )}>
-                          R$ {summary.balance ? parseFloat(summary.balance.toString()).toFixed(2).replace('.', ',') : '0,00'}
+                          R$ {summary.balance.toFixed(2).replace('.', ',')}
                         </span>
                       </div>
                     </div>
@@ -403,7 +449,7 @@ export default function AdminFinancePage() {
                           mode="range"
                           defaultMonth={dateRange?.from}
                           selected={dateRange}
-                          onSelect={setDateRange}
+                          onSelect={handleDateRangeChange}
                           numberOfMonths={2}
                         />
                       </PopoverContent>
@@ -459,7 +505,7 @@ export default function AdminFinancePage() {
                           </tr>
                         ))
                       ) : transactions && transactions.length > 0 ? (
-                        transactions.map((transaction: any) => (
+                        transactions.map((transaction) => (
                           <tr key={transaction.id}>
                             <td className="px-4 py-4 whitespace-nowrap text-sm">
                               {format(new Date(transaction.date), "dd/MM/yyyy")}
@@ -475,13 +521,13 @@ export default function AdminFinancePage() {
                               </span>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm">
-                              {categoryLabels[transaction.category] || transaction.category}
+                              {categoryLabels[transaction.category as keyof typeof categoryLabels] || transaction.category}
                             </td>
                             <td className="px-4 py-4 text-sm max-w-xs truncate">
                               {transaction.description}
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-right font-medium">
-                              R$ {parseFloat(transaction.amount).toFixed(2).replace('.', ',')}
+                              R$ {Number(transaction.amount).toFixed(2).replace('.', ',')}
                             </td>
                           </tr>
                         ))

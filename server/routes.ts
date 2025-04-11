@@ -322,7 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     const { status } = req.body;
-    if (!status || !["scheduled", "completed", "cancelled"].includes(status)) {
+    if (!status || !["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
     
@@ -471,7 +471,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAdminRoutes(app);
   
   // Registrar rotas de fluxo de caixa
+  // Registrar as rotas de fluxo de caixa
   app.use('/api/cash-flow', cashFlowRouter);
+  
+  // Registrar versão administrativa do fluxo de caixa (mesmo router, caminho diferente)
+  app.use('/api/admin/cash-flow', cashFlowRouter);
 
   const httpServer = createServer(app);
   return httpServer;
