@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -79,12 +79,23 @@ interface EnhancedAppointment {
 
 export default function AdminAppointmentsPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [activeTab, setActiveTab] = useState("today");
+  // Iniciamos com o valor do localStorage se existir, ou "today" como padrão
+  const savedTab = typeof window !== 'undefined' ? localStorage.getItem('appointmentsActiveTab') || "today" : "today";
+  const [activeTab, setActiveTab] = useState(savedTab);
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<EnhancedAppointment | null>(null);
   const [appointmentsState, setAppointmentsState] = useState<EnhancedAppointment[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Persistência da aba usando localStorage
+  const updateActiveTab = useCallback((tab: string) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('appointmentsActiveTab', tab);
+      console.log(`Aba salva no localStorage: ${tab}`);
+    }
+  }, []);
 
   // Formulário para atualizar status
   const form = useForm<StatusFormValues>({
@@ -326,19 +337,79 @@ export default function AdminAppointmentsPage() {
     }
   };
 
+  // Referência para armazenar a aba atual
+  const currentTabRef = useRef(activeTab);
+  
+  // Atualizar a referência sempre que a aba mudar
+  useEffect(() => {
+    currentTabRef.current = activeTab;
+  }, [activeTab]);
+  
   const handleUpdateSubmit = (data: StatusFormValues) => {
     if (selectedAppointment) {
-      console.log("Atualizando para status:", data.status);
-      console.log("Mapeado para backend como:", mapFrontendStatusToBackend(data.status));
+      // Verificar se estamos indo ou voltando de um status "completed"
+      // para garantir atualizações financeiras apropriadas
+      const oldStatus = selectedAppointment.status?.toLowerCase() || '';
+      const newStatus = mapFrontendStatusToBackend(data.status);
+      const wasCompleted = oldStatus === 'completed';
+      const isBecomingCompleted = newStatus === 'completed';
       
-      // Mapear o status do frontend para o formato esperado pelo backend
-      const backendStatus = mapFrontendStatusToBackend(data.status);
+      console.log(`Status change analysis: ${oldStatus} -> ${newStatus}`);
+      console.log(`Financial impact: ${wasCompleted ? 'removing transaction' : ''} ${isBecomingCompleted ? 'adding transaction' : ''}`);
       
+      // Armazenar a aba atual para restauração após a mutação
+      const tabToRestore = activeTab;
+      console.log("Preservando aba atual:", tabToRestore);
+      
+      // Executar a mutação com o status mapeado para o backend
       updateStatusMutation.mutate({ 
         ...data, 
         id: selectedAppointment.id,
-        status: backendStatus as any // Usar o status no formato do backend
+        status: newStatus as any
       });
+      
+      // Forçar atualização imediata das queries financeiras e dashboard se for
+      // uma mudança de completed -> outro status ou outro status -> completed
+      if (wasCompleted || isBecomingCompleted) {
+        setTimeout(() => {
+          console.log("Forçando atualização dos dados financeiros e dashboard");
+          
+          queryClient.invalidateQueries({
+            queryKey: ['/api/admin/cash-flow'],
+            exact: false,
+            refetchType: 'all'
+          });
+          
+          queryClient.invalidateQueries({
+            queryKey: ['/api/admin/dashboard'],
+            exact: false,
+            refetchType: 'all'
+          });
+          
+          // Solicitar explicitamente os novos dados
+          apiRequest('GET', '/api/admin/dashboard')
+            .then(() => console.log("Dashboard recarregado"))
+            .catch(e => console.error("Erro ao recarregar dashboard:", e));
+            
+          apiRequest('GET', '/api/admin/cash-flow/summary')
+            .then(() => console.log("Dados financeiros recarregados"))
+            .catch(e => console.error("Erro ao recarregar dados financeiros:", e));
+        }, 1000);
+      }
+      
+      // Armazenar a aba no localStorage e restaurá-la após a atualização
+      localStorage.setItem('appointmentsActiveTab', tabToRestore);
+      
+      // Restaurar a aba mais de uma vez para garantir que ela seja mantida
+      setTimeout(() => {
+        updateActiveTab(tabToRestore);
+        console.log("Aba restaurada (1º tentativa):", tabToRestore);
+      }, 500);
+      
+      setTimeout(() => {
+        updateActiveTab(tabToRestore);
+        console.log("Aba restaurada (2º tentativa):", tabToRestore);
+      }, 1500);
     }
   };
 
@@ -486,7 +557,7 @@ export default function AdminAppointmentsPage() {
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={updateActiveTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="today">Hoje</TabsTrigger>
           <TabsTrigger value="upcoming">Futuros</TabsTrigger>

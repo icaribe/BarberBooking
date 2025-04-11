@@ -180,7 +180,7 @@ export async function recordAppointmentTransaction(appointmentId: number, appoin
     
     if (existingTransactions && existingTransactions.length > 0) {
       console.log(`Transação já existente para o agendamento #${appointmentId}, ignorando.`);
-      return null;
+      return existingTransactions[0]; // Retornar a transação existente em vez de null
     }
     
     // Registrar a transação
@@ -238,5 +238,56 @@ export async function recordAppointmentIncome(
       success: false, 
       error: errorMessage 
     };
+  }
+}
+
+/**
+ * Remove uma transação associada a um agendamento quando este é desmarcado como concluído
+ * @param appointmentId ID do agendamento
+ * @returns A transação removida ou null se não encontrada
+ */
+export async function removeAppointmentTransaction(appointmentId: number) {
+  try {
+    console.log(`Removendo transação financeira para agendamento #${appointmentId}`);
+    
+    // Verificar se existe transação para este agendamento
+    const { data: existingTransactions, error: checkError } = await supabase
+      .from('cash_flow')
+      .select('*')
+      .eq('appointment_id', appointmentId)
+      .eq('type', TransactionType.INCOME);
+      
+    if (checkError) {
+      console.error('Erro ao verificar transações existentes:', checkError);
+      throw new Error(`Falha ao verificar transações existentes: ${checkError.message}`);
+    }
+    
+    if (!existingTransactions || existingTransactions.length === 0) {
+      console.log(`Nenhuma transação encontrada para o agendamento #${appointmentId}, nada a remover.`);
+      return null;
+    }
+    
+    console.log(`Encontrada(s) ${existingTransactions.length} transação(ões) para remover do agendamento #${appointmentId}`);
+    
+    // Capturar o ID da transação a ser removida
+    const transactionId = existingTransactions[0].id;
+    
+    // Remover a transação
+    const { data, error } = await supabase
+      .from('cash_flow')
+      .delete()
+      .eq('id', transactionId)
+      .select();
+      
+    if (error) {
+      console.error(`Erro ao remover transação #${transactionId}:`, error);
+      throw new Error(`Falha ao remover transação: ${error.message}`);
+    }
+    
+    console.log(`Transação #${transactionId} removida com sucesso para o agendamento #${appointmentId}`);
+    return data ? data[0] : null;
+  } catch (error) {
+    console.error('Erro ao remover transação de agendamento:', error);
+    throw error;
   }
 }

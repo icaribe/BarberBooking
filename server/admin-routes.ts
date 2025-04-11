@@ -641,8 +641,18 @@ export function registerAdminRoutes(app: Express): void {
         // Atualizar status do agendamento
         const updatedAppointment = await storage.updateAppointmentStatus(id, status, notes);
         
-        // Se o status foi alterado para COMPLETED ou completed, registrar no fluxo de caixa
-        if (status === 'COMPLETED' || status === 'completed') {
+        // Verificar o status atual antes da atualização para detectar mudanças
+        const oldStatus = (await storage.getAppointment(id))?.status || '';
+        console.log(`Alterando agendamento ${id} de '${oldStatus}' para '${status}'`);
+        
+        // Verificar se o status era completed anteriormente mas agora mudou
+        const wasCompleted = oldStatus.toLowerCase() === 'completed';
+        const isCompleted = status.toLowerCase() === 'completed';
+        
+        // Se o status foi alterado para completed, registrar no fluxo de caixa
+        // Ou se estava como completed e foi alterado para outro status, 
+        // remover do fluxo de caixa
+        if (isCompleted || wasCompleted) {
           try {
             // Buscar serviços do agendamento
             const appointmentServices = await storage.getAppointmentServices(id);
@@ -667,20 +677,35 @@ export function registerAdminRoutes(app: Express): void {
             
             console.log(`Valor total do agendamento #${id}: R$ ${(totalAmount/100).toFixed(2)} baseado em ${serviceDetails.length} serviços`);
             
-            // Registrar a transação usando o novo módulo de fluxo de caixa
+            // Gerenciar transações financeiras com base na mudança de status
             try {
               const appointmentDate = existingAppointment.date ? new Date(existingAppointment.date) : new Date();
               
-              const transactionResult = await cashFlowManager.recordAppointmentTransaction(
-                id,
-                totalAmount,
-                appointmentDate
-              );
-              
-              if (transactionResult) {
-                console.log('Transação financeira registrada com sucesso:', transactionResult);
-              } else {
-                console.log('Transação já existente para este agendamento ou não foi possível registrar');
+              // AÇÃO 1: Se o agendamento foi concluído, registrar transação
+              if (isCompleted && !wasCompleted) {
+                console.log(`Agendamento #${id} marcado como concluído - criando registro financeiro`);
+                const transactionResult = await cashFlowManager.recordAppointmentTransaction(
+                  id,
+                  totalAmount,
+                  appointmentDate
+                );
+                
+                if (transactionResult) {
+                  console.log('Transação financeira registrada com sucesso:', transactionResult);
+                } else {
+                  console.log('Transação já existente para este agendamento ou não foi possível registrar');
+                }
+              } 
+              // AÇÃO 2: Se o agendamento estava concluído mas mudou para outro status, remover transação
+              else if (wasCompleted && !isCompleted) {
+                console.log(`Agendamento #${id} desmarcado de concluído - removendo registro financeiro`);
+                const removalResult = await cashFlowManager.removeAppointmentTransaction(id);
+                
+                if (removalResult) {
+                  console.log('Transação financeira removida com sucesso:', removalResult);
+                } else {
+                  console.log('Nenhuma transação encontrada para remover ou não foi possível remover');
+                }
               }
               
               // Forçar o recálculo do resumo financeiro
