@@ -168,13 +168,33 @@ export async function recordAppointmentTransaction(appointmentId: number, servic
 
     // Calcular o valor total dos serviços (os preços já estão em centavos no banco)
     let totalAmount = 0;
+    let processedServices = [];
+    
     for (const service of serviceDetails) {
-      if (service && service.price) {
-        totalAmount += service.price;
-        console.log(`Adicionando serviço ${service.name}: R$ ${(service.price/100).toFixed(2)}`);
+      if (!service) {
+        console.error('Serviço inválido encontrado no cálculo');
+        continue;
       }
+      
+      if (typeof service.price !== 'number') {
+        console.error(`Preço inválido para serviço ${service.name}: ${service.price}`);
+        continue;
+      }
+      
+      totalAmount += service.price;
+      processedServices.push({
+        name: service.name,
+        price: service.price,
+        priceFormatted: `R$ ${(service.price/100).toFixed(2)}`
+      });
+      console.log(`Processando serviço ${service.name}: R$ ${(service.price/100).toFixed(2)}`);
     }
 
+    console.log('\nResumo do cálculo:');
+    console.log('Serviços processados:', processedServices.length);
+    for (const svc of processedServices) {
+      console.log(`- ${svc.name}: ${svc.priceFormatted}`);
+    }
     console.log(`Valor total calculado: R$ ${(totalAmount/100).toFixed(2)}`);
 
     // Não usar totalValue do appointment pois pode estar desatualizado

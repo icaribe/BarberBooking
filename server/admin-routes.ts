@@ -658,9 +658,29 @@ export function registerAdminRoutes(app: Express): void {
         // remover do fluxo de caixa
         if (isCompleted || wasCompleted) {
           try {
+            console.log(`\n==== Processando transação financeira para agendamento #${id} ====`);
+            console.log(`Status anterior: ${oldStatus}, Novo status: ${status}`);
+            
             // Buscar serviços do agendamento
             const appointmentServices = await storage.getAppointmentServices(id);
-            console.log(`Buscando serviços para agendamento #${id}, encontrados: ${appointmentServices.length}`);
+            console.log(`Serviços encontrados para agendamento #${id}: ${appointmentServices.length}`);
+            
+            // Logar detalhes de cada serviço
+            for (const as of appointmentServices) {
+              console.log(`\nVerificando serviço ID #${as.serviceId}`);
+              const { data: serviceDetails } = await supabase
+                .from('services')
+                .select('*')
+                .eq('id', as.serviceId)
+                .single();
+              
+              if (serviceDetails) {
+                console.log(`- Nome: ${serviceDetails.name}`);
+                console.log(`- Preço: R$ ${(serviceDetails.price/100).toFixed(2)}`);
+              } else {
+                console.log(`! ALERTA: Serviço #${as.serviceId} não encontrado !`);
+              }
+            }
             
             // Buscar detalhes de cada serviço - método aprimorado
             let serviceDetails = [];
