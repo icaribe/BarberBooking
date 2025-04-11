@@ -47,7 +47,7 @@ BEGIN
                 type,
                 description
             ) VALUES (
-                appointment_record.date,
+                appointment_record.date::date,
                 appointment_record.id,
                 total_amount / 100, -- Converter centavos para reais
                 'INCOME',
