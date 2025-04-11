@@ -127,6 +127,7 @@ export default function AdminAppointmentsPage() {
     onMutate: () => {
       // Salvar o estado atual da aba
       const currentTab = activeTab;
+      console.log('Salvando a aba atual:', currentTab);
       return { currentTab };
     },
     onSuccess: (data, variables, context) => {
@@ -145,39 +146,56 @@ export default function AdminAppointmentsPage() {
         exact: false
       });
       
-      // Se o agendamento foi marcado como concluído, garantir que as queries financeiras sejam atualizadas
-      // Usando toLowerCase para comparação case-insensitive
+      // Sempre garantir que as queries financeiras sejam atualizadas quando o status mudar
+      // Usar toLowerCase para comparação case-insensitive
       const statusLower = variables.status.toLowerCase();
-      if (statusLower === 'completed') {
-        console.log('Agendamento marcado como COMPLETED - atualizando resumo financeiro');
+      console.log('Status atual do agendamento:', statusLower);
+      
+      // Forçar atualizações em todas as queries de dados financeiros
+      // Isso é necessário independentemente do novo status, já que precisamos
+      // atualizar o financeiro tanto ao concluir quanto ao remover a conclusão
+      setTimeout(() => {
+        console.log('Forçando atualização de dados financeiros após alteração de status');
         
-        // Forçar atualizações em todas as queries de dados financeiros
-        setTimeout(() => {
-          console.log('Forçando atualização de dados financeiros após conclusão de agendamento');
-          // Invalidar todas as queries relacionadas ao fluxo de caixa
-          queryClient.invalidateQueries({
-            queryKey: ['/api/admin/cash-flow'],
-            refetchType: 'all',
-            exact: false
+        // Invalidar todas as queries relacionadas ao fluxo de caixa
+        queryClient.invalidateQueries({
+          queryKey: ['/api/admin/cash-flow'],
+          refetchType: 'all',
+          exact: false
+        });
+        
+        // Invalidar especificamente o resumo financeiro
+        queryClient.invalidateQueries({
+          queryKey: ['/api/admin/cash-flow/summary'],
+          refetchType: 'all',
+          exact: false
+        });
+        
+        // Invalidar dashboard
+        queryClient.invalidateQueries({
+          queryKey: ['/api/admin/dashboard'],
+          refetchType: 'all',
+          exact: false
+        });
+        
+        // Fazer uma solicitação explícita para o resumo financeiro atual
+        apiRequest('GET', '/api/admin/cash-flow/summary')
+          .then(data => {
+            console.log('Resumo financeiro atualizado após alteração de status:', data);
+          })
+          .catch(err => {
+            console.error('Erro ao solicitar resumo financeiro atualizado:', err);
           });
           
-          // Invalidar especificamente o resumo financeiro
-          queryClient.invalidateQueries({
-            queryKey: ['/api/admin/cash-flow/summary'],
-            refetchType: 'all',
-            exact: false
+        // Fazer uma solicitação explícita para o dashboard também
+        apiRequest('GET', '/api/admin/dashboard')
+          .then(data => {
+            console.log('Dashboard atualizado após alteração de status:', data);
+          })
+          .catch(err => {
+            console.error('Erro ao solicitar dashboard atualizado:', err);
           });
-          
-          // Fazer uma solicitação explícita para o resumo financeiro atual
-          apiRequest('GET', '/api/admin/cash-flow/summary')
-            .then(data => {
-              console.log('Resumo financeiro atualizado após conclusão:', data);
-            })
-            .catch(err => {
-              console.error('Erro ao solicitar resumo financeiro atualizado:', err);
-            });
-        }, 1000); // Pequeno delay para garantir que o backend tenha concluído o processamento
-      }
+      }, 1000); // Pequeno delay para garantir que o backend tenha concluído o processamento
       
       // Atualizar o status do agendamento localmente para refletir imediatamente na interface
       if (selectedAppointment && appointments) {
