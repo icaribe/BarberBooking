@@ -45,18 +45,18 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.get('/services/:id', 
     requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
     async (req: Request, res: Response) => {
       try {
         const id = parseInt(req.params.id);
         const service = await storage.getService(id);
-        
+
         if (!service) {
           return res.status(404).json({ message: 'Serviço não encontrado' });
         }
-        
+
         res.json(service);
       } catch (error) {
         console.error('Erro ao buscar serviço:', error);
@@ -64,7 +64,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.post('/services', 
     requireRole([UserRole.ADMIN]),
     async (req: Request, res: Response) => {
@@ -78,20 +78,20 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.put('/services/:id', 
     requireRole([UserRole.ADMIN]),
     async (req: Request, res: Response) => {
       try {
         const id = parseInt(req.params.id);
         const data = req.body;
-        
+
         // Verificar se o serviço existe
         const existingService = await storage.getService(id);
         if (!existingService) {
           return res.status(404).json({ message: 'Serviço não encontrado' });
         }
-        
+
         // Atualizar serviço
         const updatedService = await adminFunctions.updateService(id, data);
         res.json(updatedService);
@@ -101,22 +101,22 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.delete('/services/:id', 
     requireRole([UserRole.ADMIN]),
     async (req: Request, res: Response) => {
       try {
         const id = parseInt(req.params.id);
-        
+
         // Verificar se o serviço existe
         const existingService = await storage.getService(id);
         if (!existingService) {
           return res.status(404).json({ message: 'Serviço não encontrado' });
         }
-        
+
         // Excluir serviço
         const result = await adminFunctions.deleteService(id);
-        
+
         if (result) {
           res.status(204).send();
         } else {
@@ -128,7 +128,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   /**
    * Profissionais - CRUD
    */
@@ -144,18 +144,18 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.get('/professionals/:id', 
     requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
     async (req: Request, res: Response) => {
       try {
         const id = parseInt(req.params.id);
         const professional = await storage.getProfessional(id);
-        
+
         if (!professional) {
           return res.status(404).json({ message: 'Profissional não encontrado' });
         }
-        
+
         res.json(professional);
       } catch (error) {
         console.error('Erro ao buscar profissional:', error);
@@ -163,7 +163,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.post('/professionals', 
     requireRole([UserRole.ADMIN]),
     async (req: Request, res: Response) => {
@@ -177,20 +177,20 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.put('/professionals/:id', 
     requireRole([UserRole.ADMIN]),
     async (req: Request, res: Response) => {
       try {
         const id = parseInt(req.params.id);
         const data = req.body;
-        
+
         // Verificar se o profissional existe
         const existingProfessional = await storage.getProfessional(id);
         if (!existingProfessional) {
           return res.status(404).json({ message: 'Profissional não encontrado' });
         }
-        
+
         // Atualizar profissional
         const updatedProfessional = await adminFunctions.updateProfessional(id, data);
         res.json(updatedProfessional);
@@ -200,22 +200,22 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.delete('/professionals/:id', 
     requireRole([UserRole.ADMIN]),
     async (req: Request, res: Response) => {
       try {
         const id = parseInt(req.params.id);
-        
+
         // Verificar se o profissional existe
         const existingProfessional = await storage.getProfessional(id);
         if (!existingProfessional) {
           return res.status(404).json({ message: 'Profissional não encontrado' });
         }
-        
+
         // Excluir profissional
         const result = await adminFunctions.deleteProfessional(id);
-        
+
         if (result) {
           res.status(204).send();
         } else {
@@ -227,7 +227,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   /**
    * Produtos - CRUD
    */
@@ -243,18 +243,18 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.get('/products/:id', 
     requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
     async (req: Request, res: Response) => {
       try {
         const id = parseInt(req.params.id);
         const product = await storage.getProduct(id);
-        
+
         if (!product) {
           return res.status(404).json({ message: 'Produto não encontrado' });
         }
-        
+
         res.json(product);
       } catch (error) {
         console.error('Erro ao buscar produto:', error);
@@ -262,7 +262,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.post('/products', 
     requireRole([UserRole.ADMIN]),
     async (req: Request, res: Response) => {
@@ -276,20 +276,20 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.put('/products/:id', 
     requireRole([UserRole.ADMIN]),
     async (req: Request, res: Response) => {
       try {
         const id = parseInt(req.params.id);
         const data = req.body;
-        
+
         // Verificar se o produto existe
         const existingProduct = await storage.getProduct(id);
         if (!existingProduct) {
           return res.status(404).json({ message: 'Produto não encontrado' });
         }
-        
+
         // Atualizar produto
         const updatedProduct = await adminFunctions.updateProduct(id, data);
         res.json(updatedProduct);
@@ -299,22 +299,22 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.delete('/products/:id', 
     requireRole([UserRole.ADMIN]),
     async (req: Request, res: Response) => {
       try {
         const id = parseInt(req.params.id);
-        
+
         // Verificar se o produto existe
         const existingProduct = await storage.getProduct(id);
         if (!existingProduct) {
           return res.status(404).json({ message: 'Produto não encontrado' });
         }
-        
+
         // Excluir produto
         const result = await adminFunctions.deleteProduct(id);
-        
+
         if (result) {
           res.status(204).send();
         } else {
@@ -326,7 +326,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   /**
    * Programa de Fidelidade
    */
@@ -335,14 +335,14 @@ export function registerAdminRoutes(app: Express): void {
     async (req: Request, res: Response) => {
       try {
         const { userId, points } = req.body;
-        
+
         if (!userId || !points) {
           return res.status(400).json({ message: 'ID do usuário e pontos são obrigatórios' });
         }
-        
+
         // Adicionar pontos de fidelidade
         const result = await adminFunctions.addLoyaltyPoints(userId, points);
-        
+
         if (result) {
           res.json(result);
         } else {
@@ -354,7 +354,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   /**
    * Fluxo de Caixa
    */
@@ -364,13 +364,13 @@ export function registerAdminRoutes(app: Express): void {
       try {
         const data = req.body;
         const createdById = (req.user as any).id;
-        
+
         // Criar transação de fluxo de caixa
         const result = await adminFunctions.createCashFlowTransaction({
           ...data,
           createdById
         });
-        
+
         if (result) {
           res.status(201).json(result);
         } else {
@@ -382,13 +382,13 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.get('/cash-flow', 
     requireRole([UserRole.ADMIN]),
     async (req: Request, res: Response) => {
       try {
         const { startDate, endDate, type, category } = req.query;
-        
+
         // Buscar transações de fluxo de caixa
         const transactions = await adminFunctions.getCashFlowTransactions(
           startDate as string,
@@ -396,7 +396,7 @@ export function registerAdminRoutes(app: Express): void {
           type as string,
           category as string
         );
-        
+
         res.json(transactions);
       } catch (error) {
         console.error('Erro ao buscar transações de fluxo de caixa:', error);
@@ -404,19 +404,19 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.get('/cash-flow/summary', 
     requireRole([UserRole.ADMIN]),
     async (req: Request, res: Response) => {
       try {
         const { startDate, endDate } = req.query;
-        
+
         // Buscar resumo do fluxo de caixa
         const summary = await adminFunctions.getCashFlowSummary(
           startDate as string,
           endDate as string
         );
-        
+
         res.json(summary);
       } catch (error) {
         console.error('Erro ao buscar resumo do fluxo de caixa:', error);
@@ -424,7 +424,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   /**
    * Gerenciamento de serviços por profissional
    */
@@ -434,10 +434,10 @@ export function registerAdminRoutes(app: Express): void {
     async (req: Request, res: Response) => {
       try {
         const professionalId = parseInt(req.params.professionalId);
-        
+
         // Buscar serviços do profissional
         const services = await adminFunctions.getProfessionalServices(professionalId);
-        
+
         res.json(services);
       } catch (error) {
         console.error('Erro ao buscar serviços do profissional:', error);
@@ -445,7 +445,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.post('/professionals/:professionalId/services', 
     requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
     ownProfessionalOrAdmin,
@@ -453,14 +453,14 @@ export function registerAdminRoutes(app: Express): void {
       try {
         const professionalId = parseInt(req.params.professionalId);
         const { serviceId } = req.body;
-        
+
         if (!serviceId) {
           return res.status(400).json({ message: 'ID do serviço é obrigatório' });
         }
-        
+
         // Adicionar serviço ao profissional
         const result = await adminFunctions.addServiceToProfessional(professionalId, serviceId);
-        
+
         if (result) {
           res.status(201).json(result);
         } else {
@@ -472,7 +472,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.delete('/professionals/:professionalId/services/:serviceId', 
     requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
     ownProfessionalOrAdmin,
@@ -480,10 +480,10 @@ export function registerAdminRoutes(app: Express): void {
       try {
         const professionalId = parseInt(req.params.professionalId);
         const serviceId = parseInt(req.params.serviceId);
-        
+
         // Remover serviço do profissional
         const result = await adminFunctions.removeServiceFromProfessional(professionalId, serviceId);
-        
+
         if (result) {
           res.status(204).send();
         } else {
@@ -495,7 +495,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   /**
    * Gerenciamento de agendamentos
    */
@@ -505,33 +505,33 @@ export function registerAdminRoutes(app: Express): void {
       try {
         // Parâmetros opcionais para filtrar agendamentos
         const { date, professionalId } = req.query;
-        
+
         // Definir as opções de filtro
         const options: { date?: string; professionalId?: number } = {};
-        
+
         if (date) {
           options.date = date as string;
         }
-        
+
         if (professionalId) {
           options.professionalId = parseInt(professionalId as string);
         }
-        
+
         // Buscar todos os agendamentos
         let appointments = await supabaseStorage.getAppointments(options);
-        
+
         // Buscar dados complementares para cada agendamento
         const enhancedAppointments = await Promise.all(
           appointments.map(async (appointment) => {
             // Buscar nome do cliente
             const client = await storage.getUser(appointment.userId);
-            
+
             // Buscar nome do profissional
             const professional = await storage.getProfessional(appointment.professionalId);
-            
+
             // Buscar serviços do agendamento
             const appointmentServices = await storage.getAppointmentServices(appointment.id);
-            
+
             // Buscar detalhes de cada serviço
             const serviceDetails = await Promise.all(
               appointmentServices.map(async (as) => {
@@ -539,7 +539,7 @@ export function registerAdminRoutes(app: Express): void {
                 return service;
               })
             );
-            
+
             // Retornar agendamento com dados complementares
             return {
               ...appointment,
@@ -551,7 +551,7 @@ export function registerAdminRoutes(app: Express): void {
             };
           })
         );
-        
+
         res.json(enhancedAppointments);
       } catch (error) {
         console.error('Erro ao buscar agendamentos:', error);
@@ -566,11 +566,11 @@ export function registerAdminRoutes(app: Express): void {
       try {
         const id = parseInt(req.params.id);
         const appointment = await storage.getAppointment(id);
-        
+
         if (!appointment) {
           return res.status(404).json({ message: 'Agendamento não encontrado' });
         }
-        
+
         // Buscar dados complementares
         const client = await storage.getUser(appointment.userId);
         const professional = await storage.getProfessional(appointment.professionalId);
@@ -581,7 +581,7 @@ export function registerAdminRoutes(app: Express): void {
             return service;
           })
         );
-        
+
         // Retornar agendamento com dados complementares
         const enhancedAppointment = {
           ...appointment,
@@ -591,7 +591,7 @@ export function registerAdminRoutes(app: Express): void {
           service_names: serviceDetails.map(s => s?.name || 'Serviço').filter(Boolean),
           service_ids: appointmentServices.map(as => as.serviceId)
         };
-        
+
         res.json(enhancedAppointment);
       } catch (error) {
         console.error('Erro ao buscar agendamento:', error);
@@ -606,13 +606,13 @@ export function registerAdminRoutes(app: Express): void {
       try {
         const id = parseInt(req.params.id);
         const { status, notes } = req.body;
-        
+
         // Verificar se o agendamento existe
         const existingAppointment = await storage.getAppointment(id);
         if (!existingAppointment) {
           return res.status(404).json({ message: 'Agendamento não encontrado' });
         }
-        
+
         // Verificar permissões extras
         if (req.user && (req.user as any).role !== UserRole.ADMIN) {
           const user = req.user as any;
@@ -626,9 +626,9 @@ export function registerAdminRoutes(app: Express): void {
               'iuri': 3,
               'mikael': 4
             };
-            
+
             const professionalId = professionalMap[username.toLowerCase()];
-            
+
             // Se o usuário é um profissional, só pode modificar seus próprios agendamentos
             if (professionalId && existingAppointment.professionalId !== professionalId) {
               return res.status(403).json({ message: 'Permissão negada' });
@@ -637,18 +637,18 @@ export function registerAdminRoutes(app: Express): void {
             console.error('Erro ao verificar profissional:', error);
           }
         }
-        
+
         // Atualizar status do agendamento
         const updatedAppointment = await storage.updateAppointmentStatus(id, status, notes);
-        
+
         // Verificar o status atual antes da atualização para detectar mudanças
         const oldStatus = (await storage.getAppointment(id))?.status || '';
         console.log(`Alterando agendamento ${id} de '${oldStatus}' para '${status}'`);
-        
+
         // Verificar se o status era completed anteriormente mas agora mudou
         const wasCompleted = oldStatus.toLowerCase() === 'completed';
         const isCompleted = status.toLowerCase() === 'completed';
-        
+
         // Se o status foi alterado para completed, registrar no fluxo de caixa
         // Ou se estava como completed e foi alterado para outro status, 
         // remover do fluxo de caixa
@@ -659,7 +659,7 @@ export function registerAdminRoutes(app: Express): void {
             const serviceDetails = await Promise.all(
               appointmentServices.map(as => storage.getService(as.serviceId))
             );
-            
+
             // Calcular o valor total dos serviços em centavos (formato original no banco)
             let totalAmount = 0;
             for (const service of serviceDetails) {
@@ -667,20 +667,20 @@ export function registerAdminRoutes(app: Express): void {
                 totalAmount += service.price;
               }
             }
-            
+
             // Se o valor total for 0, verificar se o agendamento tem valor total calculado
             if (totalAmount === 0 && updatedAppointment?.totalValue) {
               // Converter de reais para centavos se necessário
               totalAmount = updatedAppointment.totalValue * 100;
               console.log(`Usando valor total do agendamento definido no banco: R$ ${(totalAmount/100).toFixed(2)}`);
             }
-            
+
             console.log(`Valor total do agendamento #${id}: R$ ${(totalAmount/100).toFixed(2)} baseado em ${serviceDetails.length} serviços`);
-            
+
             // Gerenciar transações financeiras com base na mudança de status
             try {
               const appointmentDate = existingAppointment.date ? new Date(existingAppointment.date) : new Date();
-              
+
               // AÇÃO 1: Se o agendamento foi concluído, registrar transação
               if (isCompleted && !wasCompleted) {
                 console.log(`Agendamento #${id} marcado como concluído - criando registro financeiro`);
@@ -689,7 +689,7 @@ export function registerAdminRoutes(app: Express): void {
                   totalAmount,
                   appointmentDate
                 );
-                
+
                 if (transactionResult) {
                   console.log('Transação financeira registrada com sucesso:', transactionResult);
                 } else {
@@ -700,29 +700,29 @@ export function registerAdminRoutes(app: Express): void {
               else if (wasCompleted && !isCompleted) {
                 console.log(`Agendamento #${id} desmarcado de concluído - removendo registro financeiro`);
                 const removalResult = await cashFlowManager.removeAppointmentTransaction(id);
-                
+
                 if (removalResult) {
                   console.log('Transação financeira removida com sucesso:', removalResult);
                 } else {
                   console.log('Nenhuma transação encontrada para remover ou não foi possível remover');
                 }
               }
-              
+
               // Forçar o recálculo do resumo financeiro
               // Isso garante que o balanço do mês na interface será atualizado
               console.log('Forçando atualização do resumo financeiro para refletir na interface');
-              
+
               try {
                 // Calcular o saldo atual para atualizar o cache
                 const today = new Date();
-                
+
                 // Calcular primeiro e último dia do mês para forçar atualização do balanço mensal
                 const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
                 const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                
+
                 // Forçar atualização do saldo
                 const currentBalance = await cashFlowManager.calculateBalance(firstDayOfMonth, lastDayOfMonth);
-                
+
                 console.log(`Resumo financeiro atualizado. Novo saldo mensal: R$ ${currentBalance.toFixed(2)}`);
               } catch (summaryError) {
                 console.error('Erro ao atualizar resumo financeiro:', summaryError);
@@ -735,7 +735,7 @@ export function registerAdminRoutes(app: Express): void {
             // Não impedir a conclusão do agendamento se houver erro no registro financeiro
           }
         }
-        
+
         res.json(updatedAppointment);
       } catch (error) {
         console.error('Erro ao atualizar status do agendamento:', error);
@@ -749,16 +749,16 @@ export function registerAdminRoutes(app: Express): void {
     async (req: Request, res: Response) => {
       try {
         const id = parseInt(req.params.id);
-        
+
         // Verificar se o agendamento existe
         const existingAppointment = await storage.getAppointment(id);
         if (!existingAppointment) {
           return res.status(404).json({ message: 'Agendamento não encontrado' });
         }
-        
+
         // Excluir agendamento
         await storage.deleteAppointment(id);
-        
+
         res.status(204).send();
       } catch (error) {
         console.error('Erro ao excluir agendamento:', error);
@@ -775,11 +775,11 @@ export function registerAdminRoutes(app: Express): void {
     async (req: Request, res: Response) => {
       try {
         console.log('Obtendo estatísticas do dashboard para o usuário:', (req.user as any).id, 'com papel:', (req.user as any).role);
-        
+
         // Obter data de hoje (no formato que o banco espera)
         const today = new Date().toISOString().split('T')[0];
         console.log('Data de hoje:', today);
-        
+
         // Filtrar por profissional se não for admin
         let professionalId = undefined;
         if ((req.user as any).role !== UserRole.ADMIN) {
@@ -788,7 +788,7 @@ export function registerAdminRoutes(app: Express): void {
             // Verificar nos logs qual é o ID do profissional baseado no email/username
             const username = (req.user as any).username;
             console.log('Buscando profissional por username:', username);
-            
+
             // Map de usernames para IDs de profissionais
             const professionalMap: Record<string, number> = {
               'carlos': 1,
@@ -796,14 +796,14 @@ export function registerAdminRoutes(app: Express): void {
               'iuri': 3,
               'mikael': 4
             };
-            
+
             professionalId = professionalMap[username.toLowerCase()];
             console.log('ID do profissional encontrado:', professionalId);
           } catch (profError) {
             console.error('Erro ao buscar profissional para o usuário:', profError);
           }
         }
-        
+
         // Buscar agendamentos de hoje (aplicando filtro de profissional se necessário)
         console.log('Buscando agendamentos com filtros:', { date: today, professionalId });
         const todayAppointments = await supabaseStorage.getAppointments({ 
@@ -811,24 +811,24 @@ export function registerAdminRoutes(app: Express): void {
           professionalId
         });
         console.log('Agendamentos encontrados:', todayAppointments.length);
-        
+
         // Buscar totais de cada entidade
         let professionals = await storage.getProfessionals();
         console.log('Total de profissionais:', professionals.length);
-        
+
         // Se for profissional, filtrar apenas o próprio profissional
         if (professionalId) {
           professionals = professionals.filter(p => p.id === professionalId);
         }
-        
+
         // Buscar produtos (apenas para admin)
         let products = [];
         let lowStockProducts = [];
-        
+
         if ((req.user as any).role === UserRole.ADMIN) {
           products = await storage.getProducts();
           console.log('Total de produtos:', products.length);
-          
+
           // Verificar produtos com estoque baixo
           // Alguns produtos usam stockQuantity, outros usam inStock
           lowStockProducts = products.filter(p => {
@@ -839,47 +839,47 @@ export function registerAdminRoutes(app: Express): void {
           });
           console.log('Produtos com estoque baixo:', lowStockProducts.length);
         }
-        
+
         // Dados para estatísticas financeiras
         let financialData = {
           dailyRevenue: "0.00",
           monthlyRevenue: "0.00"
         };
-        
+
         // Se for admin, adicionar dados financeiros
         if ((req.user as any).role === UserRole.ADMIN) {
           try {
             // Obter dados financeiros do dia
             const startOfDay = new Date();
             startOfDay.setHours(0, 0, 0, 0);
-            
+
             const endOfDay = new Date();
             endOfDay.setHours(23, 59, 59, 999);
-            
+
             // Obter dados financeiros do mês
             const startOfMonth = new Date();
             startOfMonth.setDate(1);
             startOfMonth.setHours(0, 0, 0, 0);
-            
+
             const endOfMonth = new Date();
-            
+
             // Formatação para o banco
             const formattedStartOfDay = startOfDay.toISOString().split('T')[0];
             const formattedEndOfDay = endOfDay.toISOString().split('T')[0];
             const formattedStartOfMonth = startOfMonth.toISOString().split('T')[0];
             const formattedEndOfMonth = endOfMonth.toISOString().split('T')[0];
-            
+
             try {
               // Primeiro, tentar buscar dados da tabela cash_flow
               console.log("Buscando dados financeiros da tabela cash_flow...");
-              
+
               try {
                 // Verificar se a tabela cash_flow existe
                 const { data: tableCheck, error: tableError } = await supabase
                   .from('cash_flow')
                   .select('id')
                   .limit(1);
-                
+
                 if (tableError && tableError.code === '42P01') {
                   console.log("Tabela cash_flow não existe, usando cálculo alternativo...");
                   await calculateFinancialsFromAppointments();
@@ -889,16 +889,16 @@ export function registerAdminRoutes(app: Express): void {
                 } else {
                   // Tabela existe, vamos usar ela
                   console.log("Tabela cash_flow encontrada, calculando a partir dela...");
-                  
+
                   // Data de hoje
                   const today = new Date().toISOString().split('T')[0];
-                  
+
                   // Buscar receitas do dia
                   const { data: todayData, error: todayError } = await supabase
                     .from('cash_flow')
                     .select('amount, type')
                     .eq('date', today);
-                  
+
                   if (todayError) {
                     console.error("Erro ao buscar dados diários de cash_flow:", todayError);
                     await calculateFinancialsFromAppointments();
@@ -906,67 +906,61 @@ export function registerAdminRoutes(app: Express): void {
                     // Calcular receita do dia (soma de INCOME e PRODUCT_SALE)
                     let dailyRevenue = 0;
                     for (const item of todayData || []) {
-                      if (item.type === 'INCOME' || item.type === 'PRODUCT_SALE') {
+                      if (item.type === 'INCOME' || item.type=== 'PRODUCT_SALE') {
                         dailyRevenue += item.amount;
                       }
                     }
-                    
+
                     // Buscar receitas do mês
                     const startOfMonth = new Date();
                     startOfMonth.setDate(1);
                     const startOfMonthFormatted = startOfMonth.toISOString().split('T')[0];
-                    
+
                     const endOfMonth = new Date();
                     endOfMonth.setMonth(endOfMonth.getMonth() + 1);
                     endOfMonth.setDate(0);
                     const endOfMonthFormatted = endOfMonth.toISOString().split('T')[0];
-                    
+
+                    // Buscar transações do mês
                     const { data: monthData, error: monthError } = await supabase
                       .from('cash_flow')
                       .select('amount, type, appointment_id')
                       .gte('date', startOfMonthFormatted)
                       .lte('date', endOfMonthFormatted);
-                    
+
                     if (monthError) {
                       console.error("Erro ao buscar dados mensais de cash_flow:", monthError);
                       await calculateFinancialsFromAppointments();
                     } else {
+                      // Primeiro, buscar todos os agendamentos atualmente concluídos
+                      const { data: completedAppointments } = await supabase
+                        .from('appointments')
+                        .select('id')
+                        .eq('status', 'completed');
+
+                      // Criar um Set dos IDs de agendamentos concluídos para busca rápida
+                      const completedAppointmentIds = new Set(
+                        completedAppointments?.map(app => app.id) || []
+                      );
+
                       // Calcular receita do mês apenas de agendamentos concluídos
                       let monthlyRevenue = 0;
-                      
-                      // Buscar status atual dos agendamentos
-                      const appointmentIds = monthData
-                        ?.filter(item => item.appointment_id)
-                        .map(item => item.appointment_id);
-                        
-                      const { data: appointments } = await supabase
-                        .from('appointments')
-                        .select('id, status')
-                        .in('id', appointmentIds || []);
-                      
-                      const completedAppointments = new Set(
-                        appointments
-                          ?.filter(app => app.status === 'completed')
-                          .map(app => app.id)
-                      );
-                      
                       for (const item of monthData || []) {
-                        // Se for venda de produto, soma normalmente
                         if (item.type === 'PRODUCT_SALE') {
+                          // Vendas de produtos são sempre contabilizadas
                           monthlyRevenue += item.amount;
-                        }
-                        // Se for receita de agendamento, verifica se ainda está concluído
-                        else if (item.type === 'INCOME' && item.appointment_id) {
-                          if (completedAppointments.has(item.appointment_id)) {
+                        } else if (item.type === 'INCOME' && item.appointment_id) {
+                          // Verificar se o agendamento ainda está concluído
+                          if (completedAppointmentIds.has(item.appointment_id)) {
                             monthlyRevenue += item.amount;
                           }
                         }
                       }
-                      
+
                       console.log('Valores calculados da tabela cash_flow:');
                       console.log('- Faturamento diário:', dailyRevenue);
                       console.log('- Faturamento mensal:', monthlyRevenue);
-                      
+
                       financialData = {
                         dailyRevenue: dailyRevenue.toFixed(2),
                         monthlyRevenue: monthlyRevenue.toFixed(2)
@@ -978,81 +972,81 @@ export function registerAdminRoutes(app: Express): void {
                 console.error("Erro ao acessar tabela cash_flow:", cashFlowError);
                 await calculateFinancialsFromAppointments();
               }
-              
+
               // Função interna para cálculo alternativo com base nos agendamentos
               async function calculateFinancialsFromAppointments() {
                 console.log("Calculando faturamento diretamente dos agendamentos...");
-                
+
                 // 1. Buscar todos os agendamentos concluídos do dia
                 const todayDateFormatted = new Date().toISOString().split('T')[0];
                 console.log("Calculando agendamentos do dia, data:", todayDateFormatted);
-                
+
                 const appointmentsTodayResult = await supabase
                   .from('appointments')
                   .select('id, professional_id')
                   .eq('date', todayDateFormatted)
                   .eq('status', 'COMPLETED');
-                
+
                 // 2. Buscar todos os agendamentos concluídos do mês
                 const startOfMonthDate = new Date();
                 startOfMonthDate.setDate(1);
                 const startOfMonthFormatted = startOfMonthDate.toISOString().split('T')[0];
-                
+
                 const endOfMonthDate = new Date();
                 endOfMonthDate.setMonth(endOfMonthDate.getMonth() + 1);
                 endOfMonthDate.setDate(0);
                 const endOfMonthFormatted = endOfMonthDate.toISOString().split('T')[0];
-                
+
                 console.log("Calculando agendamentos do mês, período:", startOfMonthFormatted, "até", endOfMonthFormatted);
-                
+
                 const appointmentsMonthResult = await supabase
                   .from('appointments')
                   .select('id, professional_id')
                   .gte('date', startOfMonthFormatted)
                   .lte('date', endOfMonthFormatted)
                   .eq('status', 'COMPLETED');
-                
+
                 // Processar resultados
                 if (appointmentsTodayResult.error) {
                   console.error('Erro ao buscar agendamentos do dia:', appointmentsTodayResult.error);
                 }
-                
+
                 if (appointmentsMonthResult.error) {
                   console.error('Erro ao buscar agendamentos do mês:', appointmentsMonthResult.error);
                 }
-                
+
                 const todayAppointments = appointmentsTodayResult.data || [];
                 const monthAppointments = appointmentsMonthResult.data || [];
-                
+
                 console.log("Agendamentos do dia encontrados:", todayAppointments.length);
                 console.log("Agendamentos do mês encontrados:", monthAppointments.length);
-                
+
                 // 3. Calcular valor total diário
                 let dailyTotal = 0;
-                
+
                 for (const appointment of todayAppointments) {
                   let appointmentTotal = await calculateAppointmentValue(appointment.id);
                   dailyTotal += appointmentTotal;
                 }
-                
+
                 // 4. Calcular valor total mensal
                 let monthlyTotal = 0;
-                
+
                 for (const appointment of monthAppointments) {
                   let appointmentTotal = await calculateAppointmentValue(appointment.id);
                   monthlyTotal += appointmentTotal;
                 }
-                
+
                 console.log('Valores calculados diretamente dos agendamentos:');
                 console.log('- Faturamento diário:', dailyTotal);
                 console.log('- Faturamento mensal:', monthlyTotal);
-                
+
                 financialData = {
                   dailyRevenue: dailyTotal.toFixed(2),
                   monthlyRevenue: monthlyTotal.toFixed(2)
                 };
               }
-              
+
               // Função auxiliar para calcular valor de um agendamento
               async function calculateAppointmentValue(appointmentId: number): Promise<number> {
                 // Buscar serviços associados
@@ -1060,12 +1054,12 @@ export function registerAdminRoutes(app: Express): void {
                   .from('appointment_services')
                   .select('service_id')
                   .eq('appointment_id', appointmentId);
-                
+
                 if (servicesError) {
                   console.error(`Erro ao buscar serviços do agendamento #${appointmentId}:`, servicesError);
                   return 0;
                 }
-                
+
                 // Para cada serviço, buscar preço
                 let total = 0;
                 for (const service of services || []) {
@@ -1074,16 +1068,16 @@ export function registerAdminRoutes(app: Express): void {
                     .select('price')
                     .eq('id', service.service_id)
                     .single();
-                  
+
                   if (serviceError) {
                     console.error(`Erro ao buscar detalhes do serviço #${service.service_id}:`, serviceError);
                     continue;
                   }
-                  
+
                   // Os preços são armazenados em centavos, converter para reais
                   total += (serviceDetails?.price || 0) / 100;
                 }
-                
+
                 console.log(`Agendamento #${appointmentId}: R$ ${total}`);
                 return total;
               }
@@ -1095,7 +1089,7 @@ export function registerAdminRoutes(app: Express): void {
             // Continuar com os outros dados mesmo se os financeiros falharem
           }
         }
-        
+
         // Montar estatísticas
         const stats = {
           appointments: {
@@ -1112,7 +1106,7 @@ export function registerAdminRoutes(app: Express): void {
           },
           finance: financialData
         };
-        
+
         console.log('Estatísticas geradas:', stats);
         res.json(stats);
       } catch (error) {
@@ -1127,11 +1121,11 @@ export function registerAdminRoutes(app: Express): void {
     async (req: Request, res: Response) => {
       try {
         console.log('Obtendo agendamentos de hoje para o usuário:', (req.user as any).id, 'com papel:', (req.user as any).role);
-        
+
         // Obter data de hoje (no formato que o banco espera)
         const today = new Date().toISOString().split('T')[0];
         console.log('Data de hoje:', today);
-        
+
         // Filtrar por profissional se não for admin
         let professionalId = undefined;
         if ((req.user as any).role !== UserRole.ADMIN) {
@@ -1139,7 +1133,7 @@ export function registerAdminRoutes(app: Express): void {
           try {
             const username = (req.user as any).username;
             console.log('Buscando profissional por username:', username);
-            
+
             // Map de usernames para IDs de profissionais
             const professionalMap: Record<string, number> = {
               'carlos': 1,
@@ -1147,14 +1141,14 @@ export function registerAdminRoutes(app: Express): void {
               'iuri': 3,
               'mikael': 4
             };
-            
+
             professionalId = professionalMap[username.toLowerCase()];
             console.log('ID do profissional encontrado:', professionalId);
           } catch (profError) {
             console.error('Erro ao buscar profissional para o usuário:', profError);
           }
         }
-        
+
         // Buscar agendamentos de hoje com filtro de profissional, se necessário
         console.log('Buscando agendamentos com filtros:', { date: today, professionalId });
         let appointments = await supabaseStorage.getAppointments({ 
@@ -1162,24 +1156,24 @@ export function registerAdminRoutes(app: Express): void {
           professionalId
         });
         console.log('Agendamentos encontrados:', appointments.length);
-        
+
         // Buscar dados complementares para cada agendamento
         const enhancedAppointments = await Promise.all(
           appointments.map(async (appointment) => {
             console.log('Processando agendamento ID:', appointment.id);
-            
+
             // Buscar nome do cliente
             const client = await storage.getUser(appointment.userId);
             console.log('Cliente:', client?.name || client?.username);
-            
+
             // Buscar nome do profissional
             const professional = await storage.getProfessional(appointment.professionalId);
             console.log('Profissional:', professional?.name);
-            
+
             // Buscar serviços do agendamento
             const appointmentServices = await storage.getAppointmentServices(appointment.id);
             console.log('Serviços encontrados:', appointmentServices.length);
-            
+
             // Buscar detalhes de cada serviço
             const serviceDetails = await Promise.all(
               appointmentServices.map(async (as) => {
@@ -1187,9 +1181,9 @@ export function registerAdminRoutes(app: Express): void {
                 return service;
               })
             );
-            
+
             console.log('Serviços detalhados:', serviceDetails.map(s => s?.name));
-            
+
             // Retornar agendamento com dados complementares
             return {
               ...appointment,
@@ -1200,12 +1194,12 @@ export function registerAdminRoutes(app: Express): void {
             };
           })
         );
-        
+
         // Ordenar por horário
         enhancedAppointments.sort((a, b) => {
           return a.startTime.localeCompare(b.startTime);
         });
-        
+
         console.log('Agendamentos hoje (após processamento):', enhancedAppointments.length);
         res.json(enhancedAppointments);
       } catch (error) {
@@ -1225,14 +1219,14 @@ export function registerAdminRoutes(app: Express): void {
       try {
         const professionalId = parseInt(req.params.professionalId);
         const { date, startTime, endTime } = req.body;
-        
+
         if (!date || !startTime || !endTime) {
           return res.status(400).json({ message: 'Data, hora de início e hora de fim são obrigatórios' });
         }
-        
+
         // Bloquear horário na agenda
         const result = await adminFunctions.blockTime(professionalId, date, startTime, endTime);
-        
+
         if (result) {
           res.status(201).json(result);
         } else {
@@ -1244,16 +1238,16 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   adminRouter.delete('/blocked-times/:id', 
     requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
     async (req: Request, res: Response) => {
       try {
         const id = parseInt(req.params.id);
-        
+
         // Desbloquear horário na agenda
         const result = await adminFunctions.unblockTime(id);
-        
+
         if (result) {
           res.status(204).send();
         } else {
@@ -1265,7 +1259,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   /**
    * Inicialização do sistema administrativo - para o primeiro usuário
    * Esta rota não requer autenticação para permitir a configuração inicial
@@ -1274,17 +1268,17 @@ export function registerAdminRoutes(app: Express): void {
     async (req: Request, res: Response) => {
       try {
         const { userId } = req.body;
-        
+
         if (!userId) {
           return res.status(400).json({ 
             success: false, 
             message: 'ID do usuário é obrigatório' 
           });
         }
-        
+
         // Inicializar sistema administrativo
         const result = await adminFunctions.initializeAdminSystem(userId);
-        
+
         if (result.success) {
           res.status(200).json(result);
         } else {
