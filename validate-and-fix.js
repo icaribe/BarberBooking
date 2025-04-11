@@ -2,6 +2,7 @@
 import { validateAndFixTransactions } from './server/cash-flow-manager.ts';
 
 console.log('Iniciando validação e correção de transações...');
+
 validateAndFixTransactions()
   .then(() => {
     console.log('Processo concluído com sucesso');
