@@ -68,6 +68,13 @@ export default function AdminFinancePage() {
         from: range.from,
         to: range.to || range.from
       });
+      
+      // Forçar atualização imediata dos dados quando o período é alterado
+      setTimeout(() => {
+        console.log('Período alterado. Atualizando dados financeiros...');
+        refetch();
+        refetchSummary();
+      }, 100);
     }
   };
 
@@ -99,7 +106,12 @@ interface Transaction {
       dateRange.from.toISOString(), 
       dateRange.to.toISOString()
     ],
-    retry: 1
+    retry: 1,
+    staleTime: 0, // Não manter em cache
+    gcTime: 0, // Descartar resultados após uso
+    refetchOnMount: true, // Sempre recarregar ao montar
+    refetchOnWindowFocus: true, // Recarregar ao retornar ao foco
+    refetchInterval: 30000 // Recarregar a cada 30 segundos (para capturar novos registros)
   });
 
   // Interface para o resumo financeiro
@@ -131,8 +143,10 @@ interface FinancialSummary {
     retry: 1,
     // Garantir que o resumo será sempre atualizado
     staleTime: 0, 
-    refetchOnWindowFocus: true
-  });
+    refetchOnWindowFocus: true,
+    gcTime: 0, // Não manter em cache
+    refetchOnMount: true // Sempre recarregar ao montar
+  }) as { data: FinancialSummary | undefined, isLoading: boolean, refetch: () => void };
 
   // Lidar com o envio de uma nova transação
   const handleSubmit = async (values: z.infer<typeof transactionSchema>) => {
@@ -360,22 +374,30 @@ interface FinancialSummary {
                       <div className="flex justify-between items-center border-b pb-2">
                         <span className="text-sm">Entradas</span>
                         <span className="font-medium text-green-600">
-                          R$ {summary.totalIncome ? summary.totalIncome.toFixed(2).replace('.', ',') : '0,00'}
+                          R$ {summary && 'totalIncome' in summary && summary.totalIncome !== undefined 
+                              ? Number(summary.totalIncome).toFixed(2).replace('.', ',') 
+                              : '0,00'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center border-b pb-2">
                         <span className="text-sm">Saídas</span>
                         <span className="font-medium text-red-600">
-                          R$ {summary.totalExpense ? summary.totalExpense.toFixed(2).replace('.', ',') : '0,00'}
+                          R$ {summary && 'totalExpense' in summary && summary.totalExpense !== undefined 
+                              ? Number(summary.totalExpense).toFixed(2).replace('.', ',') 
+                              : '0,00'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center pt-2">
                         <span className="font-medium">Saldo</span>
                         <span className={cn(
                           "font-bold",
-                          summary.balance >= 0 ? "text-green-600" : "text-red-600"
+                          (summary && 'balance' in summary && summary.balance !== undefined)
+                            ? (Number(summary.balance) >= 0 ? "text-green-600" : "text-red-600")
+                            : "text-gray-600"
                         )}>
-                          R$ {summary.balance.toFixed(2).replace('.', ',')}
+                          R$ {summary && 'balance' in summary && summary.balance !== undefined 
+                              ? Number(summary.balance).toFixed(2).replace('.', ',') 
+                              : '0,00'}
                         </span>
                       </div>
                     </div>

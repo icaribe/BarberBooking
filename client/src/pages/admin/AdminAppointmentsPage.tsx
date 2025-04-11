@@ -141,21 +141,37 @@ export default function AdminAppointmentsPage() {
       });
       
       // Se o agendamento foi marcado como concluído, garantir que as queries financeiras sejam atualizadas
-      if (variables.status === 'completed' || variables.status === 'COMPLETED') {
+      // Usando toLowerCase para comparação case-insensitive
+      const statusLower = variables.status.toLowerCase();
+      if (statusLower === 'completed') {
         console.log('Agendamento marcado como COMPLETED - atualizando resumo financeiro');
-        // Invalidar todas as queries relacionadas ao fluxo de caixa
-        queryClient.invalidateQueries({
-          queryKey: ['/api/admin/cash-flow'],
-          refetchType: 'all',
-          exact: false
-        });
         
-        // Invalidar especificamente o resumo financeiro
-        queryClient.invalidateQueries({
-          queryKey: ['/api/admin/cash-flow/summary'],
-          refetchType: 'all',
-          exact: false
-        });
+        // Forçar atualizações em todas as queries de dados financeiros
+        setTimeout(() => {
+          console.log('Forçando atualização de dados financeiros após conclusão de agendamento');
+          // Invalidar todas as queries relacionadas ao fluxo de caixa
+          queryClient.invalidateQueries({
+            queryKey: ['/api/admin/cash-flow'],
+            refetchType: 'all',
+            exact: false
+          });
+          
+          // Invalidar especificamente o resumo financeiro
+          queryClient.invalidateQueries({
+            queryKey: ['/api/admin/cash-flow/summary'],
+            refetchType: 'all',
+            exact: false
+          });
+          
+          // Fazer uma solicitação explícita para o resumo financeiro atual
+          apiRequest('GET', '/api/admin/cash-flow/summary')
+            .then(data => {
+              console.log('Resumo financeiro atualizado após conclusão:', data);
+            })
+            .catch(err => {
+              console.error('Erro ao solicitar resumo financeiro atualizado:', err);
+            });
+        }, 1000); // Pequeno delay para garantir que o backend tenha concluído o processamento
       }
       
       // Atualizar o status do agendamento localmente para refletir imediatamente na interface
