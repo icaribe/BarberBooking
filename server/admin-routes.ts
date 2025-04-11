@@ -923,7 +923,7 @@ export function registerAdminRoutes(app: Express): void {
                     
                     const { data: monthData, error: monthError } = await supabase
                       .from('cash_flow')
-                      .select('amount, type')
+                      .select('amount, type, appointment_id')
                       .gte('date', startOfMonthFormatted)
                       .lte('date', endOfMonthFormatted);
                     
@@ -931,11 +931,35 @@ export function registerAdminRoutes(app: Express): void {
                       console.error("Erro ao buscar dados mensais de cash_flow:", monthError);
                       await calculateFinancialsFromAppointments();
                     } else {
-                      // Calcular receita do mês
+                      // Calcular receita do mês apenas de agendamentos concluídos
                       let monthlyRevenue = 0;
+                      
+                      // Buscar status atual dos agendamentos
+                      const appointmentIds = monthData
+                        ?.filter(item => item.appointment_id)
+                        .map(item => item.appointment_id);
+                        
+                      const { data: appointments } = await supabase
+                        .from('appointments')
+                        .select('id, status')
+                        .in('id', appointmentIds || []);
+                      
+                      const completedAppointments = new Set(
+                        appointments
+                          ?.filter(app => app.status === 'completed')
+                          .map(app => app.id)
+                      );
+                      
                       for (const item of monthData || []) {
-                        if (item.type === 'INCOME' || item.type === 'PRODUCT_SALE') {
+                        // Se for venda de produto, soma normalmente
+                        if (item.type === 'PRODUCT_SALE') {
                           monthlyRevenue += item.amount;
+                        }
+                        // Se for receita de agendamento, verifica se ainda está concluído
+                        else if (item.type === 'INCOME' && item.appointment_id) {
+                          if (completedAppointments.has(item.appointment_id)) {
+                            monthlyRevenue += item.amount;
+                          }
                         }
                       }
                       
