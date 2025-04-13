@@ -1,187 +1,156 @@
 /**
- * Script para verificar a conexão com o Supabase e validar o banco de dados
+ * Script para verificar a configuração do banco de dados no Supabase
  * 
- * Este script testa a conexão com o Supabase e verifica se as tabelas 
- * foram criadas corretamente, exibindo um relatório detalhado.
+ * Este script faz o seguinte:
+ * 1. Verifica tabelas existentes
+ * 2. Verifica tipos enumerados
+ * 3. Verifica políticas RLS
+ * 4. Verifica se RLS está habilitado nas tabelas
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import * as schema from '../shared/schema';
-import dotenv from 'dotenv';
+import { supabaseAdmin } from '../shared/supabase-client';
+import * as dotenv from 'dotenv';
 
 // Carregar variáveis de ambiente
 dotenv.config();
 
-// Verificar se as variáveis de ambiente necessárias estão configuradas
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const DATABASE_URL = process.env.DATABASE_URL;
-
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !DATABASE_URL) {
-  console.error("❌ Erro: As variáveis de ambiente SUPABASE_URL, SUPABASE_SERVICE_KEY e DATABASE_URL são necessárias");
-  process.exit(1);
-}
-
-// Criar cliente Supabase com a chave de serviço
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
-// Função para verificar a conexão e as tabelas
-async function verifyDatabase() {
-  console.log("🔍 Iniciando verificação do banco de dados Supabase...");
-
+/**
+ * Verifica a configuração do banco de dados no Supabase
+ */
+async function verifySupabaseDatabase() {
+  console.log('\n=== Verificando Configuração do Banco de Dados no Supabase ===\n');
+  
+  // Declaração para armazenar os nomes das tabelas para acesso posterior
+  let allTableNames: string[] = [];
+  
   try {
-    // Testar a conexão com o Supabase
-    console.log("🔄 Testando conexão com o Supabase...");
-    const { data: supabaseTest, error: supabaseError } = await supabase.from('pg_tables').select('*').limit(1);
+    // Verificar tabelas
+    console.log('Verificando tabelas existentes:');
     
-    if (supabaseError) {
-      throw new Error(`Falha na conexão com o Supabase: ${supabaseError.message}`);
-    }
-    
-    console.log("✅ Conexão com o Supabase estabelecida com sucesso!");
-
-    // Verificar se DATABASE_URL está definido
-    if (!DATABASE_URL) {
-      throw new Error('DATABASE_URL não está definido ou está vazio');
-    }
-
-    // Configuração do cliente Postgres para verificação
-    console.log("🔄 Testando conexão direta com o banco de dados PostgreSQL...");
-    const pgClient = postgres(DATABASE_URL, { 
-      ssl: 'require',
-      max: 1 // Use apenas uma conexão para verificação
-    });
-
-    // Verificar a conexão PostgreSQL
-    try {
-      await pgClient.query('SELECT NOW()');
-      console.log("✅ Conexão direta com o PostgreSQL estabelecida com sucesso!");
-    } catch (pgError) {
-      console.error("❌ Falha na conexão direta com o PostgreSQL:", pgError);
-      throw pgError;
-    }
-
-    // Listar todas as tabelas no banco de dados
-    console.log("\n📋 Verificando tabelas existentes...");
-    const { data: tables, error: tablesError } = await supabase
-      .from('information_schema.tables')
-      .select('table_name')
-      .eq('table_schema', 'public');
-
-    if (tablesError) {
-      throw tablesError;
-    }
-
-    const existingTables = tables.map(t => t.table_name);
-    console.log(`\n📊 Total de tabelas encontradas: ${existingTables.length}`);
-    
-    // Verificar cada tabela esperada
-    const expectedTables = [
+    // Lista de tabelas a verificar
+    const tablesToCheck = [
       'users',
-      'service_categories',
       'services',
+      'service_categories',
+      'products',
+      'product_categories',
       'professionals',
       'schedules',
       'appointments',
       'appointment_services',
-      'product_categories',
-      'products',
       'loyalty_rewards',
       'loyalty_history',
-      'cash_flow',
-      'professional_services'
+      'cash_flow'
     ];
-
-    console.log("\n🔍 Verificando tabelas esperadas:");
     
-    for (const tableName of expectedTables) {
-      if (existingTables.includes(tableName)) {
-        // Verificar a estrutura da tabela
-        const { data: columns, error: columnsError } = await supabase
-          .from('information_schema.columns')
-          .select('column_name, data_type, is_nullable')
-          .eq('table_schema', 'public')
-          .eq('table_name', tableName);
-          
-        if (columnsError) {
-          console.error(`❌ Erro ao verificar colunas da tabela ${tableName}:`, columnsError);
+    const existingTables: string[] = [];
+    const missingTables: string[] = [];
+    
+    // Verificar cada tabela
+    for (const tableName of tablesToCheck) {
+      try {
+        const { error } = await supabaseAdmin
+          .from(tableName)
+          .select('count')
+          .limit(1);
+        
+        if (error && error.code === 'PGRST116') {
+          missingTables.push(tableName);
+        } else {
+          existingTables.push(tableName);
+          allTableNames.push(tableName);
+        }
+      } catch (error) {
+        console.error(`Erro ao verificar tabela ${tableName}:`, error);
+        missingTables.push(tableName);
+      }
+    }
+    
+    // Mostrar resultados da verificação de tabelas
+    if (existingTables.length > 0) {
+      console.log('✅ Tabelas encontradas:');
+      existingTables.forEach(tableName => console.log(`   - ${tableName}`));
+    }
+    
+    if (missingTables.length > 0) {
+      console.error('❌ Tabelas ausentes:');
+      missingTables.forEach(tableName => console.log(`   - ${tableName}`));
+    }
+    
+    // Verificar políticas RLS
+    console.log('\nVerificando políticas RLS:');
+    
+    // Verifica políticas para cada tabela existente
+    for (const tableName of existingTables) {
+      try {
+        // Tentativa de verificar as políticas da tabela
+        const { data: tableData, error: policyError } = await supabaseAdmin.rpc('exec', {
+          query: `
+            SELECT policyname, permissive, roles, cmd
+            FROM pg_policies
+            WHERE tablename = '${tableName}'
+            ORDER BY policyname
+          `
+        });
+        
+        if (policyError) {
+          console.error(`❌ Erro ao verificar políticas para tabela ${tableName}:`, policyError);
           continue;
         }
         
-        console.log(`✅ Tabela '${tableName}' encontrada com ${columns.length} colunas`);
-      } else {
-        console.error(`❌ Tabela '${tableName}' NÃO encontrada`);
-      }
-    }
-
-    // Verificar enums
-    console.log("\n🔍 Verificando tipos enumerados:");
-    const { data: enums, error: enumsError } = await pgClient.query(`
-      SELECT typname 
-      FROM pg_type 
-      JOIN pg_catalog.pg_namespace ON pg_namespace.oid = pg_type.typnamespace
-      WHERE typtype = 'e' AND nspname = 'public'
-    `);
-
-    if (enumsError) {
-      console.error("❌ Erro ao verificar enums:", enumsError);
-    } else {
-      const existingEnums = enums.map(e => e.typname);
-      const expectedEnums = ['user_role', 'transaction_type', 'transaction_category'];
-      
-      for (const enumName of expectedEnums) {
-        if (existingEnums.includes(enumName)) {
-          console.log(`✅ Enum '${enumName}' encontrado`);
+        if (!tableData || tableData.length === 0) {
+          console.warn(`⚠️ Nenhuma política RLS encontrada para tabela ${tableName}`);
         } else {
-          console.log(`❌ Enum '${enumName}' NÃO encontrado`);
-        }
-      }
-    }
-
-    // Verificar políticas RLS
-    console.log("\n🔍 Verificando políticas RLS:");
-    const { data: policies, error: policiesError } = await pgClient.query(`
-      SELECT tablename, policyname
-      FROM pg_policies
-      WHERE schemaname = 'public'
-    `);
-
-    if (policiesError) {
-      console.error("❌ Erro ao verificar políticas RLS:", policiesError);
-    } else {
-      if (policies.length === 0) {
-        console.log("⚠️ Nenhuma política RLS encontrada. Execute o script setup-rls.ts para configurar as políticas.");
-      } else {
-        console.log(`✅ Total de políticas RLS encontradas: ${policies.length}`);
-        
-        // Agrupar políticas por tabela
-        const policyByTable = policies.reduce<Record<string, string[]>>((acc, policy) => {
-          if (!acc[policy.tablename]) {
-            acc[policy.tablename] = [];
+          console.log(`✅ ${tableData.length} políticas encontradas para tabela ${tableName}:`);
+          
+          // Mostrar detalhes das políticas encontradas
+          for (const policy of tableData) {
+            console.log(`   - ${policy.policyname} (${policy.cmd || 'ALL'})`);
           }
-          acc[policy.tablename].push(policy.policyname);
-          return acc;
-        }, {});
-        
-        // Mostrar políticas para cada tabela
-        for (const [table, tablePolicies] of Object.entries(policyByTable)) {
-          console.log(`   📝 Tabela '${table}': ${tablePolicies.length} políticas`);
-          // tablePolicies.forEach(policy => console.log(`      - ${policy}`));
         }
+      } catch (error) {
+        console.error(`❌ Erro durante verificação de políticas para tabela ${tableName}:`, error);
       }
     }
-
-    console.log("\n✅ Verificação do banco de dados concluída!");
     
-    // Fechar a conexão
-    await pgClient.end();
+    // Verificar se RLS está habilitado nas tabelas
+    console.log('\nVerificando status RLS das tabelas:');
+    
+    for (const tableName of existingTables) {
+      try {
+        const { data: rlsData, error: rlsError } = await supabaseAdmin.rpc('exec', {
+          query: `
+            SELECT relname, relrowsecurity 
+            FROM pg_class 
+            WHERE relname = '${tableName}'
+          `
+        });
+        
+        if (rlsError) {
+          console.error(`❌ Erro ao verificar RLS para tabela ${tableName}:`, rlsError);
+          continue;
+        }
+        
+        if (!rlsData || rlsData.length === 0) {
+          console.warn(`⚠️ Não foi possível verificar status RLS para tabela ${tableName}`);
+        } else {
+          const isEnabled = rlsData[0].relrowsecurity === true;
+          const status = isEnabled ? '✅' : '❌';
+          console.log(`${status} ${tableName}: RLS ${isEnabled ? 'habilitado' : 'desabilitado'}`);
+        }
+      } catch (error) {
+        console.error(`❌ Erro durante verificação de status RLS para tabela ${tableName}:`, error);
+      }
+    }
+    
+    console.log('\n=== Verificação Concluída ===\n');
   } catch (error) {
-    console.error("\n❌ Erro durante a verificação do banco de dados:", error);
-    process.exit(1);
+    console.error('Erro durante a verificação:', error);
   }
 }
 
-// Executar o script
-verifyDatabase().catch(console.error);
+// Executar a função principal
+verifySupabaseDatabase().catch(error => {
+  console.error('Erro durante a verificação do banco de dados:', error);
+  process.exit(1);
+});

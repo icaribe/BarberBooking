@@ -1,90 +1,96 @@
-import supabase from '../server/supabase';
-import dotenv from 'dotenv';
+import { supabase, supabaseAdmin, testSupabaseConnection } from '../shared/supabase-client';
+import * as dotenv from 'dotenv';
 
-// Carregar variáveis de ambiente do arquivo .env
+// Carregar variáveis de ambiente
 dotenv.config();
 
-/**
- * Script para testar a conexão com o Supabase e verificar
- * se as credenciais estão configuradas corretamente.
- */
-async function testSupabaseConnection() {
-  try {
-    console.log('Testando conexão com o Supabase...');
+async function main() {
+  console.log('\n=== Verificação de Conexão com o Supabase ===\n');
+  
+  // Verificando variáveis de ambiente
+  console.log('Verificando variáveis de ambiente:');
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+  const useSupabase = process.env.USE_SUPABASE;
+  
+  console.log(`SUPABASE_URL: ${supabaseUrl ? '✅ Configurado' : '❌ Não configurado'}`);
+  console.log(`SUPABASE_ANON_KEY: ${supabaseAnonKey ? '✅ Configurado' : '❌ Não configurado'}`);
+  console.log(`SUPABASE_SERVICE_KEY: ${supabaseServiceKey ? '✅ Configurado' : '❌ Não configurado'}`);
+  console.log(`USE_SUPABASE: ${useSupabase ? `✅ Configurado (${useSupabase})` : '❌ Não configurado'}`);
+  
+  // Testando conexão com o Supabase
+  console.log('\nTentando conexão com o Supabase...');
+  const isConnected = await testSupabaseConnection();
+  
+  if (isConnected) {
+    console.log('✅ Conexão bem-sucedida com o Supabase!');
     
-    // Verificar se as variáveis de ambiente estão definidas
-    console.log('Verificando variáveis de ambiente:');
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl) {
-      throw new Error('SUPABASE_URL não está definido no arquivo .env');
-    }
-    
-    if (!supabaseKey) {
-      throw new Error('SUPABASE_ANON_KEY não está definido no arquivo .env');
-    }
-    
-    console.log(`- SUPABASE_URL: ${supabaseUrl.substring(0, 15)}...`);
-    console.log(`- SUPABASE_ANON_KEY: ${supabaseKey.substring(0, 5)}...${supabaseKey.substring(supabaseKey.length - 5)}`);
-    
-    // Realizar uma consulta simples para verificar a conexão
-    console.log('\nRealizando consulta de teste...');
-    
-    // Testar tabela service_categories
-    const { data: serviceCategories, error: categoriesError } = await supabase
-      .from('service_categories')
-      .select('*')
-      .limit(5);
-    
-    if (categoriesError) {
-      throw new Error(`Erro ao consultar categorias de serviço: ${categoriesError.message}`);
-    }
-    
-    console.log(`✅ Conexão bem-sucedida! Encontradas ${serviceCategories?.length || 0} categorias de serviço.`);
-    
-    if (serviceCategories && serviceCategories.length > 0) {
-      console.log('\nExemplo de categoria de serviço:');
-      console.log(JSON.stringify(serviceCategories[0], null, 2));
-    }
-    
-    // Testar tabela services
-    const { data: services, error: servicesError } = await supabase
-      .from('services')
-      .select('*')
-      .limit(5);
-    
-    if (servicesError) {
-      throw new Error(`Erro ao consultar serviços: ${servicesError.message}`);
-    }
-    
-    console.log(`\n✅ Encontrados ${services?.length || 0} serviços.`);
-    
-    if (services && services.length > 0) {
-      console.log('\nExemplo de serviço:');
-      console.log(JSON.stringify(services[0], null, 2));
-    }
-    
-    // Verificar informações do projeto
+    // Verificando tabelas existentes usando SQL direta
+    console.log('\nVerificando tabelas existentes:');
     try {
-      const { data: projectInfo, error: projectError } = await supabase
-        .rpc('get_project_info');
+      // No Supabase, não podemos consultar diretamente information_schema,
+      // então vamos usar um método alternativo para verificar algumas tabelas comuns
+      console.log('Tentando verificar algumas tabelas comuns...');
       
-      if (!projectError && projectInfo) {
-        console.log('\nInformações do projeto Supabase:');
-        console.log(JSON.stringify(projectInfo, null, 2));
+      // Tentando obter lista de usuários para ver se a tabela existe
+      const { error: usersError } = await supabaseAdmin
+        .from('users')
+        .select('count')
+        .limit(1);
+
+      if (usersError) {
+        if (usersError.code === 'PGRST116') {
+          console.log('❌ Tabela "users" não encontrada');
+        } else {
+          console.error('❌ Erro ao verificar tabela users:', usersError);
+        }
+      } else {
+        console.log('✅ Tabela "users" encontrada');
       }
-    } catch (err) {
-      console.log('\nNão foi possível obter informações do projeto (essa função pode não existir).');
+      
+      // Tentando obter lista de serviços para ver se a tabela existe
+      const { error: servicesError } = await supabaseAdmin
+        .from('services')
+        .select('count')
+        .limit(1);
+
+      if (servicesError) {
+        if (servicesError.code === 'PGRST116') {
+          console.log('❌ Tabela "services" não encontrada');
+        } else {
+          console.error('❌ Erro ao verificar tabela services:', servicesError);
+        }
+      } else {
+        console.log('✅ Tabela "services" encontrada');
+      }
+      
+      // Tentando obter lista de produtos para ver se a tabela existe
+      const { error: productsError } = await supabaseAdmin
+        .from('products')
+        .select('count')
+        .limit(1);
+
+      if (productsError) {
+        if (productsError.code === 'PGRST116') {
+          console.log('❌ Tabela "products" não encontrada');
+        } else {
+          console.error('❌ Erro ao verificar tabela products:', productsError);
+        }
+      } else {
+        console.log('✅ Tabela "products" encontrada');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao listar tabelas:', error);
     }
-    
-    console.log('\n🎉 Conexão com o Supabase está funcionando corretamente!');
-    
-  } catch (error) {
-    console.error('\n❌ Erro ao testar conexão com o Supabase:', error);
-    process.exit(1);
+  } else {
+    console.error('❌ Falha na conexão com o Supabase. Verifique as variáveis de ambiente e credenciais.');
   }
+  
+  console.log('\n=== Verificação Concluída ===\n');
 }
 
-// Executar o teste
-testSupabaseConnection().catch(console.error);
+main().catch(error => {
+  console.error('Erro durante a verificação:', error);
+  process.exit(1);
+});

@@ -1,154 +1,93 @@
 # Integração com Supabase
 
-Este documento descreve como configurar e usar a integração com o Supabase para o projeto Los Barbeiros CBS.
+Este documento detalha a integração da aplicação Los Barbeiros CBS com o Supabase para banco de dados, autenticação e armazenamento.
 
-## Requisitos Prévios
+## Configuração Realizada
 
-Certifique-se de que as seguintes variáveis de ambiente estão configuradas no arquivo `.env`:
+✅ **Variáveis de Ambiente**: Configuradas em `.env`
+✅ **Conexão com Banco de Dados**: Estabelecida com PostgreSQL do Supabase
+✅ **Autenticação**: Integração com Supabase Auth para login/registro
+✅ **Sincronização de Usuários**: Usuários sincronizados entre app e Supabase Auth
 
-```
-SUPABASE_URL=https://seu-projeto.supabase.co
-SUPABASE_SERVICE_KEY=sua-chave-de-serviço
-SUPABASE_ANON_KEY=sua-chave-anônima
-DATABASE_URL=sua-conexão-postgresql
-```
+## Estrutura de Arquivos de Integração
 
-## Executando os Scripts de Configuração
+- `shared/supabase-client.ts`: Cliente Supabase centralizado (anônimo e admin)
+- `server/supabase.ts`: Utilizado nas operações de servidor que ignoram RLS
+- `server/storage-supabase.ts`: Implementação de storage usando Supabase
+- `server/auth.ts`: Integração de autenticação com Supabase
+- `scripts/`: Contém scripts para configuração, sincronização e verificação
 
-### 1. Verificar a Conexão com o Supabase
+## Scripts de Manutenção
 
-Para verificar se a conexão com o Supabase está funcionando corretamente:
+Os seguintes scripts estão disponíveis para gerenciar a integração:
 
-```bash
-tsx scripts/debug-supabase-connection.ts
-```
+1. **Verificação de Conexão**:
+   ```
+   npx tsx scripts/debug-supabase-connection.ts
+   ```
+   Verifica se a conexão com o Supabase está funcionando corretamente.
 
-### 2. Inicializar o Banco de Dados
+2. **Sincronização de Autenticação**:
+   ```
+   npx tsx scripts/sync-auth-with-supabase.ts
+   ```
+   Sincroniza usuários existentes com o sistema de autenticação do Supabase.
 
-Para criar todas as tabelas e tipos enumerados necessários no Supabase:
+3. **Configuração Completa**:
+   ```
+   npx tsx scripts/setup-supabase-complete.ts
+   ```
+   Executa todo o processo de configuração em uma única etapa.
 
-```bash
-tsx scripts/init-supabase-db.ts
-```
+## Limitações e Considerações
 
-### 3. Configurar Políticas de RLS (Row Level Security)
+- **Políticas de RLS (Row Level Security)**: Devido a limitações da API Supabase, as políticas de RLS precisam ser configuradas manualmente no painel de administração do Supabase.
+- **Função `exec` para SQL personalizado**: Não disponível via API, requer configuração manual.
 
-Para configurar as políticas de segurança para as tabelas:
+## Configuração das Políticas RLS (Necessário Fazer Manualmente)
 
-```bash
-tsx scripts/setup-rls.ts
-```
+Para configurar as políticas de Row Level Security (RLS), acesse o painel de administração do Supabase e configure as seguintes políticas para cada tabela:
 
-### 4. Verificar a Configuração do Banco de Dados
+### Tabela `users`
+- Permitir que usuários leiam seus próprios dados (`auth.uid() = auth_id`)
+- Permitir que usuários atualizem seus próprios dados (`auth.uid() = auth_id`)
+- Permitir que admins gerenciem todos os usuários (`role = 'admin'`)
 
-Para verificar se todas as tabelas, enums e políticas foram criadas corretamente:
+### Tabela `appointments` (Agendamentos)
+- Permitir que usuários leiam seus próprios agendamentos
+- Permitir que profissionais vejam agendamentos com eles
+- Permitir que admins gerenciem todos os agendamentos
 
-```bash
-tsx scripts/verify-supabase-db.ts
-```
+### (Outras tabelas seguem padrões similares)
 
-### 5. Configuração Completa (Todos os Passos Acima)
+## Sincronização de Autenticação
 
-Para executar todos os passos acima em sequência:
+A integração mantém a compatibilidade entre o sistema de autenticação atual (Passport.js) e o Supabase Auth:
 
-```bash
-tsx scripts/setup-supabase-complete.ts
-```
+1. Quando um usuário faz login, o sistema verifica primeiro no Supabase Auth
+2. Se falhar, tenta o sistema de autenticação local (fallback)
+3. Ao criar usuários, eles são criados tanto no banco local quanto no Supabase Auth
 
-## Populando o Banco de Dados
+## Próximos Passos
 
-### Populando Categorias de Serviços e Serviços
+1. Configurar políticas de RLS manualmente no painel do Supabase
+2. Implementar transição completa para autenticação via Supabase (em andamento)
+3. Configurar storage para uploads e arquivos usando Supabase Storage
 
-```bash
-tsx scripts/populate-services-to-supabase.ts
-```
+## Troubleshooting
 
-### Populando Profissionais
+### Erro ao autenticar
+Se ocorrer erro de autenticação, verifique:
+- As chaves de API do Supabase estão corretas
+- O usuário existe no banco de dados do Supabase
+- O usuário foi sincronizado com o Supabase Auth
 
-```bash
-tsx scripts/populate-professionals-to-supabase.ts
-```
+### Erro de conexão com o banco de dados
+- Verifique a configuração de DATABASE_URL e variáveis PGHOST/PGUSER
+- Verifique se o IP está liberado nas regras de acesso do Supabase
 
-### Populando Produtos
+## Recursos Oficiais do Supabase
 
-```bash
-tsx scripts/populate-products-to-supabase.ts
-```
-
-### Populando Todos os Dados
-
-```bash
-tsx scripts/populate-supabase.ts
-```
-
-## Verificações Adicionais
-
-### Verificar Tabelas Existentes
-
-```bash
-tsx scripts/check-supabase-tables.ts
-```
-
-### Extrair Dados de Serviços para Inserção
-
-```bash
-tsx scripts/extract-services-for-supabase.ts
-```
-
-### Listar Serviços Cadastrados
-
-```bash
-tsx scripts/list-services.ts
-```
-
-## Resolução de Problemas
-
-### Erro de Conexão com o Supabase
-
-1. Verifique se as variáveis de ambiente estão configuradas corretamente no arquivo `.env`
-2. Confirme se a URL e as chaves do Supabase estão corretas
-3. Verifique se o banco de dados PostgreSQL está acessível
-
-### Erro ao Criar Tabelas
-
-1. Execute o script de verificação do banco de dados para identificar quais tabelas não foram criadas
-2. Verifique se há erros específicos nos logs
-3. Se necessário, execute novamente o script de inicialização do banco de dados
-
-### Erro nas Políticas RLS
-
-1. Verifique se o usuário utilizado tem permissões para configurar políticas RLS
-2. Execute o script de verificação para ver quais políticas foram configuradas
-3. Se necessário, execute novamente o script de configuração de RLS
-
-## Trabalhando com o Supabase no Código
-
-### Usando o Cliente Supabase
-
-O cliente Supabase está configurado em `server/supabase.ts` e pode ser importado da seguinte forma:
-
-```typescript
-import supabase from '../server/supabase';
-
-// Exemplo de uso
-const { data, error } = await supabase
-  .from('tabela')
-  .select('*')
-  .limit(10);
-```
-
-### Usando o Drizzle ORM com Supabase
-
-O Drizzle ORM está configurado para trabalhar com o Supabase em `server/db.ts` e pode ser usado da seguinte forma:
-
-```typescript
-import { db } from '../server/db';
-import { tabela } from '../shared/schema';
-
-// Exemplo de uso
-const resultado = await db.select().from(tabela).limit(10);
-```
-
-## Migrando do Armazenamento Local para o Supabase
-
-A aplicação está configurada para funcionar tanto com armazenamento local quanto com o Supabase. Para alternar entre eles, modifique a configuração em `server/storage.ts`.
+- [Documentação do Supabase](https://supabase.io/docs)
+- [Autenticação com Supabase](https://supabase.io/docs/guides/auth)
+- [Políticas RLS](https://supabase.io/docs/guides/auth/row-level-security)

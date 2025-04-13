@@ -1,10 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '../shared/supabase-client';
 import dotenv from 'dotenv';
 
 // Carregar variáveis de ambiente do arquivo .env
 dotenv.config();
 
-// URL e chave de API do Supabase
+// Verificar configuração do Supabase
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY || '';
 
@@ -13,7 +13,8 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
-// Criar cliente Supabase com a chave de serviço (service key) que ignora RLS
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Utiliza o cliente Supabase com permissões administrativas
+// que ignora RLS para operações do servidor
+const supabase = supabaseAdmin;
 
 export default supabase;

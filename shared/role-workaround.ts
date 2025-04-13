@@ -8,7 +8,7 @@
  * profissionais pela lista definida, e os demais como clientes.
  */
 
-import supabase from '../server/supabase';
+import { supabaseAdmin } from './supabase-client';
 
 // Enum para papéis de usuário
 export enum UserRole {
@@ -45,7 +45,7 @@ export async function getUserRole(userId: number): Promise<UserRole> {
     }
     
     // Buscar dados do usuário, incluindo a coluna role
-    const { data: userData, error } = await supabase
+    const { data: userData, error } = await supabaseAdmin
       .from('users')
       .select('id, email, username, role')
       .eq('id', userId)
@@ -86,7 +86,7 @@ export async function getUserRole(userId: number): Promise<UserRole> {
       
       // Atualizar a coluna role no banco de dados para o próximo acesso
       try {
-        const { error: updateError } = await supabase
+        const { error: updateError } = await supabaseAdmin
           .from('users')
           .update({ role })
           .eq('id', userId);

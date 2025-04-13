@@ -1,235 +1,220 @@
-Configurando políticas de Row Level Security (RLS) no Supabase...
-NOTA: Este script só irá simular a execução dos comandos SQL.
-      As políticas devem ser configuradas manualmente no Supabase.
-SQL: ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-SQL: ALTER TABLE public.service_categories ENABLE ROW LEVEL SECURITY;
-SQL: ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
-SQL: ALTER TABLE public.professionals ENABLE ROW LEVEL SECURITY;
-SQL: ALTER TABLE public.schedules ENABLE ROW LEVEL SECURITY;
-SQL: ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
-SQL: ALTER TABLE public.appointment_services ENABLE ROW LEVEL SECURITY;
-SQL: ALTER TABLE public.product_categories ENABLE ROW LEVEL SECURITY;
-SQL: ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
-SQL: ALTER TABLE public.loyalty_rewards ENABLE ROW LEVEL SECURITY;
-SQL: DROP POLICY IF EXISTS users_select_policy ON public.users;
-SQL: DROP POLICY IF EXISTS users_insert_policy ON public.users;
-SQL: DROP POLICY IF EXISTS users_update_policy ON public.users;
-SQL: DROP POLICY IF EXISTS users_delete_policy ON public.users;
-SQL: 
-      CREATE POLICY users_select_policy ON public.users
-        FOR SELECT USING (auth.uid()::text = id::text OR auth.uid() IS NULL);
-    
-SQL: 
-      CREATE POLICY users_insert_policy ON public.users
-        FOR INSERT WITH CHECK (true);
-    
-SQL: 
-      CREATE POLICY users_update_policy ON public.users
-        FOR UPDATE USING (auth.uid()::text = id::text)
-        WITH CHECK (auth.uid()::text = id::text);
-    
-SQL: 
-      CREATE POLICY users_delete_policy ON public.users
-        FOR DELETE USING (false);
-    
-  ✓ Políticas para a tabela users configuradas
-SQL: 
-      DROP POLICY IF EXISTS service_categories_select_policy ON public.service_categories;
-      CREATE POLICY service_categories_select_policy ON public.service_categories
-        FOR SELECT USING (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS service_categories_insert_policy ON public.service_categories;
-      CREATE POLICY service_categories_insert_policy ON public.service_categories
-        FOR INSERT WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS service_categories_update_policy ON public.service_categories;
-      CREATE POLICY service_categories_update_policy ON public.service_categories
-        FOR UPDATE USING (true)
-        WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS service_categories_delete_policy ON public.service_categories;
-      CREATE POLICY service_categories_delete_policy ON public.service_categories
-        FOR DELETE USING (true);
-    
-  ✓ Políticas para a tabela service_categories configuradas
-SQL: 
-      DROP POLICY IF EXISTS services_select_policy ON public.services;
-      CREATE POLICY services_select_policy ON public.services
-        FOR SELECT USING (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS services_insert_policy ON public.services;
-      CREATE POLICY services_insert_policy ON public.services
-        FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-    
-SQL: 
-      DROP POLICY IF EXISTS services_update_policy ON public.services;
-      CREATE POLICY services_update_policy ON public.services
-        FOR UPDATE USING (auth.role() = 'authenticated')
-        WITH CHECK (auth.role() = 'authenticated');
-    
-SQL: 
-      DROP POLICY IF EXISTS services_delete_policy ON public.services;
-      CREATE POLICY services_delete_policy ON public.services
-        FOR DELETE USING (auth.role() = 'authenticated');
-    
-  ✓ Políticas para a tabela services configuradas
-SQL: 
-      DROP POLICY IF EXISTS professionals_select_policy ON public.professionals;
-      CREATE POLICY professionals_select_policy ON public.professionals
-        FOR SELECT USING (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS professionals_insert_policy ON public.professionals;
-      CREATE POLICY professionals_insert_policy ON public.professionals
-        FOR INSERT WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS professionals_update_policy ON public.professionals;
-      CREATE POLICY professionals_update_policy ON public.professionals
-        FOR UPDATE USING (true)
-        WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS professionals_delete_policy ON public.professionals;
-      CREATE POLICY professionals_delete_policy ON public.professionals
-        FOR DELETE USING (true);
-    
-  ✓ Políticas para a tabela professionals configuradas
-SQL: 
-      DROP POLICY IF EXISTS schedules_select_policy ON public.schedules;
-      CREATE POLICY schedules_select_policy ON public.schedules
-        FOR SELECT USING (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS schedules_insert_policy ON public.schedules;
-      CREATE POLICY schedules_insert_policy ON public.schedules
-        FOR INSERT WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS schedules_update_policy ON public.schedules;
-      CREATE POLICY schedules_update_policy ON public.schedules
-        FOR UPDATE USING (true)
-        WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS schedules_delete_policy ON public.schedules;
-      CREATE POLICY schedules_delete_policy ON public.schedules
-        FOR DELETE USING (true);
-    
-  ✓ Políticas para a tabela schedules configuradas
-SQL: 
-      DROP POLICY IF EXISTS appointments_select_policy ON public.appointments;
-      CREATE POLICY appointments_select_policy ON public.appointments
-        FOR SELECT USING (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS appointments_insert_policy ON public.appointments;
-      CREATE POLICY appointments_insert_policy ON public.appointments
-        FOR INSERT WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS appointments_update_policy ON public.appointments;
-      CREATE POLICY appointments_update_policy ON public.appointments
-        FOR UPDATE USING (true)
-        WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS appointments_delete_policy ON public.appointments;
-      CREATE POLICY appointments_delete_policy ON public.appointments
-        FOR DELETE USING (true);
-    
-  ✓ Políticas para a tabela appointments configuradas
-SQL: 
-      DROP POLICY IF EXISTS appointment_services_select_policy ON public.appointment_services;
-      CREATE POLICY appointment_services_select_policy ON public.appointment_services
-        FOR SELECT USING (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS appointment_services_insert_policy ON public.appointment_services;
-      CREATE POLICY appointment_services_insert_policy ON public.appointment_services
-        FOR INSERT WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS appointment_services_update_policy ON public.appointment_services;
-      CREATE POLICY appointment_services_update_policy ON public.appointment_services
-        FOR UPDATE USING (true)
-        WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS appointment_services_delete_policy ON public.appointment_services;
-      CREATE POLICY appointment_services_delete_policy ON public.appointment_services
-        FOR DELETE USING (true);
-    
-  ✓ Políticas para a tabela appointment_services configuradas
-SQL: 
-      DROP POLICY IF EXISTS product_categories_select_policy ON public.product_categories;
-      CREATE POLICY product_categories_select_policy ON public.product_categories
-        FOR SELECT USING (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS product_categories_insert_policy ON public.product_categories;
-      CREATE POLICY product_categories_insert_policy ON public.product_categories
-        FOR INSERT WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS product_categories_update_policy ON public.product_categories;
-      CREATE POLICY product_categories_update_policy ON public.product_categories
-        FOR UPDATE USING (true)
-        WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS product_categories_delete_policy ON public.product_categories;
-      CREATE POLICY product_categories_delete_policy ON public.product_categories
-        FOR DELETE USING (true);
-    
-  ✓ Políticas para a tabela product_categories configuradas
-SQL: 
-      DROP POLICY IF EXISTS products_select_policy ON public.products;
-      CREATE POLICY products_select_policy ON public.products
-        FOR SELECT USING (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS products_insert_policy ON public.products;
-      CREATE POLICY products_insert_policy ON public.products
-        FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-    
-SQL: 
-      DROP POLICY IF EXISTS products_update_policy ON public.products;
-      CREATE POLICY products_update_policy ON public.products
-        FOR UPDATE USING (auth.role() = 'authenticated')
-        WITH CHECK (auth.role() = 'authenticated');
-    
-SQL: 
-      DROP POLICY IF EXISTS products_delete_policy ON public.products;
-      CREATE POLICY products_delete_policy ON public.products
-        FOR DELETE USING (auth.role() = 'authenticated');
-    
-  ✓ Políticas para a tabela products configuradas
-SQL: 
-      DROP POLICY IF EXISTS loyalty_rewards_select_policy ON public.loyalty_rewards;
-      CREATE POLICY loyalty_rewards_select_policy ON public.loyalty_rewards
-        FOR SELECT USING (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS loyalty_rewards_insert_policy ON public.loyalty_rewards;
-      CREATE POLICY loyalty_rewards_insert_policy ON public.loyalty_rewards
-        FOR INSERT WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS loyalty_rewards_update_policy ON public.loyalty_rewards;
-      CREATE POLICY loyalty_rewards_update_policy ON public.loyalty_rewards
-        FOR UPDATE USING (true)
-        WITH CHECK (true);
-    
-SQL: 
-      DROP POLICY IF EXISTS loyalty_rewards_delete_policy ON public.loyalty_rewards;
-      CREATE POLICY loyalty_rewards_delete_policy ON public.loyalty_rewards
-        FOR DELETE USING (true);
-    
-  ✓ Políticas para a tabela loyalty_rewards configuradas
+-- Script para configuração de políticas RLS no Supabase
+-- Execute este script no SQL Editor do painel de administração do Supabase
 
-✅ Configuração de RLS concluída com sucesso!
+-- 1. Ativar RLS em todas as tabelas
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE service_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE professionals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE schedules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE appointment_services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_rewards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cash_flow ENABLE ROW LEVEL SECURITY;
+
+-- 2. Remover políticas existentes (caso queira reiniciar)
+-- Tabela users
+DROP POLICY IF EXISTS "Allow users to read their own data" ON users;
+DROP POLICY IF EXISTS "Allow users to update their own data" ON users;
+DROP POLICY IF EXISTS "Allow admins to read all user data" ON users;
+DROP POLICY IF EXISTS "Allow anon to read non-sensitive user data" ON users;
+
+-- Tabela services
+DROP POLICY IF EXISTS "Allow public read access to services" ON services;
+DROP POLICY IF EXISTS "Allow admins and professionals to manage services" ON services;
+
+-- Tabela service_categories
+DROP POLICY IF EXISTS "Allow public read access to service categories" ON service_categories;
+DROP POLICY IF EXISTS "Allow admins to manage service categories" ON service_categories;
+
+-- Tabela products
+DROP POLICY IF EXISTS "Allow public read access to products" ON products;
+DROP POLICY IF EXISTS "Allow admins to manage products" ON products;
+
+-- Tabela product_categories
+DROP POLICY IF EXISTS "Allow public read access to product categories" ON product_categories;
+DROP POLICY IF EXISTS "Allow admins to manage product categories" ON product_categories;
+
+-- Tabela professionals
+DROP POLICY IF EXISTS "Allow public read access to professionals" ON professionals;
+DROP POLICY IF EXISTS "Allow admins to manage professionals" ON professionals;
+
+-- Tabela schedules
+DROP POLICY IF EXISTS "Allow public read access to schedules" ON schedules;
+DROP POLICY IF EXISTS "Allow professionals to manage their schedules" ON schedules;
+DROP POLICY IF EXISTS "Allow admins to manage all schedules" ON schedules;
+
+-- Tabela appointments
+DROP POLICY IF EXISTS "Allow users to read their own appointments" ON appointments;
+DROP POLICY IF EXISTS "Allow users to create appointments" ON appointments;
+DROP POLICY IF EXISTS "Allow users to update their own appointments" ON appointments;
+DROP POLICY IF EXISTS "Allow admins to manage all appointments" ON appointments;
+
+-- Tabela appointment_services
+DROP POLICY IF EXISTS "Allow users to read their appointment services" ON appointment_services;
+DROP POLICY IF EXISTS "Allow users to create appointment services" ON appointment_services;
+DROP POLICY IF EXISTS "Allow admins to manage all appointment services" ON appointment_services;
+
+-- Tabela loyalty_rewards
+DROP POLICY IF EXISTS "Allow public read access to loyalty rewards" ON loyalty_rewards;
+DROP POLICY IF EXISTS "Allow admins to manage loyalty rewards" ON loyalty_rewards;
+
+-- Tabela loyalty_history
+DROP POLICY IF EXISTS "Allow users to read their own loyalty history" ON loyalty_history;
+DROP POLICY IF EXISTS "Allow users to create loyalty history entries" ON loyalty_history;
+DROP POLICY IF EXISTS "Allow admins to manage all loyalty history" ON loyalty_history;
+
+-- Tabela cash_flow
+DROP POLICY IF EXISTS "Allow admins to manage cash flow" ON cash_flow;
+DROP POLICY IF EXISTS "Allow professionals to read cash flow entries related to their appointments" ON cash_flow;
+
+-- 3. Criar políticas para cada tabela
+-- Tabela users
+CREATE POLICY "Allow users to read their own data" 
+ON users
+FOR SELECT
+USING (auth.uid() = auth_id OR auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+CREATE POLICY "Allow users to update their own data" 
+ON users
+FOR UPDATE
+USING (auth.uid() = auth_id OR auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+CREATE POLICY "Allow admins to read all user data" 
+ON users
+FOR SELECT
+USING (auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+CREATE POLICY "Allow anon to read non-sensitive user data" 
+ON users
+FOR SELECT
+USING (role = 'professional');
+
+-- Tabela services
+CREATE POLICY "Allow public read access to services" 
+ON services
+FOR SELECT
+USING (true);
+
+CREATE POLICY "Allow admins and professionals to manage services" 
+ON services
+FOR ALL
+USING (auth.uid() IN (SELECT auth_id FROM users WHERE role IN ('admin', 'professional')));
+
+-- Tabela service_categories
+CREATE POLICY "Allow public read access to service categories" 
+ON service_categories
+FOR SELECT
+USING (true);
+
+CREATE POLICY "Allow admins to manage service categories" 
+ON service_categories
+FOR ALL
+USING (auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+-- Tabela products
+CREATE POLICY "Allow public read access to products" 
+ON products
+FOR SELECT
+USING (true);
+
+CREATE POLICY "Allow admins to manage products" 
+ON products
+FOR ALL
+USING (auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+-- Tabela product_categories
+CREATE POLICY "Allow public read access to product categories" 
+ON product_categories
+FOR SELECT
+USING (true);
+
+CREATE POLICY "Allow admins to manage product categories" 
+ON product_categories
+FOR ALL
+USING (auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+-- Tabela professionals
+CREATE POLICY "Allow public read access to professionals" 
+ON professionals
+FOR SELECT
+USING (true);
+
+CREATE POLICY "Allow admins to manage professionals" 
+ON professionals
+FOR ALL
+USING (auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+-- Tabela schedules
+CREATE POLICY "Allow public read access to schedules" 
+ON schedules
+FOR SELECT
+USING (true);
+
+CREATE POLICY "Allow professionals to manage their schedules" 
+ON schedules
+FOR ALL
+USING (auth.uid() IN (SELECT u.auth_id FROM users u JOIN professionals p ON u.id = p.user_id WHERE p.id = professional_id) OR auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+-- Tabela appointments
+CREATE POLICY "Allow users to read their own appointments" 
+ON appointments
+FOR SELECT
+USING (auth.uid() IN (SELECT auth_id FROM users WHERE id = user_id) OR auth.uid() IN (SELECT u.auth_id FROM users u JOIN professionals p ON u.id = p.user_id WHERE p.id = professional_id) OR auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+CREATE POLICY "Allow users to create appointments" 
+ON appointments
+FOR INSERT
+USING (auth.uid() IN (SELECT auth_id FROM users));
+
+CREATE POLICY "Allow users to update their own appointments" 
+ON appointments
+FOR UPDATE
+USING (auth.uid() IN (SELECT auth_id FROM users WHERE id = user_id) OR auth.uid() IN (SELECT u.auth_id FROM users u JOIN professionals p ON u.id = p.user_id WHERE p.id = professional_id) OR auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+-- Tabela appointment_services
+CREATE POLICY "Allow users to read their appointment services" 
+ON appointment_services
+FOR SELECT
+USING (auth.uid() IN (SELECT u.auth_id FROM users u JOIN appointments a ON u.id = a.user_id WHERE a.id = appointment_id) OR auth.uid() IN (SELECT u.auth_id FROM users u JOIN professionals p ON u.id = p.user_id JOIN appointments a ON p.id = a.professional_id WHERE a.id = appointment_id) OR auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+CREATE POLICY "Allow users to create appointment services" 
+ON appointment_services
+FOR INSERT
+USING (auth.uid() IN (SELECT u.auth_id FROM users u JOIN appointments a ON u.id = a.user_id WHERE a.id = appointment_id) OR auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+-- Tabela loyalty_rewards
+CREATE POLICY "Allow public read access to loyalty rewards" 
+ON loyalty_rewards
+FOR SELECT
+USING (true);
+
+CREATE POLICY "Allow admins to manage loyalty rewards" 
+ON loyalty_rewards
+FOR ALL
+USING (auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+-- Tabela loyalty_history
+CREATE POLICY "Allow users to read their own loyalty history" 
+ON loyalty_history
+FOR SELECT
+USING (auth.uid() IN (SELECT auth_id FROM users WHERE id = user_id) OR auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+CREATE POLICY "Allow users to create loyalty history entries" 
+ON loyalty_history
+FOR INSERT
+USING (auth.uid() IN (SELECT auth_id FROM users WHERE id = user_id) OR auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+-- Tabela cash_flow
+CREATE POLICY "Allow admins to manage cash flow" 
+ON cash_flow
+FOR ALL
+USING (auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
+
+CREATE POLICY "Allow professionals to read cash flow entries related to their appointments" 
+ON cash_flow
+FOR SELECT
+USING (appointment_id IS NOT NULL AND auth.uid() IN (SELECT u.auth_id FROM users u JOIN professionals p ON u.id = p.user_id JOIN appointments a ON p.id = a.professional_id WHERE a.id = appointment_id) OR auth.uid() IN (SELECT auth_id FROM users WHERE role = 'admin'));
