@@ -560,8 +560,9 @@ export const supabaseStorage = {
         normalizedStatus = 'scheduled';
       }
       
-      // Preparar dados para atualização
-      const updateData: { status: string; notes?: string; completed_at?: string | null; } = { 
+      // Preparar dados para atualização - SEM o campo completed_at
+      // para evitar erro de coluna não existente
+      const updateData: { status: string; notes?: string; } = { 
         status: normalizedStatus 
       };
       
@@ -573,11 +574,9 @@ export const supabaseStorage = {
       // Logging detalhado para debug
       console.log(`Dados para atualização: ${JSON.stringify(updateData)}`);
       
-      // Se o status for "completed", adicionar data de conclusão
+      // Se o status for "completed", vamos buscar os serviços para informação
       if (normalizedStatus === 'completed') {
-        console.log(`Marcando agendamento #${id} como concluído, adicionando timestamp de conclusão`);
-        // Adicionar data de conclusão
-        updateData.completed_at = new Date().toISOString();
+        console.log(`Marcando agendamento #${id} como concluído`);
         
         // Logging de serviços para informação (não afeta a atualização)
         try {
@@ -621,16 +620,12 @@ export const supabaseStorage = {
         } catch (calcError) {
           console.error('Erro ao buscar informações dos serviços do agendamento:', calcError);
         }
-      } 
-      // Se o status NÃO é completed, definir completed_at como null
-      else if (updateData.status !== 'completed') {
-        console.log(`Agendamento #${id} NÃO está marcado como concluído, removendo timestamp de conclusão`);
-        updateData.completed_at = null;
       }
       
       console.log(`Enviando atualização para o banco de dados: ${JSON.stringify(updateData)}`);
       
       // Atualizar o agendamento no banco de dados com logs detalhados
+      // Removemos o campo completed_at para evitar o erro
       const { data, error } = await supabase
         .from('appointments')
         .update(updateData)
@@ -652,7 +647,7 @@ export const supabaseStorage = {
       }
       
       // Transformar os nomes dos campos para camelCase para o frontend
-      return {
+      const result = {
         id: data.id,
         userId: data.user_id,
         professionalId: data.professional_id,
@@ -662,8 +657,17 @@ export const supabaseStorage = {
         status: data.status,
         notes: data.notes,
         createdAt: data.created_at,
-        completedAt: data.completed_at
+        // Apesar da coluna não existir, mantemos o campo no objeto de resposta
+        // para compatibilidade com o resto do código, mas como null
+        completedAt: null 
       };
+      
+      // Mensagem importante para o log sobre a necessidade da coluna completed_at
+      console.log(`\n⚠️ AVISO: A coluna completed_at não está sendo usada no banco de dados.`);
+      console.log(`Para melhorar o sistema, adicione esta coluna no Console do Supabase.`);
+      console.log(`Execute o SQL: ALTER TABLE appointments ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;\n`);
+      
+      return result;
     } catch (error) {
       console.error('❌ Erro geral ao atualizar status do agendamento:', error);
       return null;
