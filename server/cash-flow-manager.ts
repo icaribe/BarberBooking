@@ -186,13 +186,25 @@ export async function recordAppointmentTransaction(appointmentId: number, servic
         continue;
       }
       
-      totalAmount += service.price;
+      // Verificar e garantir que o preço está em centavos
+      let servicePrice = service.price;
+      
+      // Se o preço for muito baixo (< 100 centavos), pode estar em reais em vez de centavos
+      if (servicePrice > 0 && servicePrice < 100) {
+        console.warn(`Valor suspeito para ${service.name}: ${servicePrice} (< 100 centavos)`);
+        console.warn(`Parece que o valor está em reais em vez de centavos. Corrigindo...`);
+        // Multiplicar por 100 para converter de reais para centavos
+        servicePrice = Math.round(servicePrice * 100);
+        console.warn(`Valor corrigido: ${servicePrice} centavos (R$ ${(servicePrice/100).toFixed(2)})`);
+      }
+      
+      totalAmount += servicePrice;
       processedServices.push({
         name: service.name,
-        price: service.price,
-        priceFormatted: `R$ ${(service.price/100).toFixed(2)}`
+        price: servicePrice,
+        priceFormatted: `R$ ${(servicePrice/100).toFixed(2)}`
       });
-      console.log(`Processando serviço ${service.name}: R$ ${(service.price/100).toFixed(2)}`);
+      console.log(`Processando serviço ${service.name}: R$ ${(servicePrice/100).toFixed(2)}`);
     }
 
     console.log('\nResumo do cálculo:');

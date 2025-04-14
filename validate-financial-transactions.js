@@ -7,7 +7,7 @@
  * 3. Se não existir, cria a transação automaticamente com base nos serviços do agendamento
  */
 
-import supabase from './server/supabase.js';
+import supabase from './server/supabase.ts';
 import dotenv from 'dotenv';
 
 // Carregar variáveis de ambiente

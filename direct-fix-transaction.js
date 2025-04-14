@@ -1,12 +1,10 @@
 /**
  * Script para corrigir valores incorretos na tabela de fluxo de caixa
- * 
- * Este script identifica e corrige transações com valores incorretos (muito baixos),
- * onde o valor está em reais no lugar de centavos.
+ * Versão com acesso direto à API Supabase
  */
 
-import supabase from './server/supabase.ts';
 import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -14,9 +12,21 @@ dotenv.config();
 // Formatar moeda
 const formatCurrency = (valueInCents) => `R$ ${(valueInCents/100).toFixed(2)}`;
 
+// Criar cliente Supabase diretamente
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Erro: Variáveis de ambiente SUPABASE_URL e SUPABASE_SERVICE_KEY são necessárias');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 async function fixTransactionAmount() {
   try {
     console.log('Iniciando correção de valores de transações...');
+    console.log(`Conectado ao Supabase: ${supabaseUrl}`);
     
     // Buscar todas as transações com valores muito baixos (provavelmente em reais, não centavos)
     const { data: suspiciousTransactions, error: txError } = await supabase
