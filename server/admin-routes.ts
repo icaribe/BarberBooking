@@ -736,11 +736,9 @@ export function registerAdminRoutes(app: Express): void {
               }
             }
 
-            // Se o valor total for 0, verificar se o agendamento tem valor total calculado
-            if (totalAmount === 0 && updatedAppointment?.totalValue) {
-              // Converter de reais para centavos se necessário
-              totalAmount = updatedAppointment.totalValue * 100;
-              console.log(`Usando valor total do agendamento definido no banco: R$ ${(totalAmount/100).toFixed(2)}`);
+            // O agendamento não tem mais campo totalValue, então precisamos garantir que o totalAmount foi calculado corretamente
+            if (totalAmount === 0) {
+              console.log(`ALERTA: Nenhum valor encontrado para o agendamento #${id}`);
             }
 
             console.log(`Valor total do agendamento #${id}: R$ ${(totalAmount/100).toFixed(2)} baseado em ${serviceDetails.length} serviços`);

@@ -338,15 +338,43 @@ export async function validateAndFixTransactions() {
   try {
     console.log('Iniciando validação de transações financeiras...');
     
-    // Buscar todos os agendamentos concluídos
-    const { data: appointments, error: appError } = await supabase
+    // Buscar todos os agendamentos concluídos (com status "completed" - minúsculo)
+    // Como notamos que existem inconsistências nos status, vamos buscar tanto 'completed' quanto 'COMPLETED'
+    console.log('Buscando agendamentos com status "completed" ou "COMPLETED"...');
+    
+    // Primeiro buscar com "completed" minúsculo
+    const { data: appointmentsLower, error: appErrorLower } = await supabase
       .from('appointments')
       .select('*')
       .eq('status', 'completed');
+    
+    if (appErrorLower) throw appErrorLower;
+    
+    // Depois buscar com "COMPLETED" maiúsculo
+    const { data: appointmentsUpper, error: appErrorUpper } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('status', 'COMPLETED');
+    
+    if (appErrorUpper) throw appErrorUpper;
+    
+    // Combinar os resultados
+    const appointments = [
+      ...(appointmentsLower || []),
+      ...(appointmentsUpper || [])
+    ];
 
-    if (appError) throw appError;
+
+    console.log(`Encontrados ${appointments?.length || 0} agendamentos com status 'completed'`);
+
+    if (!appointments || appointments.length === 0) {
+      console.log('Nenhum agendamento concluído encontrado para processar');
+      return;
+    }
 
     for (const appointment of appointments) {
+      console.log(`\nProcessando agendamento #${appointment.id} (${appointment.date})`);
+      
       // Verificar se já existe transação
       const { data: transactions } = await supabase
         .from('cash_flow')
@@ -355,16 +383,67 @@ export async function validateAndFixTransactions() {
         .eq('type', 'INCOME');
 
       if (!transactions || transactions.length === 0) {
-        console.log(`Corrigindo transação ausente para agendamento #${appointment.id}`);
-        await recordAppointmentTransaction(
-          appointment.id,
-          [],  // serviceDetails será buscado dentro da função
-          new Date(appointment.date)
-        );
+        console.log(`Nenhuma transação encontrada para agendamento #${appointment.id} - criando nova transação...`);
+        
+        // Buscar serviços do agendamento
+        const { data: appointmentServices, error: servicesError } = await supabase
+          .from('appointment_services')
+          .select('*')
+          .eq('appointment_id', appointment.id);
+          
+        if (servicesError) {
+          console.error(`Erro ao buscar serviços para agendamento #${appointment.id}:`, servicesError);
+          continue; // Passar para o próximo agendamento
+        }
+        
+        console.log(`Encontrados ${appointmentServices?.length || 0} serviços para o agendamento #${appointment.id}`);
+        
+        // Se não houver serviços, não podemos prosseguir (não temos valor total na tabela)
+        if (!appointmentServices || appointmentServices.length === 0) {
+          console.log(`Agendamento #${appointment.id} não possui serviços definidos - pulando`);
+          continue;
+        }
+        
+        // Buscar detalhes de cada serviço
+        const serviceDetails = [];
+        for (const as of appointmentServices) {
+          const { data: service, error: serviceError } = await supabase
+            .from('services')
+            .select('*')
+            .eq('id', as.service_id)
+            .single();
+            
+          if (serviceError || !service) {
+            console.error(`Erro ao buscar serviço ID ${as.service_id}:`, serviceError || 'Serviço não encontrado');
+            continue;
+          }
+          
+          serviceDetails.push({
+            id: service.id,
+            name: service.name,
+            price: service.price
+          });
+          
+          console.log(`Serviço ${service.name}: R$ ${(service.price/100).toFixed(2)}`);
+        }
+        
+        if (serviceDetails.length > 0) {
+          console.log(`Registrando transação para agendamento #${appointment.id} com ${serviceDetails.length} serviços`);
+          await recordAppointmentTransaction(
+            appointment.id,
+            serviceDetails,
+            new Date(appointment.date)
+          );
+        } else {
+          console.log(`Não foi possível determinar o valor do agendamento #${appointment.id} - pulando`);
+        }
+      } else {
+        console.log(`Transação já existe para agendamento #${appointment.id} - ignorando`);
       }
     }
     
-    console.log('Validação concluída');
+    console.log('\nValidação e correção concluídas');
+    return true;
   } catch (error) {
     console.error('Erro na validação:', error);
     throw error;

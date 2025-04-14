@@ -543,19 +543,21 @@ export const supabaseStorage = {
   async updateAppointmentStatus(id: number, status: string, notes?: string) {
     try {
       // Preparar os dados para atualização
-      const updateData: { status: string; notes?: string; completed_at?: string; total_value?: number } = { status };
+      const updateData: { status: string; notes?: string; completed_at?: string; } = { status };
       
       // Adicionar notes se fornecido
       if (notes !== undefined) {
         updateData.notes = notes;
       }
       
-      // Se o status for COMPLETED, adicionar data de conclusão e calcular o valor total
-      if (status === 'COMPLETED') {
+      // Se o status for "completed", adicionar data de conclusão e calcular o valor total
+      if (status === 'completed') {
         // Adicionar data de conclusão
         updateData.completed_at = new Date().toISOString();
         
-        // Calcular valor total do agendamento
+        // Observação: Removemos a geração de total_value pois essa coluna não existe na tabela
+        // O valor financeiro será calculado apenas na tabela de cash_flow
+        // Agora tentamos buscar apenas os serviços para logging
         try {
           // Buscar serviços do agendamento
           const { data: appointmentServices, error: servicesError } = await supabase
@@ -566,7 +568,7 @@ export const supabaseStorage = {
           if (servicesError) {
             console.error('Erro ao buscar serviços do agendamento:', servicesError);
           } else if (appointmentServices && appointmentServices.length > 0) {
-            // Buscar detalhes de cada serviço com logs detalhados
+            // Buscar detalhes de cada serviço com logs detalhados (apenas para informação)
             let totalValue = 0;
             
             for (const as of appointmentServices) {
@@ -592,14 +594,10 @@ export const supabaseStorage = {
               console.log(`Adicionando valor do serviço ID ${as.service_id} (${service.name}): R$ ${(service.price/100).toFixed(2)}`);
             }
             
-            // Adicionar valor total ao agendamento
-            if (totalValue > 0) {
-              updateData.total_value = totalValue;
-              console.log(`Valor total calculado para o agendamento #${id}:`, totalValue);
-            }
+            console.log(`Valor total calculado para o agendamento #${id}: R$ ${(totalValue/100).toFixed(2)}`);
           }
         } catch (calcError) {
-          console.error('Erro ao calcular valor total do agendamento:', calcError);
+          console.error('Erro ao buscar informações dos serviços do agendamento:', calcError);
         }
       }
       
@@ -627,8 +625,7 @@ export const supabaseStorage = {
         status: data.status,
         notes: data.notes,
         createdAt: data.created_at,
-        completedAt: data.completed_at,
-        totalValue: data.total_value
+        completedAt: data.completed_at
       };
     } catch (error) {
       console.error('Erro geral ao atualizar status do agendamento:', error);
