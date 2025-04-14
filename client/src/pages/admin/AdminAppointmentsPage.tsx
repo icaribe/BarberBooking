@@ -481,18 +481,32 @@ export default function AdminAppointmentsPage() {
 
     if (!status) return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pendente</Badge>;
 
-    // Mapear os status do backend para os status do frontend
-    let mappedStatus = status.trim().toLowerCase();
+    // Normalizar o status para minúsculo e remover espaços
+    const normalizedStatus = status.trim().toLowerCase();
+    
+    // Log para depuração após normalização
+    console.log("Status após normalização:", normalizedStatus);
 
-    // Mapeamento de status antigos para novos (minúsculo para maiúsculo)
-    if (mappedStatus === "scheduled") mappedStatus = "pending";
-    if (mappedStatus === "completed") mappedStatus = "completed";
-    if (mappedStatus === "cancelled") mappedStatus = "cancelled";
+    // Mapear os status usando o valor normalizado
+    switch (normalizedStatus) {
+      case "confirmed":
+        return <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">Confirmado</Badge>;
+      case "cancelled":
+        return <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100">Cancelado</Badge>;
+      case "completed":
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800 hover:bg-blue-100">Concluído</Badge>;
+      case "scheduled":
+      case "pending":
+        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pendente</Badge>;
+      default:
+        console.log("Status não reconhecido:", status);
+        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pendente</Badge>;
+    }
+  };
 
-    // Garantir que estamos trabalhando com uma string limpa e em maiúsculo
-    const normalizedStatus = mappedStatus.toUpperCase();
-    console.log("Status normalizado:", normalizedStatus);
-
+  const getStatusIcon = (status: string) => {
+    // Normalizar o status para minúsculo
+    const normalizedStatus = status.toLowerCase();
     switch (normalizedStatus) {
       case "CONFIRMED":
         return <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">Confirmado</Badge>;
