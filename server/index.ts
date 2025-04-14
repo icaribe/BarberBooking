@@ -57,11 +57,10 @@ app.use((req, res, next) => {
   }
 
   // Usar porta 4444 para evitar conflitos
-  const port = 4444;  
+  const port = 5000;  
   server.listen({
     port,
     host: "0.0.0.0",
-    reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
   });
