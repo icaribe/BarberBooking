@@ -930,8 +930,8 @@ export function registerAdminRoutes(app: Express): void {
 
         // Dados para estatísticas financeiras
         let financialData = {
-          dailyRevenue: "0.00",
-          monthlyRevenue: "0.00"
+          dailyRevenue: 0,
+          monthlyRevenue: 0
         };
 
         // Se for admin, adicionar dados financeiros
@@ -1049,9 +1049,11 @@ export function registerAdminRoutes(app: Express): void {
                       console.log('- Faturamento diário:', dailyRevenue);
                       console.log('- Faturamento mensal:', monthlyRevenue);
 
+                      // Os valores já estão em centavos no banco, vamos mantê-los assim
+                      // e fazer a conversão na interface do usuário
                       financialData = {
-                        dailyRevenue: dailyRevenue.toFixed(2),
-                        monthlyRevenue: monthlyRevenue.toFixed(2)
+                        dailyRevenue: dailyRevenue,
+                        monthlyRevenue: monthlyRevenue
                       };
                     }
                   }
@@ -1129,9 +1131,10 @@ export function registerAdminRoutes(app: Express): void {
                 console.log('- Faturamento diário:', dailyTotal);
                 console.log('- Faturamento mensal:', monthlyTotal);
 
+                // Manter os valores em centavos para que possam ser convertidos na UI
                 financialData = {
-                  dailyRevenue: dailyTotal.toFixed(2),
-                  monthlyRevenue: monthlyTotal.toFixed(2)
+                  dailyRevenue: dailyTotal * 100, // Converter de reais para centavos para manter consistência
+                  monthlyRevenue: monthlyTotal * 100 // Converter de reais para centavos para manter consistência
                 };
               }
 

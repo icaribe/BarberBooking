@@ -550,8 +550,8 @@ export const supabaseStorage = {
         updateData.notes = notes;
       }
       
-      // Se o status for "completed", adicionar data de conclusão e calcular o valor total
-      if (status === 'completed') {
+      // Se o status for "completed" (em qualquer formato), adicionar data de conclusão e calcular o valor total
+      if (status.toLowerCase() === 'completed') {
         // Adicionar data de conclusão
         updateData.completed_at = new Date().toISOString();
         

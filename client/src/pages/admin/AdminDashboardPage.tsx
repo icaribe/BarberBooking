@@ -153,7 +153,7 @@ export default function AdminDashboardPage() {
                 {statsLoading ? (
                   <Skeleton className="h-8 w-[100px]" />
                 ) : (
-                  <div className="text-2xl font-bold">R$ {stats.finance.dailyRevenue}</div>
+                  <div className="text-2xl font-bold">R$ {(Number(stats.finance.dailyRevenue) / 100).toFixed(2)}</div>
                 )}
                 <p className="text-xs text-muted-foreground">
                   {statsLoading ? (
@@ -174,7 +174,7 @@ export default function AdminDashboardPage() {
                 {statsLoading ? (
                   <Skeleton className="h-8 w-[100px]" />
                 ) : (
-                  <div className="text-2xl font-bold">R$ {stats.finance.monthlyRevenue}</div>
+                  <div className="text-2xl font-bold">R$ {(Number(stats.finance.monthlyRevenue) / 100).toFixed(2)}</div>
                 )}
                 <p className="text-xs text-muted-foreground">
                   {statsLoading ? (
