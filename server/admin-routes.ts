@@ -617,6 +617,10 @@ export function registerAdminRoutes(app: Express): void {
           return res.status(404).json({ message: 'Agendamento não encontrado' });
         }
 
+        // Salvar o status antigo ANTES de atualizar
+        const oldStatus = existingAppointment.status || '';
+        console.log(`Status atual do agendamento #${id} antes da atualização: '${oldStatus}'`);
+
         // Verificar permissões extras
         if (req.user && (req.user as any).role !== UserRole.ADMIN) {
           const user = req.user as any;
@@ -644,9 +648,6 @@ export function registerAdminRoutes(app: Express): void {
 
         // Atualizar status do agendamento
         const updatedAppointment = await storage.updateAppointmentStatus(id, status, notes);
-
-        // Verificar o status atual antes da atualização para detectar mudanças
-        const oldStatus = (await storage.getAppointment(id))?.status || '';
         console.log(`Alterando agendamento ${id} de '${oldStatus}' para '${status}'`);
 
         // Verificar se o status era completed anteriormente mas agora mudou

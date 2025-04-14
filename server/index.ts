@@ -56,8 +56,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Usar porta 3333 para evitar conflitos
-  const port = 3333;  
+  // Usar porta 4444 para evitar conflitos
+  const port = 4444;  
   server.listen({
     port,
     host: "0.0.0.0",
