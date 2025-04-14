@@ -364,6 +364,19 @@ export default function AdminAppointmentsPage() {
       const tabToRestore = activeTab;
       console.log("Preservando aba atual:", tabToRestore);
 
+      // Atualizar o estado local imediatamente
+      const updatedAppointments = appointmentsState.map(appointment => {
+        if (appointment.id === selectedAppointment.id) {
+          return {
+            ...appointment,
+            status: newStatus,
+            notes: data.notes
+          };
+        }
+        return appointment;
+      });
+      setAppointmentsState(updatedAppointments);
+
       // Executar a mutação com o status mapeado para o backend
       updateStatusMutation.mutate({ 
         ...data, 
