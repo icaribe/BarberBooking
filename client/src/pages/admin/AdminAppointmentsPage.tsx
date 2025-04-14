@@ -494,6 +494,7 @@ export default function AdminAppointmentsPage() {
       case "cancelled":
         return <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100">Cancelado</Badge>;
       case "completed":
+      case "complete":
         return <Badge variant="outline" className="bg-blue-100 text-blue-800 hover:bg-blue-100">Concluído</Badge>;
       case "scheduled":
       case "pending":
