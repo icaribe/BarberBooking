@@ -542,22 +542,44 @@ export const supabaseStorage = {
 
   async updateAppointmentStatus(id: number, status: string, notes?: string) {
     try {
-      // Preparar os dados para atualização
-      const updateData: { status: string; notes?: string; completed_at?: string; } = { status };
+      console.log(`🔄 Iniciando atualização do agendamento #${id} para status: '${status}'`);
+      
+      // Preparar os dados para atualização com validação explícita do status
+      let normalizedStatus = status;
+      
+      // Normalizar o status para garantir consistência no banco de dados
+      // Converter para minúsculo conforme esperado pelo banco
+      normalizedStatus = status.toLowerCase();
+      
+      console.log(`Status normalizado: '${normalizedStatus}'`);
+      
+      // Validar se o status é um dos valores aceitos
+      const validStatuses = ['scheduled', 'confirmed', 'completed', 'cancelled', 'pending'];
+      if (!validStatuses.includes(normalizedStatus)) {
+        console.warn(`Status '${normalizedStatus}' não é um valor válido, convertendo para 'scheduled'`);
+        normalizedStatus = 'scheduled';
+      }
+      
+      // Preparar dados para atualização
+      const updateData: { status: string; notes?: string; completed_at?: string | null; } = { 
+        status: normalizedStatus 
+      };
       
       // Adicionar notes se fornecido
       if (notes !== undefined) {
         updateData.notes = notes;
       }
       
-      // Se o status for "completed" (em qualquer formato), adicionar data de conclusão e calcular o valor total
-      if (status.toLowerCase() === 'completed') {
+      // Logging detalhado para debug
+      console.log(`Dados para atualização: ${JSON.stringify(updateData)}`);
+      
+      // Se o status for "completed", adicionar data de conclusão
+      if (normalizedStatus === 'completed') {
+        console.log(`Marcando agendamento #${id} como concluído, adicionando timestamp de conclusão`);
         // Adicionar data de conclusão
         updateData.completed_at = new Date().toISOString();
         
-        // Observação: Removemos a geração de total_value pois essa coluna não existe na tabela
-        // O valor financeiro será calculado apenas na tabela de cash_flow
-        // Agora tentamos buscar apenas os serviços para logging
+        // Logging de serviços para informação (não afeta a atualização)
         try {
           // Buscar serviços do agendamento
           const { data: appointmentServices, error: servicesError } = await supabase
@@ -599,9 +621,16 @@ export const supabaseStorage = {
         } catch (calcError) {
           console.error('Erro ao buscar informações dos serviços do agendamento:', calcError);
         }
+      } 
+      // Se o status NÃO é completed, definir completed_at como null
+      else if (updateData.status !== 'completed') {
+        console.log(`Agendamento #${id} NÃO está marcado como concluído, removendo timestamp de conclusão`);
+        updateData.completed_at = null;
       }
       
-      // Atualizar o agendamento no banco de dados
+      console.log(`Enviando atualização para o banco de dados: ${JSON.stringify(updateData)}`);
+      
+      // Atualizar o agendamento no banco de dados com logs detalhados
       const { data, error } = await supabase
         .from('appointments')
         .update(updateData)
@@ -610,8 +639,16 @@ export const supabaseStorage = {
         .single();
       
       if (error) {
-        console.error('Erro ao atualizar status do agendamento:', error);
+        console.error(`❌ Erro ao atualizar status do agendamento #${id}:`, error);
+        console.error(`Query SQL falhou com dados: ${JSON.stringify(updateData)}`);
         return null;
+      }
+      
+      console.log(`✅ Atualização do agendamento #${id} concluída com sucesso. Novo status: '${data.status}'`);
+      
+      // Fazer uma verificação adicional para garantir que o status foi atualizado corretamente
+      if (data.status !== normalizedStatus) {
+        console.warn(`⚠️ Status retornado do banco (${data.status}) difere do solicitado (${normalizedStatus})`);
       }
       
       // Transformar os nomes dos campos para camelCase para o frontend
@@ -628,7 +665,7 @@ export const supabaseStorage = {
         completedAt: data.completed_at
       };
     } catch (error) {
-      console.error('Erro geral ao atualizar status do agendamento:', error);
+      console.error('❌ Erro geral ao atualizar status do agendamento:', error);
       return null;
     }
   },
