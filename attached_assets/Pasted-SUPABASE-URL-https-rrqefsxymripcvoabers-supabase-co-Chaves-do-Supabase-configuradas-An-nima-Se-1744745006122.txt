@@ -1,0 +1,292 @@
+SUPABASE_URL: https://rrqefsxymripcvoabers.supabase.co
+Chaves do Supabase configuradas: Anônima ✓ Serviço ✓
+
+=== Configurando Políticas RLS no Supabase ===
+
+Buscando tabelas do esquema público...
+Ativando RLS para tabelas principais:
+❌ Erro ao ativar RLS para tabela "users": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+
+Criando políticas para tabela "users"...
+❌ Erro ao criar política "Allow users to read their own data" para "users": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow users to update their own data" para "users": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow admins to read all user data" para "users": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow anon to read non-sensitive user data" para "users": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao ativar RLS para tabela "services": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+
+Criando políticas para tabela "services"...
+❌ Erro ao criar política "Allow public read access to services" para "services": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow admins and professionals to manage services" para "services": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao ativar RLS para tabela "service_categories": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+
+Criando políticas para tabela "service_categories"...
+❌ Erro ao criar política "Allow public read access to service categories" para "service_categories": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow admins to manage service categories" para "service_categories": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao ativar RLS para tabela "products": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+
+Criando políticas para tabela "products"...
+❌ Erro ao criar política "Allow public read access to products" para "products": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow admins to manage products" para "products": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao ativar RLS para tabela "product_categories": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+
+Criando políticas para tabela "product_categories"...
+❌ Erro ao criar política "Allow public read access to product categories" para "product_categories": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow admins to manage product categories" para "product_categories": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao ativar RLS para tabela "professionals": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+
+Criando políticas para tabela "professionals"...
+❌ Erro ao criar política "Allow public read access to professionals" para "professionals": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow admins to manage professionals" para "professionals": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao ativar RLS para tabela "schedules": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+
+Criando políticas para tabela "schedules"...
+❌ Erro ao criar política "Allow public read access to schedules" para "schedules": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow professionals to manage their schedules" para "schedules": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow admins to manage all schedules" para "schedules": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao ativar RLS para tabela "appointments": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+
+Criando políticas para tabela "appointments"...
+❌ Erro ao criar política "Allow users to read their own appointments" para "appointments": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow users to create appointments" para "appointments": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow users to update their own appointments" para "appointments": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow admins to manage all appointments" para "appointments": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao ativar RLS para tabela "appointment_services": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+
+Criando políticas para tabela "appointment_services"...
+❌ Erro ao criar política "Allow users to read their appointment services" para "appointment_services": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow users to create appointment services" para "appointment_services": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow admins to manage all appointment services" para "appointment_services": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao ativar RLS para tabela "loyalty_rewards": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+
+Criando políticas para tabela "loyalty_rewards"...
+❌ Erro ao criar política "Allow public read access to loyalty rewards" para "loyalty_rewards": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow admins to manage loyalty rewards" para "loyalty_rewards": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao ativar RLS para tabela "loyalty_history": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+
+Criando políticas para tabela "loyalty_history"...
+❌ Erro ao criar política "Allow users to read their own loyalty history" para "loyalty_history": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow users to create loyalty history entries" para "loyalty_history": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow admins to manage all loyalty history" para "loyalty_history": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao ativar RLS para tabela "cash_flow": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+
+Criando políticas para tabela "cash_flow"...
+❌ Erro ao criar política "Allow admins to manage cash flow" para "cash_flow": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+❌ Erro ao criar política "Allow professionals to read cash flow entries related to their appointments" para "cash_flow": {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec(query) in the schema cache'
+}
+
+=== Configuração RLS Concluída ===
+
