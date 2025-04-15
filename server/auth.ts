@@ -134,8 +134,40 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Nome de usuário e senha são obrigatórios" });
       }
 
-      // Criamos o usuário usando a função que integra com o Supabase Auth
-      const user = await storage.createUser(req.body);
+      // Criamos o usuário usando diretamente o cliente admin do Supabase
+      const { data: authData, error: authError } = await storage.supabaseAdmin.auth.admin.createUser({
+        email: req.body.email || `${req.body.username}@example.com`,
+        password: req.body.password,
+        email_confirm: true,
+        user_metadata: {
+          username: req.body.username,
+          name: req.body.name || "",
+          phone: req.body.phone || ""
+        }
+      });
+
+      if (authError) {
+        console.error('Erro ao criar usuário no Supabase Auth:', authError);
+        return res.status(500).json({ message: "Erro ao criar usuário" });
+      }
+
+      // Criar o registro na tabela users usando client admin
+      const { data: user, error: dbError } = await storage.supabaseAdmin
+        .from('users')
+        .insert({
+          username: req.body.username,
+          email: req.body.email || `${req.body.username}@example.com`,
+          name: req.body.name,
+          phone: req.body.phone,
+          auth_id: authData.user.id
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('Erro ao criar usuário no banco:', dbError);
+        return res.status(500).json({ message: "Erro ao criar usuário no banco" });
+      }
       if (!user) {
         console.error('Falha ao criar usuário no banco de dados');
         return res.status(500).json({ message: "Falha ao criar usuário no banco de dados" });
