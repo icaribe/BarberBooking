@@ -17,6 +17,8 @@ import {
   insertLoyaltyRewardSchema,
 } from "@shared/schema";
 import { z } from "zod";
+import { requireRole } from './middleware/role-middleware';
+import { validateEntityRelations } from './middleware/entity-relations';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configurar autenticação
@@ -27,12 +29,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid user ID" });
     }
-    
+
     const user = await storage.getUser(id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    
+
     // Don't send password
     const { password, ...userWithoutPassword } = user;
     res.json(userWithoutPassword);
@@ -42,11 +44,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userData = insertUserSchema.parse(req.body);
       const existingUser = await storage.getUserByUsername(userData.username);
-      
+
       if (existingUser) {
         return res.status(409).json({ message: "Nome de usuário já existe" });
       }
-      
+
       const newUser = await storage.createUser(userData);
       if (!newUser) {
         return res.status(500).json({ message: "Erro ao criar usuário no banco de dados" });
@@ -74,18 +76,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid user ID" });
     }
-    
+
     try {
       const user = await storage.getUser(id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       const updatedUser = await storage.updateUser(id, req.body);
       if (!updatedUser) {
         return res.status(500).json({ message: "Failed to update user" });
       }
-      
+
       const { password, ...userWithoutPassword } = updatedUser;
       res.json(userWithoutPassword);
     } catch (error) {
@@ -104,12 +106,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid category ID" });
     }
-    
+
     const category = await storage.getServiceCategory(id);
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
-    
+
     res.json(category);
   });
 
@@ -129,16 +131,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Service routes
   app.get("/api/services", async (req: Request, res: Response) => {
     const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
-    
+
     if (categoryId) {
       if (isNaN(categoryId)) {
         return res.status(400).json({ message: "Invalid category ID" });
       }
-      
+
       const services = await storage.getServicesByCategory(categoryId);
       return res.json(services);
     }
-    
+
     const services = await storage.getServices();
     res.json(services);
   });
@@ -148,12 +150,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid service ID" });
     }
-    
+
     const service = await storage.getService(id);
     if (!service) {
       return res.status(404).json({ message: "Service not found" });
     }
-    
+
     res.json(service);
   });
 
@@ -181,12 +183,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid professional ID" });
     }
-    
+
     const professional = await storage.getProfessional(id);
     if (!professional) {
       return res.status(404).json({ message: "Professional not found" });
     }
-    
+
     res.json(professional);
   });
 
@@ -209,7 +211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(professionalId)) {
       return res.status(400).json({ message: "Invalid professional ID" });
     }
-    
+
     const schedules = await storage.getSchedules(professionalId);
     res.json(schedules);
   });
@@ -228,24 +230,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Appointment routes
-  app.get("/api/appointments", async (req: Request, res: Response) => {
+  app.get("/api/appointments", requireAuth, validateEntityRelations, async (req: Request, res: Response) => {
     try {
       const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
       const professionalId = req.query.professionalId ? parseInt(req.query.professionalId as string) : undefined;
       const date = req.query.date as string | undefined;
-      
+
       if ((userId && isNaN(userId)) || (professionalId && isNaN(professionalId))) {
         return res.status(400).json({ message: "Invalid user or professional ID" });
       }
-      
+
       console.log('Buscando agendamentos com:', { userId, professionalId, date });
-      
+
       // Criar objeto de opções para filtro
       const options: { userId?: number; professionalId?: number; date?: string } = {};
       if (userId) options.userId = userId;
       if (professionalId) options.professionalId = professionalId;
       if (date) options.date = date;
-      
+
       const appointments = await storage.getAppointments(options);
       return res.json(appointments);
     } catch (error) {
@@ -259,12 +261,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid appointment ID" });
     }
-    
+
     const appointment = await storage.getAppointment(id);
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });
     }
-    
+
     res.json(appointment);
   });
 
@@ -274,21 +276,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({ message: "Você precisa estar autenticado para criar um agendamento" });
       }
-      
+
       // Obter o ID do usuário atual da sessão
       const currentUserId = (req.user as any).id;
       console.log('Criando agendamento para o usuário autenticado ID:', currentUserId);
-      
+
       // Garantir que o userId no agendamento corresponda ao usuário autenticado
       const appointmentData = insertAppointmentSchema.parse({
         ...req.body,
         userId: currentUserId // Sobrescrever com o ID do usuário autenticado
       });
-      
+
       console.log('Dados do agendamento validados:', appointmentData);
       const newAppointment = await storage.createAppointment(appointmentData);
       console.log('Agendamento criado com ID:', newAppointment.id);
-      
+
       // Add services to the appointment if provided
       if (req.body.services && Array.isArray(req.body.services)) {
         console.log('Adicionando serviços ao agendamento:', req.body.services);
@@ -300,11 +302,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('Serviço adicionado ao agendamento:', appointmentService);
         }
       }
-      
+
       // Buscar o agendamento recém-criado para confirmar que foi salvo
       const savedAppointment = await storage.getAppointment(newAppointment.id);
       console.log('Agendamento verificado após salvar:', savedAppointment);
-      
+
       res.status(201).json(newAppointment);
     } catch (error) {
       console.error('Erro ao criar agendamento:', error);
@@ -320,17 +322,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid appointment ID" });
     }
-    
+
     const { status } = req.body;
     if (!status || !["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
-    
+
     const updatedAppointment = await storage.updateAppointmentStatus(id, status);
     if (!updatedAppointment) {
       return res.status(404).json({ message: "Appointment not found" });
     }
-    
+
     res.json(updatedAppointment);
   });
 
@@ -339,7 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(appointmentId)) {
       return res.status(400).json({ message: "Invalid appointment ID" });
     }
-    
+
     const appointmentServices = await storage.getAppointmentServices(appointmentId);
     res.json(appointmentServices);
   });
@@ -368,12 +370,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid category ID" });
     }
-    
+
     const category = await storage.getProductCategory(id);
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
-    
+
     res.json(category);
   });
 
@@ -393,16 +395,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Product routes
   app.get("/api/products", async (req: Request, res: Response) => {
     const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
-    
+
     if (categoryId) {
       if (isNaN(categoryId)) {
         return res.status(400).json({ message: "Invalid category ID" });
       }
-      
+
       const products = await storage.getProductsByCategory(categoryId);
       return res.json(products);
     }
-    
+
     const products = await storage.getProducts();
     res.json(products);
   });
@@ -412,12 +414,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid product ID" });
     }
-    
+
     const product = await storage.getProduct(id);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    
+
     res.json(product);
   });
 
@@ -445,12 +447,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid reward ID" });
     }
-    
+
     const reward = await storage.getLoyaltyReward(id);
     if (!reward) {
       return res.status(404).json({ message: "Reward not found" });
     }
-    
+
     res.json(reward);
   });
 
@@ -469,11 +471,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Registrar rotas do sistema administrativo
   registerAdminRoutes(app);
-  
+
   // Registrar rotas de fluxo de caixa
   // Registrar as rotas de fluxo de caixa
   app.use('/api/cash-flow', cashFlowRouter);
-  
+
   // Registrar versão administrativa do fluxo de caixa (mesmo router, caminho diferente)
   app.use('/api/admin/cash-flow', cashFlowRouter);
 
