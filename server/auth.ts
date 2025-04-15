@@ -134,17 +134,28 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Nome de usuário e senha são obrigatórios" });
       }
 
-      // Criamos o usuário usando diretamente o cliente admin do Supabase
-      const { data: authData, error: authError } = await storage.supabaseAdmin.auth.admin.createUser({
-        email: req.body.email || `${req.body.username}@example.com`,
-        password: req.body.password,
-        email_confirm: true,
-        user_metadata: {
-          username: req.body.username,
-          name: req.body.name || "",
-          phone: req.body.phone || ""
+      try {
+        // Criamos o usuário usando diretamente o cliente admin do Supabase
+        const { data: authData, error: authError } = await storage.supabaseAdmin.auth.admin.createUser({
+          email: req.body.email || `${req.body.username}@example.com`,
+          password: req.body.password,
+          email_confirm: true,
+          user_metadata: {
+            username: req.body.username,
+            name: req.body.name || "",
+            phone: req.body.phone || ""
+          },
+          phone: req.body.phone || undefined
+        });
+
+        if (authError) {
+          // Se o erro for relacionado ao Twilio, ignoramos pois não é crítico
+          if (authError.message.includes('Twilio') || authError.message.includes('SMS provider')) {
+            console.warn('Aviso: Twilio não configurado, continuando registro sem SMS:', authError);
+          } else {
+            throw authError;
+          }
         }
-      });
 
       if (authError) {
         console.error('Erro ao criar usuário no Supabase Auth:', authError);
@@ -249,6 +260,31 @@ export function setupAuth(app: Express) {
         });
       });
     })(req, res, next);
+  });
+
+  app.delete("/api/user/:id", async (req, res) => {
+    try {
+      const userId = req.params.id;
+      
+      // Primeiro remove do Supabase Auth
+      await storage.supabaseAdmin.auth.admin.deleteUser(userId);
+      
+      // Depois remove do nosso banco
+      const { error: dbError } = await storage.supabaseAdmin
+        .from('users')
+        .delete()
+        .eq('auth_id', userId);
+      
+      if (dbError) {
+        console.error('Erro ao deletar usuário do banco:', dbError);
+        return res.status(500).json({ message: "Erro ao deletar usuário do banco" });
+      }
+      
+      res.status(200).json({ message: "Usuário deletado com sucesso" });
+    } catch (error) {
+      console.error('Erro ao deletar usuário:', error);
+      res.status(500).json({ message: "Erro ao deletar usuário" });
+    }
   });
 
   app.post("/api/logout", async (req, res, next) => {
