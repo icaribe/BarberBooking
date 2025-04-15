@@ -34,7 +34,7 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     strictPort: true,
-    allowedHosts: ["*.spock.replit.dev", "*.replit.dev"],
+    allowedHosts: ["*.spock.replit.dev", "*.replit.dev", "e3dffb3a-c746-430d-956a-18021bfee959-00-20xd1dxfn51oa.spock.replit.dev"],
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
