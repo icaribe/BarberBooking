@@ -47,16 +47,20 @@ const RegisterForm = ({ onSuccess, onLoginClick }: RegisterFormProps) => {
 
   const onSubmit = async (data: RegisterFormValues) => {
     setError(null);
-    const success = await register({
-      username: data.username,
-      password: data.password,
-      name: data.name || undefined,
-      email: data.email || undefined,
-      phone: data.phone || undefined,
-    });
-    
-    if (success && onSuccess) {
-      onSuccess();
+    try {
+      const success = await register({
+        username: data.username,
+        password: data.password,
+        name: data.name || undefined,
+        email: data.email || undefined,
+        phone: data.phone || undefined,
+      });
+
+      if (success && onSuccess) {
+        onSuccess();
+      }
+    } catch (error: any) {
+      setError(error.message || "Erro ao criar conta. Tente novamente mais tarde.");
     }
   };
 
@@ -68,7 +72,7 @@ const RegisterForm = ({ onSuccess, onLoginClick }: RegisterFormProps) => {
         </div>
       </div>
       <h2 className="text-2xl font-bold text-center mb-6 font-montserrat">Criar Conta</h2>
-      
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
@@ -88,7 +92,7 @@ const RegisterForm = ({ onSuccess, onLoginClick }: RegisterFormProps) => {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="name"
@@ -106,7 +110,7 @@ const RegisterForm = ({ onSuccess, onLoginClick }: RegisterFormProps) => {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="email"
@@ -125,7 +129,7 @@ const RegisterForm = ({ onSuccess, onLoginClick }: RegisterFormProps) => {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="phone"
@@ -143,7 +147,7 @@ const RegisterForm = ({ onSuccess, onLoginClick }: RegisterFormProps) => {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="password"

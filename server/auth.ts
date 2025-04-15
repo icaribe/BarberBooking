@@ -121,42 +121,55 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
+      console.log('Tentando registrar usuário:', req.body.username);
+      
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
+        console.log('Usuário já existe:', req.body.username);
         return res.status(400).json({ message: "Nome de usuário já existe" });
+      }
+
+      // Validar dados do usuário
+      if (!req.body.username || !req.body.password) {
+        return res.status(400).json({ message: "Nome de usuário e senha são obrigatórios" });
       }
 
       // Criamos o usuário usando a função que integra com o Supabase Auth
       const user = await storage.createUser(req.body);
+      if (!user) {
+        console.error('Falha ao criar usuário no banco de dados');
+        return res.status(500).json({ message: "Falha ao criar usuário no banco de dados" });
+      }
 
       // Removemos a senha antes de retornar ao cliente
       const { password, ...userWithoutPassword } = user;
 
-      // Login do usuário após o registro (importante para sessão correta)
+      // Login do usuário após o registro
       req.login(user, (err) => {
         if (err) {
           console.error('Erro ao fazer login automático após registro:', err);
-          return next(err);
+          return res.status(500).json({ message: "Erro ao estabelecer sessão" });
         }
         
-        // Garantir que temos a sessão correta estabelecida
         req.session.save((saveErr) => {
           if (saveErr) {
             console.error('Erro ao salvar sessão após registro:', saveErr);
-            return next(saveErr);
+            return res.status(500).json({ message: "Erro ao salvar sessão" });
           }
           
-          console.log('Login automático após registro realizado com sucesso para o usuário:', user.id);
-          console.log('Sessão estabelecida:', req.isAuthenticated(), 'user ID:', req.user?.id);
+          console.log('Registro completo com sucesso para:', user.id);
           res.status(201).json(userWithoutPassword);
         });
       });
     } catch (error) {
-      console.error('Erro ao registrar usuário:', error);
-      return res.status(500).json({
-        message: "Erro ao criar conta. Verifique os dados fornecidos e tente novamente.",
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
-      });
+      console.error('Erro detalhado ao registrar usuário:', error);
+      if (error instanceof Error) {
+        return res.status(500).json({
+          message: "Erro ao criar conta",
+          details: error.message
+        });
+      }
+      return res.status(500).json({ message: "Erro interno do servidor" });
     }
   });
 
