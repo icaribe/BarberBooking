@@ -71,26 +71,26 @@ export function setupAuth(app: Express) {
         // Passo 2: Autenticar usando o Supabase Auth
         // Se tiver email, usamos o email, caso contrário usamos o username como email
         const email = user.email || `${username}@example.com`;
-        
+
         const { data: authData, error: authError } = await storage.authenticateWithSupabase(email, password);
-        
+
         if (authError) {
           console.error('Erro na autenticação do Supabase:', authError.message);
-          
+
           // Verificar com a versão local de backup
           if (await comparePasswords(password, user.password)) {
             console.log('Login bem-sucedido usando senha local.');
             return done(null, user);
           }
-          
+
           return done(null, false);
         }
-        
+
         if (authData && authData.user) {
           console.log('Login bem-sucedido usando Supabase Auth.');
           return done(null, user);
         }
-        
+
         return done(null, false);
       } catch (error) {
         console.error('Erro durante autenticação:', error);
@@ -103,7 +103,7 @@ export function setupAuth(app: Express) {
     console.log('Serializando usuário:', user.id);
     done(null, user.id);
   });
-  
+
   passport.deserializeUser(async (id: number, done) => {
     try {
       console.log('Desserializando usuário de ID:', id);
@@ -122,7 +122,7 @@ export function setupAuth(app: Express) {
   app.post("/api/register", async (req, res, next) => {
     try {
       console.log('Tentando registrar usuário:', req.body.username);
-      
+
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
         console.log('Usuário já existe:', req.body.username);
@@ -150,13 +150,13 @@ export function setupAuth(app: Express) {
           console.error('Erro ao fazer login automático após registro:', err);
           return res.status(500).json({ message: "Erro ao estabelecer sessão" });
         }
-        
+
         req.session.save((saveErr) => {
           if (saveErr) {
             console.error('Erro ao salvar sessão após registro:', saveErr);
             return res.status(500).json({ message: "Erro ao salvar sessão" });
           }
-          
+
           console.log('Registro completo com sucesso para:', user.id);
           res.status(201).json(userWithoutPassword);
         });
@@ -176,28 +176,28 @@ export function setupAuth(app: Express) {
   app.post("/api/login", async (req, res, next) => {
     passport.authenticate("local", async (err: Error | null, user: any, info: any) => {
       if (err) return next(err);
-      
+
       if (!user) {
         return res.status(401).json({ message: "Nome de usuário ou senha incorretos" });
       }
-      
+
       req.login(user, async (loginErr: Error | null) => {
         if (loginErr) return next(loginErr);
-        
+
         // Garantir que a sessão seja salva adequadamente
         req.session.save(async (saveErr) => {
           if (saveErr) {
             console.error('Erro ao salvar sessão após login:', saveErr);
             return next(saveErr);
           }
-          
+
           console.log('Login bem-sucedido para o usuário:', user.id);
           console.log('Sessão estabelecida:', req.isAuthenticated(), 'user ID:', req.user?.id);
-          
+
           // Buscar o papel do usuário usando o role-workaround
           const { getUserRole } = await import('../shared/role-workaround');
           const userRole = await getUserRole(user.id);
-          
+
           // Converter o papel para o formato esperado pelo frontend (maiúsculas)
           let role = 'USER';
           if (userRole === 'admin') {
@@ -205,10 +205,10 @@ export function setupAuth(app: Express) {
           } else if (userRole === 'professional') {
             role = 'PROFESSIONAL';
           }
-          
+
           // Removemos a senha antes de retornar ao cliente
           const { password, ...userWithoutPassword } = user;
-          
+
           // Adicionar o papel ao objeto do usuário
           res.status(200).json({
             ...userWithoutPassword,
@@ -228,7 +228,7 @@ export function setupAuth(app: Express) {
         console.error('Erro ao fazer logout do Supabase:', error);
       }
     }
-    
+
     // Logout do Passport
     req.logout((err) => {
       if (err) return next(err);
@@ -241,25 +241,25 @@ export function setupAuth(app: Express) {
       console.log('Usuário não autenticado em /api/user');
       return res.sendStatus(401);
     }
-    
+
     try {
       // Buscar informações atualizadas do usuário do banco de dados
       const userId = (req.user as any).id;
       console.log('Buscando informações atualizadas para o usuário ID:', userId);
-      
+
       const user = await storage.getUser(userId);
       if (!user) {
         console.error('Usuário autenticado não encontrado no banco:', userId);
         return res.sendStatus(401);
       }
-      
+
       // Remover a senha antes de retornar ao cliente
       const { password, ...userWithoutPassword } = user;
-      
+
       // Buscar o papel do usuário usando o role-workaround
       const { getUserRole } = await import('../shared/role-workaround');
       const userRole = await getUserRole(userId);
-      
+
       // Converter o papel para o formato esperado pelo frontend (maiúsculas)
       let role = 'USER';
       if (userRole === 'admin') {
@@ -267,13 +267,13 @@ export function setupAuth(app: Express) {
       } else if (userRole === 'professional') {
         role = 'PROFESSIONAL';
       }
-      
+
       // Adicionar o papel ao objeto do usuário
       const userWithRole = {
         ...userWithoutPassword,
         role
       };
-      
+
       console.log('Retornando dados do usuário:', userId, userWithRole.username, 'com papel:', role);
       res.json(userWithRole);
     } catch (error) {
