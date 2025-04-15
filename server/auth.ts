@@ -135,12 +135,6 @@ export function setupAuth(app: Express) {
       }
 
       try {
-        // Determinar o role do usuário
-        let userRole = 'customer';
-        if (req.body.professionalId) {
-          userRole = 'professional';
-        }
-
         // Criamos o usuário usando diretamente o cliente admin do Supabase
         const { data: authData, error: authError } = await storage.supabaseAdmin.auth.admin.createUser({
           email: req.body.email || `${req.body.username}@example.com`,
@@ -149,20 +143,10 @@ export function setupAuth(app: Express) {
           user_metadata: {
             username: req.body.username,
             name: req.body.name || "",
-            phone: req.body.phone || "",
-            role: userRole
+            phone: req.body.phone || ""
           },
           phone: req.body.phone || undefined
         });
-
-        // Configurar role no Supabase
-        if (authData?.user) {
-          await storage.supabaseAdmin.rpc('set_claim', {
-            uid: authData.user.id,
-            claim: 'role',
-            value: userRole
-          });
-        }
 
         if (authError) {
           // Se o erro for relacionado ao Twilio, ignoramos pois não é crítico
