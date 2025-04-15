@@ -13,13 +13,16 @@ ALTER TABLE public.loyalty_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cash_flow ENABLE ROW LEVEL SECURITY;
 
 -- Políticas para users
-CREATE POLICY "Allow users to read their own data" ON public.users
-  FOR SELECT USING (auth.uid()::text = auth_id::text);
+CREATE POLICY "Allow public read access to user profiles" ON public.users
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow users to insert their own data" ON public.users
+  FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Allow users to update their own data" ON public.users
   FOR UPDATE USING (auth.uid()::text = auth_id::text);
 
-CREATE POLICY "Allow admins to read all user data" ON public.users
+CREATE POLICY "Allow admins to manage all user data" ON public.users
   FOR ALL USING (EXISTS (
     SELECT 1 FROM public.users WHERE auth_id = auth.uid()::text AND role = 'admin'
   ));
