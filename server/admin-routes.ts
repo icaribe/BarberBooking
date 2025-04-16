@@ -649,7 +649,30 @@ export function registerAdminRoutes(app: Express): void {
         }
 
         // Atualizar status do agendamento
-        const updatedAppointment = await storage.updateAppointmentStatus(id, status, notes);
+        const { data: updatedAppointment, error: updateError } = await supabase
+          .from('appointments')
+          .update({ 
+            status: status,
+            completed_at: status.toLowerCase() === 'completed' ? new Date().toISOString() : null 
+          })
+          .eq('id', id)
+          .select(`
+            *,
+            appointment_services (
+              service_id,
+              services (
+                name,
+                price
+              )
+            )
+          `)
+          .single();
+
+        if (updateError) {
+          console.error(`Erro ao atualizar status do agendamento ${id}:`, updateError);
+          return res.status(500).json({ message: 'Erro ao atualizar status do agendamento' });
+        }
+
         console.log(`Alterando agendamento ${id} de '${oldStatus}' para '${status}'`);
 
         // Verificar se o status era completed anteriormente mas agora mudou
@@ -663,121 +686,121 @@ export function registerAdminRoutes(app: Express): void {
           try {
             console.log(`\n==== Processando transação financeira para agendamento #${id} ====`);
             console.log(`Status anterior: ${oldStatus}, Novo status: ${status}`);
-            
-            // Buscar serviços do agendamento
-            const appointmentServices = await storage.getAppointmentServices(id);
-            console.log(`Serviços encontrados para agendamento #${id}: ${appointmentServices.length}`);
-            
+
+            // Buscar serviços do agendamento - já buscado na atualização do agendamento
+            // const appointmentServices = await storage.getAppointmentServices(id);
+            // console.log(`Serviços encontrados para agendamento #${id}: ${appointmentServices.length}`);
+
             // Logar detalhes de cada serviço
-            for (const as of appointmentServices) {
-              console.log(`\nVerificando serviço ID #${as.serviceId}`);
-              const { data: serviceDetails } = await supabase
-                .from('services')
-                .select('*')
-                .eq('id', as.serviceId)
-                .single();
-              
-              if (serviceDetails) {
-                console.log(`- Nome: ${serviceDetails.name}`);
-                console.log(`- Preço: R$ ${(serviceDetails.price/100).toFixed(2)}`);
-              } else {
-                console.log(`! ALERTA: Serviço #${as.serviceId} não encontrado !`);
-              }
-            }
-            
-            // Buscar detalhes de cada serviço - método aprimorado
-            let serviceDetails = [];
-            
+            // for (const as of appointmentServices) {
+            //   console.log(`\nVerificando serviço ID #${as.serviceId}`);
+            //   const { data: serviceDetails } = await supabase
+            //     .from('services')
+            //     .select('*')
+            //     .eq('id', as.serviceId)
+            //     .single();
+
+            //   if (serviceDetails) {
+            //     console.log(`- Nome: ${serviceDetails.name}`);
+            //     console.log(`- Preço: R$ ${(serviceDetails.price/100).toFixed(2)}`);
+            //   } else {
+            //     console.log(`! ALERTA: Serviço #${as.serviceId} não encontrado !`);
+            //   }
+            // }
+
+            // Buscar detalhes de cada serviço - método aprimorado - já buscado na atualização do agendamento
+            // let serviceDetails = [];
+
             // Primeiro, tentar buscar com o método padrão
-            for (const as of appointmentServices) {
-              try {
-                // Primeiro, tentar buscar via storage.getService
-                const service = await storage.getService(as.serviceId);
-                
-                if (service) {
-                  serviceDetails.push(service);
-                  console.log(`Serviço #${as.serviceId} (${service.name}) encontrado com valor: R$ ${(service.price/100).toFixed(2)}`);
-                } else {
-                  // Se não encontrou com getService, tentar buscar diretamente da tabela
-                  console.log(`Serviço #${as.serviceId} não encontrado via getService, tentando busca direta...`);
-                  const { data: directService, error } = await supabase
-                    .from('services')
-                    .select('*')
-                    .eq('id', as.serviceId)
-                    .single();
-                    
-                  if (!error && directService) {
-                    // Converter para o formato esperado
-                    const mappedService = {
-                      id: directService.id,
-                      name: directService.name,
-                      description: directService.description || '',
-                      price: directService.price,
-                      priceType: directService.price_type,
-                      durationMinutes: directService.duration_minutes,
-                      categoryId: directService.category_id
-                    };
-                    serviceDetails.push(mappedService);
-                    console.log(`Serviço #${as.serviceId} (${mappedService.name}) recuperado via busca direta com valor: R$ ${(mappedService.price/100).toFixed(2)}`);
-                  } else {
-                    console.error(`Serviço #${as.serviceId} não encontrado mesmo via busca direta:`, error);
-                  }
-                }
-              } catch (serviceError) {
-                console.error(`Erro ao buscar serviço #${as.serviceId}:`, serviceError);
-              }
-            }
-            
+            // for (const as of appointmentServices) {
+            //   try {
+            //     // Primeiro, tentar buscar via storage.getService
+            //     const service = await storage.getService(as.serviceId);
+
+            //     if (service) {
+            //       serviceDetails.push(service);
+            //       console.log(`Serviço #${as.serviceId} (${service.name}) encontrado com valor: R$ ${(service.price/100).toFixed(2)}`);
+            //     } else {
+            //       // Se não encontrou com getService, tentar buscar diretamente da tabela
+            //       console.log(`Serviço #${as.serviceId} não encontrado via getService, tentando busca direta...`);
+            //       const { data: directService, error } = await supabase
+            //         .from('services')
+            //         .select('*')
+            //         .eq('id', as.serviceId)
+            //         .single();
+
+            //       if (!error && directService) {
+            //         // Converter para o formato esperado
+            //         const mappedService = {
+            //           id: directService.id,
+            //           name: directService.name,
+            //           description: directService.description || '',
+            //           price: directService.price,
+            //           priceType: directService.price_type,
+            //           durationMinutes: directService.duration_minutes,
+            //           categoryId: directService.category_id
+            //         };
+            //         serviceDetails.push(mappedService);
+            //         console.log(`Serviço #${as.serviceId} (${mappedService.name}) recuperado via busca direta com valor: R$ ${(mappedService.price/100).toFixed(2)}`);
+            //       } else {
+            //         console.error(`Serviço #${as.serviceId} não encontrado mesmo via busca direta:`, error);
+            //       }
+            //     }
+            //   } catch (serviceError) {
+            //     console.error(`Erro ao buscar serviço #${as.serviceId}:`, serviceError);
+            //   }
+            // }
+
             // Calcular o valor total dos serviços em centavos (formato original no banco)
-            let totalAmount = 0;
-            for (const service of serviceDetails) {
-              if (service && service.price) {
-                totalAmount += service.price;
-                console.log(`Adicionando valor do serviço ${service.name}: R$ ${(service.price/100).toFixed(2)} ao total`);
-              } else if (service) {
-                console.warn(`Serviço ${service.name} (ID: ${service.id}) encontrado, mas sem preço definido`);
-              }
-            }
+            // let totalAmount = 0;
+            // for (const service of serviceDetails) {
+            //   if (service && service.price) {
+            //     totalAmount += service.price;
+            //     console.log(`Adicionando valor do serviço ${service.name}: R$ ${(service.price/100).toFixed(2)} ao total`);
+            //   } else if (service) {
+            //     console.warn(`Serviço ${service.name} (ID: ${service.id}) encontrado, mas sem preço definido`);
+            //   }
+            // }
 
             // O agendamento não tem mais campo totalValue, então precisamos garantir que o totalAmount foi calculado corretamente
-            if (totalAmount === 0) {
-              console.log(`ALERTA: Nenhum valor encontrado para o agendamento #${id}`);
-            }
+            // if (totalAmount === 0) {
+            //   console.log(`ALERTA: Nenhum valor encontrado para o agendamento #${id}`);
+            // }
 
-            console.log(`Valor total do agendamento #${id}: R$ ${(totalAmount/100).toFixed(2)} baseado em ${serviceDetails.length} serviços`);
+            // console.log(`Valor total do agendamento #${id}: R$ ${(totalAmount/100).toFixed(2)} baseado em ${serviceDetails.length} serviços`);
 
             // Gerenciar transações financeiras com base na mudança de status
             try {
               const appointmentDate = existingAppointment.date ? new Date(existingAppointment.date) : new Date();
 
               // AÇÃO 1: Se o agendamento foi concluído, registrar transação
-              if (isCompleted && !wasCompleted) {
+              if (isCompleted && updatedAppointment) {
                 console.log(`Agendamento #${id} marcado como concluído - criando registro financeiro`);
                 // Converter valores para o formato esperado pela função
                 // Log detalhado de cada serviço antes da formatação
                 console.log('Detalhes brutos dos serviços antes da formatação:');
-                serviceDetails.forEach((service, index) => {
-                  if (service) {
-                    console.log(`  Serviço ${index+1}: ID=${service.id}, Nome="${service.name}", Preço=${service.price ? `R$ ${(service.price/100).toFixed(2)}` : 'não definido'}`);
-                  } else {
-                    console.log(`  Serviço ${index+1}: NULL (não encontrado)`);
-                  }
+                const services = updatedAppointment.appointment_services.map((as: any) => ({
+                  name: as.services?.name || 'Serviço não identificado',
+                  price: as.services?.price || 0
+                }));
+                services.forEach((service, index) => {
+                  console.log(`  Serviço ${index+1}: Nome="${service.name}", Preço=${service.price ? `R$ ${(service.price/100).toFixed(2)}` : 'não definido'}`);
                 });
-                
+
                 // Converter valores para o formato esperado pela função com tratamento aprimorado
-                const formattedServiceDetails = serviceDetails
-                  .filter(service => service !== null) // Garantir que não há serviços nulos
-                  .map(service => ({
-                    id: service?.id || 0,
-                    name: service?.name || 'Serviço não identificado',
-                    price: service?.price || 0
-                  }));
-                
-                console.log(`Serviços incluídos para faturamento: ${formattedServiceDetails.map(s => `${s.name} (R$ ${(s.price/100).toFixed(2)})`).join(', ')}`);
-                
+                // const formattedServiceDetails = serviceDetails
+                //   .filter(service => service !== null) // Garantir que não há serviços nulos
+                //   .map(service => ({
+                //     id: service?.id || 0,
+                //     name: service?.name || 'Serviço não identificado',
+                //     price: service?.price || 0
+                //   }));
+
+                console.log(`Serviços incluídos para faturamento: ${services.map(s => `${s.name} (R$ ${(s.price/100).toFixed(2)})`).join(', ')}`);
+
                 const transactionResult = await cashFlowManager.recordAppointmentTransaction(
                   id,
-                  formattedServiceDetails, // Passar detalhes de serviços, não apenas o valor total
+                  services, // Passar detalhes de serviços, não apenas o valor total
                   appointmentDate
                 );
 
@@ -844,7 +867,7 @@ export function registerAdminRoutes(app: Express): void {
         // Verificar se o agendamento existe
         const existingAppointment = await storage.getAppointment(id);
         if (!existingAppointment) {
-          return res.status(404).json({ message: 'Agendamento não encontrado' });
+          return res.status(404).json({ message: ''Agendamento não encontrado' });
         }
 
         // Excluir agendamento
@@ -1367,55 +1390,55 @@ export function registerAdminRoutes(app: Express): void {
         const { data: appointments, error: appointmentsError } = await supabase
           .from('appointments')
           .select('*');
-          
+
         if (appointmentsError) {
           console.error('Erro ao buscar agendamentos:', appointmentsError);
           return res.status(500).json({ message: 'Erro ao buscar agendamentos' });
         }
-        
+
         // Contagem por status
         const appointmentsCount = appointments.length;
         const pendingAppointments = appointments.filter(a => a.status === 'pending').length;
         const confirmedAppointments = appointments.filter(a => a.status === 'confirmed').length;
         const completedAppointments = appointments.filter(a => a.status === 'completed').length;
         const cancelledAppointments = appointments.filter(a => a.status === 'cancelled').length;
-        
+
         // Buscar produtos
         const { data: products, error: productsError } = await supabase
           .from('products')
           .select('*');
-          
+
         if (productsError) {
           console.error('Erro ao buscar produtos:', productsError);
           return res.status(500).json({ message: 'Erro ao buscar produtos' });
         }
-        
+
         const productsCount = products.length;
         const lowStockProducts = products.filter(p => p.stock_quantity <= 5).length;
-        
+
         // Buscar profissionais
         const { data: professionals, error: professionalsError } = await supabase
           .from('professionals')
           .select('*');
-          
+
         if (professionalsError) {
           console.error('Erro ao buscar profissionais:', professionalsError);
           return res.status(500).json({ message: 'Erro ao buscar profissionais' });
         }
-        
+
         const professionalsCount = professionals.length;
-        
+
         // Datas para estatísticas financeiras
         const today = new Date();
         const startOfDay = new Date(today);
         startOfDay.setHours(0, 0, 0, 0);
-        
+
         const endOfDay = new Date(today);
         endOfDay.setHours(23, 59, 59, 999);
-        
+
         const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
-        
+
         // Faturamento diário
         const { data: dailyTransactions, error: dailyError } = await supabase
           .from('cash_flow')
@@ -1423,15 +1446,15 @@ export function registerAdminRoutes(app: Express): void {
           .eq('type', 'income')
           .gte('date', startOfDay.toISOString())
           .lte('date', endOfDay.toISOString());
-          
+
         if (dailyError) {
           console.error('Erro ao buscar faturamento diário:', dailyError);
           return res.status(500).json({ message: 'Erro ao buscar faturamento diário' });
         }
-        
+
         const dailyRevenueAmount = dailyTransactions.reduce((sum, transaction) => 
           sum + parseInt(transaction.amount || "0"), 0).toString();
-        
+
         // Faturamento mensal
         const { data: monthlyTransactions, error: monthlyError } = await supabase
           .from('cash_flow')
@@ -1439,12 +1462,12 @@ export function registerAdminRoutes(app: Express): void {
           .eq('type', 'income')
           .gte('date', startOfMonth.toISOString())
           .lte('date', endOfMonth.toISOString());
-          
+
         if (monthlyError) {
           console.error('Erro ao buscar faturamento mensal:', monthlyError);
           return res.status(500).json({ message: 'Erro ao buscar faturamento mensal' });
         }
-        
+
         const monthlyRevenueAmount = monthlyTransactions.reduce((sum, transaction) => 
           sum + parseInt(transaction.amount || "0"), 0).toString();
 
@@ -1483,7 +1506,7 @@ export function registerAdminRoutes(app: Express): void {
       try {
         const today = new Date();
         const formattedDate = today.toISOString().split('T')[0]; // Formato YYYY-MM-DD
-        
+
         // Buscar agendamentos para hoje
         const { data: appointments, error } = await supabase
           .from('appointments')
@@ -1499,7 +1522,7 @@ export function registerAdminRoutes(app: Express): void {
           `)
           .eq('date', formattedDate)
           .order('start_time');
-        
+
         if (error) {
           console.error('Erro ao buscar agendamentos do dia:', error);
           return res.status(500).json({ message: 'Erro ao buscar agendamentos do dia' });
@@ -1516,7 +1539,7 @@ export function registerAdminRoutes(app: Express): void {
               .from('services')
               .select('name')
               .in('id', serviceIds);
-            
+
             if (!servicesError && services) {
               serviceNames = services.map(service => service.name);
             }
@@ -1549,27 +1572,27 @@ export function registerAdminRoutes(app: Express): void {
       try {
         const today = new Date();
         const dayOfWeek = today.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
-        
+
         // Calcular o início da semana (domingo)
         const startOfWeek = new Date(today);
         startOfWeek.setDate(today.getDate() - dayOfWeek);
         startOfWeek.setHours(0, 0, 0, 0);
-        
+
         // Fim da semana (sábado)
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
         endOfWeek.setHours(23, 59, 59, 999);
-        
+
         // Buscar dados de vendas para cada dia da semana
         const salesData = [];
-        
+
         for (let i = 0; i < 7; i++) {
           const day = new Date(startOfWeek);
           day.setDate(startOfWeek.getDate() + i);
-          
+
           const nextDay = new Date(day);
           nextDay.setDate(day.getDate() + 1);
-          
+
           // Buscar serviços vendidos neste dia
           const { data: servicesSales, error: servicesError } = await supabase
             .from('cash_flow')
@@ -1578,7 +1601,7 @@ export function registerAdminRoutes(app: Express): void {
             .eq('category', 'service')
             .gte('date', day.toISOString())
             .lt('date', nextDay.toISOString());
-          
+
           // Buscar produtos vendidos neste dia
           const { data: productsSales, error: productsError } = await supabase
             .from('cash_flow')
@@ -1587,20 +1610,20 @@ export function registerAdminRoutes(app: Express): void {
             .eq('category', 'product')
             .gte('date', day.toISOString())
             .lt('date', nextDay.toISOString());
-          
+
           if (servicesError || productsError) {
             console.error('Erro ao buscar vendas:', servicesError || productsError);
             continue;
           }
-          
+
           // Calcular totais
           const servicosValue = servicesSales?.reduce((total, item) => total + parseInt(item.amount), 0) || 0;
           const produtosValue = productsSales?.reduce((total, item) => total + parseInt(item.amount), 0) || 0;
-          
+
           // Nome do dia em português
           const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
           const name = dayNames[i];
-          
+
           salesData.push({
             name,
             servicos: servicosValue,
@@ -1608,7 +1631,7 @@ export function registerAdminRoutes(app: Express): void {
             total: servicosValue + produtosValue
           });
         }
-        
+
         res.json(salesData);
       } catch (error) {
         console.error('Erro ao buscar dados para o gráfico de vendas:', error);
@@ -1626,12 +1649,12 @@ export function registerAdminRoutes(app: Express): void {
         const { data: categories, error: categoriesError } = await supabase
           .from('product_categories')
           .select('id, name');
-        
+
         if (categoriesError) {
           console.error('Erro ao buscar categorias:', categoriesError);
           return res.status(500).json({ message: 'Erro ao buscar categorias de produtos' });
         }
-        
+
         // Para cada categoria, buscar a soma das vendas
         const result = await Promise.all(categories.map(async (category) => {
           // Buscar produtos desta categoria
@@ -1639,18 +1662,18 @@ export function registerAdminRoutes(app: Express): void {
             .from('products')
             .select('id')
             .eq('category_id', category.id);
-          
+
           if (productsError) {
             console.error(`Erro ao buscar produtos da categoria ${category.name}:`, productsError);
             return { name: category.name, value: 0 };
           }
-          
+
           if (!products || products.length === 0) {
             return { name: category.name, value: 0 };
           }
-          
+
           const productIds = products.map(p => p.id);
-          
+
           // Buscar vendas destes produtos
           const { data: sales, error: salesError } = await supabase
             .from('cash_flow')
@@ -1658,23 +1681,23 @@ export function registerAdminRoutes(app: Express): void {
             .eq('type', 'income')
             .eq('category', 'product')
             .in('reference_id', productIds);
-          
+
           if (salesError) {
             console.error(`Erro ao buscar vendas da categoria ${category.name}:`, salesError);
             return { name: category.name, value: 0 };
           }
-          
+
           // Calcular valor total
           const value = sales?.reduce((total, item) => total + parseInt(item.amount), 0) || 0;
-          
+
           return { name: category.name, value };
         }));
-        
+
         // Filtrar categorias com valor zero e ordenar por valor decrescente
         const categorySalesData = result
           .filter(item => item.value > 0)
           .sort((a, b) => b.value - a.value);
-        
+
         res.json(categorySalesData);
       } catch (error) {
         console.error('Erro ao buscar vendas por categoria:', error);
@@ -1682,7 +1705,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   // Top serviços mais agendados
   adminRouter.get('/dashboard/top-services',
     requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
@@ -1693,15 +1716,15 @@ export function registerAdminRoutes(app: Express): void {
           .from('appointments')
           .select('services')
           .eq('status', 'completed');
-        
+
         if (appointmentsError) {
           console.error('Erro ao buscar agendamentos:', appointmentsError);
           return res.status(500).json({ message: 'Erro ao buscar agendamentos' });
         }
-        
+
         // Contar ocorrências de cada serviço
         const serviceCount = {};
-        
+
         appointments.forEach(appointment => {
           if (Array.isArray(appointment.services)) {
             appointment.services.forEach(serviceId => {
@@ -1709,19 +1732,19 @@ export function registerAdminRoutes(app: Express): void {
             });
           }
         });
-        
+
         // Converter para array de { id, count }
         const serviceCountArray = Object.entries(serviceCount).map(([id, count]) => ({
           id: parseInt(id),
           count
         }));
-        
+
         // Ordenar por contagem decrescente
         serviceCountArray.sort((a, b) => b.count - a.count);
-        
+
         // Pegar os top 5
         const top5Services = serviceCountArray.slice(0, 5);
-        
+
         // Buscar nomes dos serviços
         const result = await Promise.all(top5Services.map(async (service) => {
           const { data, error } = await supabase
@@ -1729,15 +1752,15 @@ export function registerAdminRoutes(app: Express): void {
             .select('name')
             .eq('id', service.id)
             .single();
-          
+
           if (error) {
             console.error(`Erro ao buscar nome do serviço ${service.id}:`, error);
             return { name: `Serviço ${service.id}`, value: service.count };
           }
-          
+
           return { name: data.name, value: service.count };
         }));
-        
+
         res.json(result);
       } catch (error) {
         console.error('Erro ao buscar top serviços:', error);
@@ -1745,7 +1768,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   // Desempenho dos profissionais
   adminRouter.get('/dashboard/professional-performance',
     requireRole([UserRole.ADMIN]),
@@ -1755,12 +1778,12 @@ export function registerAdminRoutes(app: Express): void {
         const { data: professionals, error: professionalsError } = await supabase
           .from('professionals')
           .select('id, name');
-        
+
         if (professionalsError) {
           console.error('Erro ao buscar profissionais:', professionalsError);
           return res.status(500).json({ message: 'Erro ao buscar profissionais' });
         }
-        
+
         // Para cada profissional, buscar agendamentos completados e cancelados
         const result = await Promise.all(professionals.map(async (professional) => {
           // Agendamentos completados
@@ -1769,29 +1792,29 @@ export function registerAdminRoutes(app: Express): void {
             .select('id')
             .eq('professional_id', professional.id)
             .eq('status', 'completed');
-          
+
           // Agendamentos cancelados
           const { data: cancelled, error: cancelledError } = await supabase
             .from('appointments')
             .select('id')
             .eq('professional_id', professional.id)
             .eq('status', 'cancelled');
-          
+
           if (completedError || cancelledError) {
             console.error(`Erro ao buscar agendamentos do profissional ${professional.name}:`, completedError || cancelledError);
             return { name: professional.name, completados: 0, cancelados: 0 };
           }
-          
+
           return {
             name: professional.name,
             completados: completed?.length || 0,
             cancelados: cancelled?.length || 0
           };
         }));
-        
+
         // Ordenar por número de atendimentos completados (decrescente)
         result.sort((a, b) => b.completados - a.completados);
-        
+
         res.json(result);
       } catch (error) {
         console.error('Erro ao buscar desempenho dos profissionais:', error);
@@ -1836,9 +1859,9 @@ export function registerAdminRoutes(app: Express): void {
 
   // Registrar rotas do fluxo de caixa
   adminRouter.use('/cash-flow', cashFlowRoutes);
-  
+
   // Rotas de relatórios serão adicionadas aqui mais tarde
-  
+
   // Rota para sincronizar manualmente transações com agendamentos concluídos
   adminRouter.post('/sync-transactions', 
     requireRole([UserRole.ADMIN]),
@@ -1859,7 +1882,7 @@ export function registerAdminRoutes(app: Express): void {
       }
     }
   );
-  
+
   // Montar as rotas na aplicação principal
   app.use('/api/admin', adminRouter);
   console.log("[Admin Routes] Rotas administrativas registradas com sucesso.");
