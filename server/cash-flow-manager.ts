@@ -79,20 +79,6 @@ export async function recordTransaction(transaction: NewTransaction) {
   try {
     const formattedDate = transaction.date.toISOString().split('T')[0];
 
-    // Verificar se já existe uma transação para este agendamento
-    if (transaction.appointmentId) {
-      const { data: existingTx } = await supabase
-        .from('cash_flow')
-        .select('id')
-        .eq('appointment_id', transaction.appointmentId)
-        .single();
-
-      if (existingTx) {
-        console.log(`Transação já existe para o agendamento #${transaction.appointmentId}`);
-        return existingTx;
-      }
-    }
-
     const insertData = {
       date: formattedDate,
       amount: transaction.amount.toString(),
@@ -112,30 +98,6 @@ export async function recordTransaction(transaction: NewTransaction) {
     return data;
   } catch (error) {
     console.error('Erro ao registrar transação:', error);
-    throw error;
-  }
-}
-
-export async function recordAppointmentTransaction(appointmentId: number, services: any[], appointmentDate: Date) {
-  try {
-    // Calcular valor total mantendo em centavos
-    const totalValue = services.reduce((sum, service) => sum + (parseInt(service.price) || 0), 0);
-    
-    // Criar descrição
-    const serviceNames = services.map(s => s.name).join(', ');
-    const description = `Pagamento de serviços: ${serviceNames}`;
-
-    // Registrar transação
-    return await recordTransaction({
-      date: appointmentDate,
-      amount: totalValue,
-      type: 'INCOME',
-      description,
-      appointmentId,
-      category: 'service'
-    });
-  } catch (error) {
-    console.error(`Erro ao registrar transação para agendamento #${appointmentId}:`, error);
     throw error;
   }
 }
