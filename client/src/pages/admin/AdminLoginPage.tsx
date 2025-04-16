@@ -6,10 +6,11 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Shield, ArrowLeft } from "lucide-react";
+import { Shield, ArrowLeft, Key } from "lucide-react";
 import { Redirect, useLocation } from "wouter";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Nome de usuário é obrigatório"),
@@ -22,6 +23,7 @@ export default function AdminLoginPage() {
   const { user, loginMutation } = useAuth();
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
+  const [debugMode, setDebugMode] = useState(true);
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -30,6 +32,12 @@ export default function AdminLoginPage() {
       password: "",
     },
   });
+  
+  // Função para preencher rapidamente credenciais de administrador
+  const fillAdminCredentials = () => {
+    form.setValue('username', 'johnata');
+    form.setValue('password', 'admin123');
+  };
 
   async function onSubmit(data: LoginFormValues) {
     loginMutation.mutate(data, {

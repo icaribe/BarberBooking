@@ -75,9 +75,9 @@ async function checkAuthStatus() {
     // 4. Realizar login de teste com credenciais fixas para debug
     console.log('\n🔑 Realizando login de teste para verificar autenticação...');
     
-    // Usar credenciais fixas para teste
-    const testUsername = 'admin';
-    const testPassword = 'admin';
+    // Usar credenciais válidas existentes no banco de dados
+    const testUsername = 'johnata';
+    const testPassword = '123456'; // Senha provável para teste
     
     console.log(`Tentando login com usuário: ${testUsername} (senha: ${testPassword})`);
     
@@ -90,8 +90,8 @@ async function checkAuthStatus() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: testUser.username,
-          password: 'admin' // Senha padrão para teste (admin)
+          username: testUsername,
+          password: testPassword // Senha padrão para teste
         }),
         credentials: 'include',
       });
