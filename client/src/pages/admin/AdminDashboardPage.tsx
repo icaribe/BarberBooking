@@ -150,31 +150,61 @@ export default function AdminDashboardPage() {
     }
   };
   
-  // Dados de exemplo para os gráficos
-  const salesChartData: SalesChartData[] = [
-    { name: 'Seg', servicos: 2400, produtos: 1400, total: 3800 },
-    { name: 'Ter', servicos: 1980, produtos: 2000, total: 3980 },
-    { name: 'Qua', servicos: 2780, produtos: 1800, total: 4580 },
-    { name: 'Qui', servicos: 1890, produtos: 2300, total: 4190 },
-    { name: 'Sex', servicos: 2390, produtos: 2500, total: 4890 },
-    { name: 'Sab', servicos: 3490, produtos: 2100, total: 5590 },
-    { name: 'Dom', servicos: 1490, produtos: 1000, total: 2490 },
+  // Buscar dados para os gráficos do dashboard
+  const { data: salesChartData, isLoading: salesChartLoading } = useQuery<SalesChartData[]>({
+    queryKey: ['/api/admin/dashboard/sales-chart'],
+    enabled: !!user && isAdmin,
+    refetchInterval: 60000, // Recarrega a cada minuto (para não sobrecarregar o servidor)
+    refetchOnMount: true,
+  });
+  
+  const { data: categorySalesData, isLoading: categorySalesLoading } = useQuery<CategorySalesData[]>({
+    queryKey: ['/api/admin/dashboard/sales-by-category'],
+    enabled: !!user && isAdmin,
+    refetchInterval: 60000,
+    refetchOnMount: true,
+  });
+  
+  const { data: topServicesData, isLoading: topServicesLoading } = useQuery<CategorySalesData[]>({
+    queryKey: ['/api/admin/dashboard/top-services'],
+    enabled: !!user,
+    refetchInterval: 60000,
+    refetchOnMount: true,
+  });
+  
+  const { data: professionalPerformanceData, isLoading: professionalPerformanceLoading } = useQuery<ProfessionalPerformanceData[]>({
+    queryKey: ['/api/admin/dashboard/professional-performance'],
+    enabled: !!user && isAdmin,
+    refetchInterval: 60000,
+    refetchOnMount: true,
+  });
+  
+  // Formatar valor monetário com R$
+  const currencyFormatter: TooltipFormatter = (value) => {
+    return `R$ ${(value/100).toFixed(2)}`;
+  };
+  
+  // Dados padrão caso ainda não tenham sido carregados
+  const defaultSalesChartData: SalesChartData[] = [
+    { name: 'Seg', servicos: 0, produtos: 0, total: 0 },
+    { name: 'Ter', servicos: 0, produtos: 0, total: 0 },
+    { name: 'Qua', servicos: 0, produtos: 0, total: 0 },
+    { name: 'Qui', servicos: 0, produtos: 0, total: 0 },
+    { name: 'Sex', servicos: 0, produtos: 0, total: 0 },
+    { name: 'Sab', servicos: 0, produtos: 0, total: 0 },
+    { name: 'Dom', servicos: 0, produtos: 0, total: 0 },
   ];
   
-  const categorySalesData: CategorySalesData[] = [
-    { name: 'Cuidados Capilares', value: 4000 },
-    { name: 'Barba', value: 3000 },
-    { name: 'Pele', value: 2000 },
-    { name: 'Acessórios', value: 2780 },
-    { name: 'Kits', value: 1890 },
+  const defaultCategorySalesData: CategorySalesData[] = [
+    { name: 'Carregando dados...', value: 100 },
   ];
   
-  const topServicesData: CategorySalesData[] = [
-    { name: 'Corte Masculino', value: 24 },
-    { name: 'Barba Completa', value: 18 },
-    { name: 'Corte + Barba', value: 15 },
-    { name: 'Acabamento', value: 12 },
-    { name: 'Pigmentação', value: 8 },
+  const defaultTopServicesData: CategorySalesData[] = [
+    { name: 'Carregando dados...', value: 100 },
+  ];
+  
+  const defaultProfessionalPerformanceData: ProfessionalPerformanceData[] = [
+    { name: 'Carregando dados...', completados: 0, cancelados: 0 },
   ];
 
   return (
@@ -309,7 +339,7 @@ export default function AdminDashboardPage() {
                 <CardContent className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
-                      data={salesChartData}
+                      data={salesChartData || defaultSalesChartData}
                       margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
@@ -413,13 +443,7 @@ export default function AdminDashboardPage() {
                 <CardContent className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={[
-                        { name: 'Cuidados Capilares', value: 4000 },
-                        { name: 'Barba', value: 3000 },
-                        { name: 'Pele', value: 2000 },
-                        { name: 'Acessórios', value: 2780 },
-                        { name: 'Kits', value: 1890 },
-                      ]}
+                      data={categorySalesData || defaultCategorySalesData}
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
@@ -447,13 +471,7 @@ export default function AdminDashboardPage() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       layout="vertical"
-                      data={[
-                        { name: 'Corte Masculino', value: 24 },
-                        { name: 'Barba Completa', value: 18 },
-                        { name: 'Corte + Barba', value: 15 },
-                        { name: 'Acabamento', value: 12 },
-                        { name: 'Pigmentação', value: 8 },
-                      ]}
+                      data={topServicesData || defaultTopServicesData}
                       margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
@@ -477,12 +495,7 @@ export default function AdminDashboardPage() {
                 <CardContent className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={[
-                        { name: 'Carlos', completados: 18, cancelados: 2 },
-                        { name: 'Bruno', completados: 12, cancelados: 1 },
-                        { name: 'Sérgio', completados: 15, cancelados: 3 },
-                        { name: 'Rafael', completados: 20, cancelados: 0 },
-                      ]}
+                      data={professionalPerformanceData || defaultProfessionalPerformanceData}
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
