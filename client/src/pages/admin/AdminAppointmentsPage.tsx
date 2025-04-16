@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DollarSign } from "lucide-react";
+import { useAuth } from "@/lib/hooks/useAuth";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { 
@@ -90,6 +91,22 @@ export default function AdminAppointmentsPage() {
   const [appointmentsState, setAppointmentsState] = useState<EnhancedAppointment[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  
+  // Verificar autenticação - isso é importante para resolver problemas de carregamento
+  useEffect(() => {
+    if (!isAuthenticated && !authLoading) {
+      console.log('⚠️ Usuário não autenticado! Isso impedirá o carregamento de agendamentos administrativos.');
+      toast({
+        variant: "destructive",
+        title: "Acesso restrito",
+        description: "Você precisa estar logado para acessar o painel administrativo.",
+      });
+    } else if (user) {
+      console.log('✅ Usuário autenticado:', user.username);
+      console.log('👤 Função do usuário:', user.role);
+    }
+  }, [user, isAuthenticated, authLoading, toast]);
 
   // Persistência da aba usando localStorage
   const updateActiveTab = useCallback((tab: string) => {
