@@ -1,332 +1,417 @@
 /**
- * Rotas para geração de relatórios
- * 
- * Este arquivo define as rotas da API para geração de relatórios de diferentes tipos,
- * como relatórios financeiros, de serviços, profissionais, etc.
+ * Rotas para geração de relatórios administrativos
  */
 
-import { Router } from 'express';
-import { requireRole, UserRole } from '../middleware/role-middleware';
-import * as storage from '../storage';
-import * as supabaseStorage from '../storage-supabase-admin';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import * as cashFlowManager from '../cash-flow-manager';
+import { Router, Request, Response } from 'express';
+import { UserRole, requireRole } from '../middleware/role-middleware';
+import supabase from '../supabase';
+import { storage } from '../storage';
+import adminFunctions from '../storage-supabase-admin';
 
 const router = Router();
 
 /**
- * GET /api/admin/reports/financial
- * Gera um relatório financeiro com base nos parâmetros fornecidos
+ * Relatório financeiro detalhado
+ * Retorna resumo de faturamento por serviço, profissional e período
  */
-router.get('/financial', requireRole([UserRole.ADMIN]), async (req, res) => {
-  try {
-    // Parâmetros de consulta
-    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
-    const format = req.query.format as string || 'json'; // Formato de saída (json, pdf, excel)
-
-    // Formatar as datas para consulta no banco
-    const startDateISO = startDate.toISOString().split('T')[0];
-    const endDateISO = endDate.toISOString().split('T')[0];
-
-    // Obter transações no período
-    const transactions = await supabaseStorage.getCashFlowTransactions(startDateISO, endDateISO);
-    
-    // Obter resumo financeiro
-    const summary = await supabaseStorage.getCashFlowSummary(startDateISO, endDateISO);
-
-    // Obter agendamentos no período
-    const appointments = await supabaseStorage.getAppointments({
-      startDate: startDateISO,
-      endDate: endDateISO,
-      status: 'completed'
-    });
-
-    // Obter detalhes dos agendamentos
-    const appointmentDetails = await Promise.all(
-      appointments.map(async (appointment) => {
-        const services = await storage.getAppointmentServices(appointment.id);
-        const client = await storage.getUser(appointment.userId);
-        const professional = await storage.getProfessional(appointment.professionalId);
-        
-        const serviceDetails = await Promise.all(
-          services.map(async (svc) => {
-            const service = await storage.getService(svc.serviceId);
-            return {
-              id: service.id,
-              name: service.name,
-              price: service.price
-            };
-          })
-        );
-        
-        return {
-          ...appointment,
-          clientName: client?.name || 'Cliente Desconhecido',
-          professionalName: professional?.name || 'Profissional Desconhecido',
-          services: serviceDetails,
-          total: serviceDetails.reduce((sum, s) => sum + (s.price || 0), 0)
-        };
-      })
-    );
-
-    // Agrupar transações por dia
-    const transactionsByDate: Record<string, { income: number, expense: number, balance: number }> = {};
-    
-    for (const tx of transactions) {
-      if (!transactionsByDate[tx.date]) {
-        transactionsByDate[tx.date] = { income: 0, expense: 0, balance: 0 };
+router.get('/financial', 
+  requireRole([UserRole.ADMIN]),
+  async (req: Request, res: Response) => {
+    try {
+      const { startDate, endDate } = req.query;
+      
+      // Converter datas para filtro
+      const startDateObj = startDate ? new Date(startDate as string) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      const endDateObj = endDate ? new Date(endDate as string) : new Date();
+      
+      console.log(`Gerando relatório financeiro de ${startDateObj.toISOString().split('T')[0]} até ${endDateObj.toISOString().split('T')[0]}`);
+      
+      // Buscar transações no período
+      const { data: transactions, error } = await supabase
+        .from('cash_flow')
+        .select('*')
+        .gte('date', startDateObj.toISOString().split('T')[0])
+        .lte('date', endDateObj.toISOString().split('T')[0])
+        .order('date', { ascending: false });
+      
+      if (error) {
+        throw new Error(`Falha ao buscar transações: ${error.message}`);
       }
       
-      if (tx.transactionType === 'income') {
-        transactionsByDate[tx.date].income += tx.amount;
-      } else if (tx.transactionType === 'expense') {
-        transactionsByDate[tx.date].expense += tx.amount;
+      // Buscar todos os agendamentos concluídos no período
+      const { data: completedAppointments, error: appError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('status', 'completed')
+        .gte('date', startDateObj.toISOString().split('T')[0])
+        .lte('date', endDateObj.toISOString().split('T')[0]);
+        
+      if (appError) {
+        throw new Error(`Falha ao buscar agendamentos: ${appError.message}`);
       }
       
-      transactionsByDate[tx.date].balance = 
-        transactionsByDate[tx.date].income - transactionsByDate[tx.date].expense;
-    }
-    
-    // Dados do relatório
-    const reportData = {
-      title: 'Relatório Financeiro',
-      period: {
-        from: format(startDate, 'dd/MM/yyyy', { locale: ptBR }),
-        to: format(endDate, 'dd/MM/yyyy', { locale: ptBR })
-      },
-      summary,
-      transactions,
-      transactionsByDate: Object.entries(transactionsByDate).map(([date, values]) => ({
-        date,
-        ...values
-      })),
-      appointments: appointmentDetails,
-      generatedAt: new Date().toISOString()
-    };
-
-    // Responder com base no formato solicitado
-    if (format === 'json') {
-      res.json(reportData);
-    } else if (format === 'pdf') {
-      // No momento, retornamos apenas os dados em JSON
-      // No futuro, podemos implementar a geração real de PDF
+      // Dados detalhados de cada agendamento concluído
+      const appointmentDetails = [];
+      
+      for (const appointment of completedAppointments || []) {
+        // Buscar serviços do agendamento
+        const { data: appointmentServices } = await supabase
+          .from('appointment_services')
+          .select('*')
+          .eq('appointment_id', appointment.id);
+          
+        // Buscar detalhes do cliente
+        const { data: user } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', appointment.user_id)
+          .single();
+          
+        // Buscar detalhes do profissional
+        const { data: professional } = await supabase
+          .from('professionals')
+          .select('*')
+          .eq('id', appointment.professional_id)
+          .single();
+          
+        // Obter detalhes dos serviços
+        const services = [];
+        let totalValue = 0;
+        
+        for (const svc of appointmentServices || []) {
+          const { data: serviceDetails } = await supabase
+            .from('services')
+            .select('*')
+            .eq('id', svc.service_id)
+            .single();
+            
+          if (serviceDetails) {
+            services.push(serviceDetails);
+            totalValue += serviceDetails.price || 0;
+          }
+        }
+        
+        appointmentDetails.push({
+          id: appointment.id,
+          date: appointment.date,
+          client: user ? user.name : 'Cliente não identificado',
+          professional: professional ? professional.name : 'Profissional não identificado',
+          services: services.map(s => ({
+            id: s.id,
+            name: s.name,
+            price: s.price
+          })),
+          totalValue,
+          status: appointment.status
+        });
+      }
+      
+      // Calcular total de receitas e despesas
+      const totalIncome = transactions
+        .filter(t => t.type === 'INCOME' || t.type === 'PRODUCT_SALE')
+        .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+        
+      const totalExpense = transactions
+        .filter(t => t.type === 'EXPENSE' || t.type === 'REFUND')
+        .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+      
+      // Agrupar por categoria
+      const incomeByCategory = {};
+      const expenseByCategory = {};
+      
+      for (const transaction of transactions) {
+        if (transaction.transactionType === 'INCOME' || transaction.transactionType === 'PRODUCT_SALE') {
+          incomeByCategory[transaction.category] = (incomeByCategory[transaction.category] || 0) + parseFloat(transaction.amount);
+        } else if (transaction.transactionType === 'EXPENSE' || transaction.transactionType === 'REFUND') {
+          expenseByCategory[transaction.category] = (expenseByCategory[transaction.category] || 0) + parseFloat(transaction.amount);
+        }
+      }
+      
+      // Formatação de valores para exibição (convertendo de centavos para reais)
+      const formatCurrency = (value) => {
+        return `R$ ${(value/100).toFixed(2)}`;
+      };
+      
+      const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('pt-BR');
+      };
+      
+      // Preparar resposta
       res.json({
-        ...reportData,
-        message: 'Geração de PDF será implementada em breve'
+        success: true,
+        data: {
+          period: {
+            startDate: formatDate(startDateObj),
+            endDate: formatDate(endDateObj)
+          },
+          summary: {
+            totalIncome: totalIncome,
+            totalExpense: totalExpense,
+            balance: totalIncome - totalExpense,
+            formattedTotalIncome: formatCurrency(totalIncome),
+            formattedTotalExpense: formatCurrency(totalExpense),
+            formattedBalance: formatCurrency(totalIncome - totalExpense)
+          },
+          categorySummary: {
+            income: incomeByCategory,
+            expense: expenseByCategory
+          },
+          appointments: appointmentDetails,
+          transactions: transactions.map(t => ({
+            ...t,
+            formattedAmount: formatCurrency(parseFloat(t.amount)),
+            formattedDate: formatDate(t.date)
+          }))
+        }
       });
-    } else if (format === 'excel') {
-      // No momento, retornamos apenas os dados em JSON
-      // No futuro, podemos implementar a exportação para Excel
-      res.json({
-        ...reportData,
-        message: 'Exportação para Excel será implementada em breve'
+    } catch (error: any) {
+      console.error('Erro ao gerar relatório financeiro:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: `Erro ao gerar relatório financeiro: ${error.message}`
       });
-    } else {
-      res.status(400).json({ message: 'Formato inválido' });
     }
-  } catch (error: any) {
-    console.error('Erro ao gerar relatório financeiro:', error);
-    res.status(500).json({ message: `Erro ao gerar relatório: ${error.message}` });
   }
-});
+);
 
 /**
- * GET /api/admin/reports/services
- * Gera um relatório de serviços com base nos parâmetros fornecidos
+ * Relatório de serviços mais populares
  */
-router.get('/services', requireRole([UserRole.ADMIN]), async (req, res) => {
-  try {
-    // Parâmetros de consulta
-    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
-    
-    // Formatar as datas para consulta no banco
-    const startDateISO = startDate.toISOString().split('T')[0];
-    const endDateISO = endDate.toISOString().split('T')[0];
-
-    // Obter todos os serviços
-    const services = await storage.getServices();
-    
-    // Obter agendamentos no período
-    const appointments = await supabaseStorage.getAppointments({
-      startDate: startDateISO,
-      endDate: endDateISO
-    });
-    
-    // Obter serviços agendados 
-    const appointmentServices = await Promise.all(
-      appointments.map(async (appointment) => {
-        const services = await storage.getAppointmentServices(appointment.id);
-        return {
-          appointmentId: appointment.id,
-          appointmentDate: appointment.date,
-          appointmentStatus: appointment.status,
-          services: services.map(s => s.serviceId)
-        };
-      })
-    );
-    
-    // Contar ocorrências de cada serviço
-    const serviceCounts: Record<number, { count: number, revenue: number }> = {};
-    
-    services.forEach(s => {
-      serviceCounts[s.id] = { count: 0, revenue: 0 };
-    });
-    
-    appointmentServices.forEach(appSvc => {
-      appSvc.services.forEach(serviceId => {
-        if (serviceCounts[serviceId]) {
-          serviceCounts[serviceId].count += 1;
+router.get('/top-services', 
+  requireRole([UserRole.ADMIN]),
+  async (req: Request, res: Response) => {
+    try {
+      const { startDate, endDate, limit } = req.query;
+      
+      // Parâmetros padrão
+      const startDateObj = startDate ? new Date(startDate as string) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      const endDateObj = endDate ? new Date(endDate as string) : new Date();
+      const resultLimit = limit ? parseInt(limit as string) : 10;
+      
+      console.log(`Gerando relatório de serviços mais populares de ${startDateObj.toISOString().split('T')[0]} até ${endDateObj.toISOString().split('T')[0]}`);
+      
+      // Buscar todos os serviços cadastrados
+      const services = await storage.getServices();
+      
+      // Buscar agendamentos no período
+      const completedAppointments = await adminFunctions.getAppointments({
+        status: 'completed',
+        startDate: startDateObj.toISOString().split('T')[0],
+        endDate: endDateObj.toISOString().split('T')[0]
+      });
+      
+      // Contar frequência de cada serviço
+      const serviceCount = {};
+      const serviceRevenue = {};
+      
+      for (const appointment of completedAppointments) {
+        // Buscar serviços do agendamento
+        const appointmentServices = await storage.getAppointmentServices(appointment.id);
+        
+        for (const s of appointmentServices) {
+          const serviceId = s.serviceId;
           
-          // Adicionar receita apenas para agendamentos concluídos
-          if (appSvc.appointmentStatus.toLowerCase() === 'completed') {
-            const service = services.find(s => s.id === serviceId);
-            if (service) {
-              serviceCounts[serviceId].revenue += service.price;
-            }
+          // Incrementar contagem
+          serviceCount[serviceId] = (serviceCount[serviceId] || 0) + 1;
+          
+          // Buscar preço do serviço para calcular receita
+          const service = services.find(s => s.id === serviceId);
+          if (service && service.price) {
+            serviceRevenue[serviceId] = (serviceRevenue[serviceId] || 0) + service.price;
+          }
+        }
+      }
+      
+      // Transformar em array para ordenação
+      const serviceCounts = Object.keys(serviceCount).map(serviceId => {
+        const service = services.find(s => s.id === parseInt(serviceId));
+        return {
+          id: parseInt(serviceId),
+          name: service ? service.name : `Serviço #${serviceId}`,
+          count: serviceCount[serviceId],
+          revenue: serviceRevenue[serviceId] || 0
+        };
+      });
+      
+      // Ordenar por contagem decrescente
+      serviceCounts.sort((a, b) => b.count - a.count);
+      
+      // Limitar resultados se necessário
+      const topServices = serviceCounts.slice(0, resultLimit);
+      
+      // Adicionar informações detalhadas de cada serviço
+      const detailedTopServices = [];
+      for (const service of topServices) {
+        const appointmentsWithService = [];
+        
+        // Buscar agendamentos que incluem este serviço
+        for (const appointment of completedAppointments) {
+          const appSvc = await storage.getAppointmentServices(appointment.id);
+          if (appSvc.some(serviceId => serviceId === service.id)) {
+            appointmentsWithService.push(appointment);
+          }
+        }
+        
+        detailedTopServices.push({
+          ...service,
+          formattedRevenue: `R$ ${(service.revenue/100).toFixed(2)}`,
+          appointments: appointmentsWithService.length,
+          percentageOfTotal: (service.count / serviceCounts.reduce((sum, s) => sum + s.count, 0) * 100).toFixed(2)
+        });
+      }
+      
+      res.json({
+        success: true,
+        data: {
+          topServices: detailedTopServices,
+          totalAppointments: completedAppointments.length,
+          period: {
+            startDate: startDateObj.toISOString().split('T')[0],
+            endDate: endDateObj.toISOString().split('T')[0]
           }
         }
       });
-    });
-    
-    // Dados do relatório
-    const reportData = {
-      title: 'Relatório de Serviços',
-      period: {
-        from: format(startDate, 'dd/MM/yyyy', { locale: ptBR }),
-        to: format(endDate, 'dd/MM/yyyy', { locale: ptBR })
-      },
-      services: services.map(service => ({
-        id: service.id,
-        name: service.name,
-        price: service.price,
-        count: serviceCounts[service.id]?.count || 0,
-        revenue: serviceCounts[service.id]?.revenue || 0
-      })),
-      totalAppointments: appointments.length,
-      totalServices: Object.values(serviceCounts).reduce((sum, s) => sum + s.count, 0),
-      totalRevenue: Object.values(serviceCounts).reduce((sum, s) => sum + s.revenue, 0),
-      generatedAt: new Date().toISOString()
-    };
-    
-    res.json(reportData);
-  } catch (error: any) {
-    console.error('Erro ao gerar relatório de serviços:', error);
-    res.status(500).json({ message: `Erro ao gerar relatório: ${error.message}` });
+    } catch (error: any) {
+      console.error('Erro ao gerar relatório de serviços populares:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: `Erro ao gerar relatório: ${error.message}`
+      });
+    }
   }
-});
+);
 
 /**
- * GET /api/admin/reports/professionals
- * Gera um relatório de desempenho dos profissionais
+ * Relatório de desempenho dos profissionais
  */
-router.get('/professionals', requireRole([UserRole.ADMIN]), async (req, res) => {
-  try {
-    // Parâmetros de consulta
-    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
-    
-    // Formatar as datas para consulta no banco
-    const startDateISO = startDate.toISOString().split('T')[0];
-    const endDateISO = endDate.toISOString().split('T')[0];
-
-    // Obter todos os profissionais
-    const professionals = await storage.getProfessionals();
-    
-    // Obter agendamentos no período
-    const appointments = await supabaseStorage.getAppointments({
-      startDate: startDateISO,
-      endDate: endDateISO
-    });
-    
-    // Calcular estatísticas para cada profissional
-    const professionalStats: Record<number, {
-      completed: number;
-      cancelled: number;
-      pending: number;
-      confirmed: number;
-      revenue: number;
-    }> = {};
-    
-    professionals.forEach(p => {
-      professionalStats[p.id] = {
-        completed: 0,
-        cancelled: 0,
-        pending: 0,
-        confirmed: 0,
-        revenue: 0
-      };
-    });
-    
-    // Processar agendamentos para cada profissional
-    await Promise.all(
-      appointments.map(async (appointment) => {
-        const profId = appointment.professionalId;
-        if (!professionalStats[profId]) return;
+router.get('/professional-performance', 
+  requireRole([UserRole.ADMIN]),
+  async (req: Request, res: Response) => {
+    try {
+      const { startDate, endDate } = req.query;
+      
+      // Converter datas para filtro
+      const startDateObj = startDate ? new Date(startDate as string) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      const endDateObj = endDate ? new Date(endDate as string) : new Date();
+      
+      console.log(`Gerando relatório de desempenho de profissionais de ${startDateObj.toISOString().split('T')[0]} até ${endDateObj.toISOString().split('T')[0]}`);
+      
+      // Buscar todos os profissionais
+      const professionals = await storage.getProfessionals();
+      
+      // Buscar agendamentos no período
+      const appointments = await adminFunctions.getAppointments({
+        startDate: startDateObj.toISOString().split('T')[0],
+        endDate: endDateObj.toISOString().split('T')[0]
+      });
+      
+      // Agrupar por profissional
+      const professionalStats = {};
+      
+      for (const p of professionals) {
+        professionalStats[p.id] = {
+          id: p.id,
+          name: p.name,
+          totalAppointments: 0,
+          completedAppointments: 0,
+          cancelledAppointments: 0,
+          revenue: 0,
+          services: []
+        };
+      }
+      
+      // Processar cada agendamento
+      for (const appointment of appointments) {
+        const professionalId = appointment.professionalId;
         
-        const status = appointment.status.toLowerCase();
-        
-        switch (status) {
-          case 'completed':
-            professionalStats[profId].completed += 1;
-            
-            // Calcular receita dos serviços
-            const services = await storage.getAppointmentServices(appointment.id);
-            let appointmentRevenue = 0;
-            
-            for (const svc of services) {
-              const service = await storage.getService(svc.serviceId);
-              appointmentRevenue += service.price;
-            }
-            
-            professionalStats[profId].revenue += appointmentRevenue;
-            break;
-          case 'cancelled':
-            professionalStats[profId].cancelled += 1;
-            break;
-          case 'pending':
-            professionalStats[profId].pending += 1;
-            break;
-          case 'confirmed':
-            professionalStats[profId].confirmed += 1;
-            break;
+        if (!professionalStats[professionalId]) {
+          console.log(`Profissional #${professionalId} não encontrado, pulando agendamento #${appointment.id}`);
+          continue;
         }
-      })
-    );
-    
-    // Dados do relatório
-    const reportData = {
-      title: 'Relatório de Desempenho dos Profissionais',
-      period: {
-        from: format(startDate, 'dd/MM/yyyy', { locale: ptBR }),
-        to: format(endDate, 'dd/MM/yyyy', { locale: ptBR })
-      },
-      professionals: professionals.map(prof => ({
-        id: prof.id,
-        name: prof.name,
-        stats: professionalStats[prof.id] || {
-          completed: 0,
-          cancelled: 0,
-          pending: 0,
-          confirmed: 0,
-          revenue: 0
-        },
-        totalAppointments: 
-          (professionalStats[prof.id]?.completed || 0) + 
-          (professionalStats[prof.id]?.cancelled || 0) + 
-          (professionalStats[prof.id]?.pending || 0) + 
-          (professionalStats[prof.id]?.confirmed || 0)
-      })),
-      generatedAt: new Date().toISOString()
-    };
-    
-    res.json(reportData);
-  } catch (error: any) {
-    console.error('Erro ao gerar relatório de profissionais:', error);
-    res.status(500).json({ message: `Erro ao gerar relatório: ${error.message}` });
+        
+        // Incrementar contadores
+        professionalStats[professionalId].totalAppointments++;
+        
+        if (appointment.status.toLowerCase() === 'completed') {
+          professionalStats[professionalId].completedAppointments++;
+          
+          // Calcular receita gerada
+          // Buscar serviços do agendamento
+          const appointmentServices = await storage.getAppointmentServices(appointment.id);
+          let appointmentRevenue = 0;
+          
+          for (const serviceObj of appointmentServices) {
+            const service = await storage.getService(serviceObj.serviceId);
+            if (service && service.price) {
+              appointmentRevenue += service.price;
+              
+              // Registrar serviço realizado pelo profissional
+              const existingService = professionalStats[professionalId].services.find(s => s.id === service.id);
+              if (existingService) {
+                existingService.count++;
+                existingService.revenue += service.price;
+              } else {
+                professionalStats[professionalId].services.push({
+                  id: service.id,
+                  name: service.name,
+                  count: 1,
+                  revenue: service.price
+                });
+              }
+            }
+          }
+          
+          professionalStats[professionalId].revenue += appointmentRevenue;
+        } else if (appointment.status.toLowerCase() === 'cancelled') {
+          professionalStats[professionalId].cancelledAppointments++;
+        }
+      }
+      
+      // Transformar em array e adicionar métricas calculadas
+      const professionalReports = Object.values(professionalStats).map((prof: any) => {
+        return {
+          ...prof,
+          completionRate: prof.totalAppointments > 0 
+            ? ((prof.completedAppointments / prof.totalAppointments) * 100).toFixed(2) 
+            : "0.00",
+          cancellationRate: prof.totalAppointments > 0 
+            ? ((prof.cancelledAppointments / prof.totalAppointments) * 100).toFixed(2) 
+            : "0.00",
+          formattedRevenue: `R$ ${(prof.revenue/100).toFixed(2)}`,
+          averageTicket: prof.completedAppointments > 0 
+            ? `R$ ${(prof.revenue / prof.completedAppointments / 100).toFixed(2)}` 
+            : "R$ 0.00",
+          // Ordenar serviços por contagem
+          services: prof.services
+            .sort((a, b) => b.count - a.count)
+            .map(s => ({
+              ...s,
+              formattedRevenue: `R$ ${(s.revenue/100).toFixed(2)}`
+            }))
+        };
+      });
+      
+      // Ordenar por receita gerada (decrescente)
+      professionalReports.sort((a, b) => b.revenue - a.revenue);
+      
+      res.json({
+        success: true,
+        data: {
+          professionals: professionalReports,
+          period: {
+            startDate: startDateObj.toISOString().split('T')[0],
+            endDate: endDateObj.toISOString().split('T')[0]
+          }
+        }
+      });
+    } catch (error: any) {
+      console.error('Erro ao gerar relatório de desempenho dos profissionais:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: `Erro ao gerar relatório: ${error.message}`
+      });
+    }
   }
-});
+);
 
 export default router;

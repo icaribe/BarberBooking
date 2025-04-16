@@ -1,210 +1,206 @@
 /**
- * Rotas para o sistema de fluxo de caixa
- * 
- * Este arquivo define as rotas da API para operações relacionadas ao fluxo de caixa,
- * como registro e consulta de transações financeiras.
+ * Rotas para gerenciamento do fluxo de caixa
  */
 
-import { Router } from 'express';
-import { requireRole, UserRole } from '../middleware/role-middleware';
+import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { UserRole, requireRole } from '../middleware/role-middleware';
 import * as cashFlowManager from '../cash-flow-manager';
+import supabase from '../supabase';
+import { storage } from '../storage';
 
 const router = Router();
 
-/**
- * GET /api/cash-flow
- * Retorna transações com base nos filtros fornecidos
- */
-router.get('/', requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]), async (req, res) => {
-  try {
-    const filter: cashFlowManager.TransactionFilter = {};
-    
-    // Processar parâmetros de filtro
-    if (req.query.startDate) {
-      filter.startDate = new Date(req.query.startDate as string);
-    }
-    
-    if (req.query.endDate) {
-      filter.endDate = new Date(req.query.endDate as string);
-    }
-    
-    if (req.query.type) {
-      filter.type = req.query.type as cashFlowManager.TransactionType;
-    }
-    
-    if (req.query.appointmentId) {
-      filter.appointmentId = parseInt(req.query.appointmentId as string);
-    }
-    
-    const transactions = await cashFlowManager.getTransactions(filter);
-    
-    // Manter os valores como reais, já que estão armazenados como reais no banco
-    res.json(transactions);
-  } catch (error: any) {
-    console.error('Erro ao buscar transações:', error);
-    res.status(500).json({ message: `Erro ao buscar transações: ${error.message}` });
-  }
+// Esquema de validação para transações financeiras
+const transactionSchema = z.object({
+  type: z.enum(['INCOME', 'EXPENSE', 'REFUND', 'ADJUSTMENT', 'PRODUCT_SALE']),
+  amount: z.number().min(1),
+  description: z.string().min(3).max(255),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  appointmentId: z.number().optional(),
+  category: z.string().optional()
 });
 
 /**
- * GET /api/cash-flow/balance
- * Calcula o saldo do caixa em um período
+ * Obter transações com filtros opcionais
  */
-router.get('/balance', requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]), async (req, res) => {
-  try {
-    let startDate: Date | undefined;
-    let endDate: Date | undefined;
-    
-    if (req.query.startDate) {
-      startDate = new Date(req.query.startDate as string);
-    }
-    
-    if (req.query.endDate) {
-      endDate = new Date(req.query.endDate as string);
-    }
-    
-    const balance = await cashFlowManager.calculateBalance(startDate, endDate);
-    
-    res.json({ balance: balance });
-  } catch (error: any) {
-    console.error('Erro ao calcular saldo:', error);
-    res.status(500).json({ message: `Erro ao calcular saldo: ${error.message}` });
-  }
-});
-
-/**
- * GET /api/cash-flow/summary
- * Retorna um resumo financeiro para o período especificado
- */
-router.get('/summary', requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]), async (req, res) => {
-  try {
-    let startDate: Date | undefined;
-    let endDate: Date | undefined;
-    
-    if (req.query.startDate) {
-      startDate = new Date(req.query.startDate as string);
-    }
-    
-    if (req.query.endDate) {
-      endDate = new Date(req.query.endDate as string);
-    }
-    
-    // Buscar todas as transações no período
-    const filter: cashFlowManager.TransactionFilter = {};
-    if (startDate) filter.startDate = startDate;
-    if (endDate) filter.endDate = endDate;
-    
-    const transactions = await cashFlowManager.getTransactions(filter);
-    
-    // Calcular totais
-    let totalIncome = 0;
-    let totalExpense = 0;
-    
-    // Calcular totais por categoria
-    const categories: Record<string, { income: number, expense: number, balance: number }> = {};
-    
-    for (const transaction of transactions) {
-      const amount = parseFloat(transaction.amount);
+router.get('/', 
+  requireRole([UserRole.ADMIN]),
+  async (req: Request, res: Response) => {
+    try {
+      const { startDate, endDate, type, category } = req.query;
       
-      // Somar aos totais
-      if (transaction.type === cashFlowManager.TransactionType.INCOME || 
-          transaction.type === cashFlowManager.TransactionType.PRODUCT_SALE) {
-        totalIncome += amount;
-      } else if (transaction.type === cashFlowManager.TransactionType.EXPENSE || 
-                transaction.type === cashFlowManager.TransactionType.REFUND) {
-        totalExpense += amount;
-      } else if (transaction.type === cashFlowManager.TransactionType.ADJUSTMENT) {
-        if (amount > 0) {
-          totalIncome += amount;
-        } else {
-          totalExpense += Math.abs(amount);
+      // Converter datas se fornecidas
+      const startDateObj = startDate ? new Date(startDate as string) : undefined;
+      const endDateObj = endDate ? new Date(endDate as string) : undefined;
+      
+      const transactions = await cashFlowManager.getTransactions({
+        startDate: startDateObj,
+        endDate: endDateObj,
+        type: type as any
+      });
+      
+      res.json(transactions);
+    } catch (error: any) {
+      console.error('Erro ao buscar transações:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: `Erro ao buscar transações: ${error.message}`
+      });
+    }
+  }
+);
+
+/**
+ * Cadastrar nova transação
+ */
+router.post('/', 
+  requireRole([UserRole.ADMIN]),
+  async (req: Request, res: Response) => {
+    try {
+      // Validar dados de entrada
+      const validData = transactionSchema.safeParse(req.body);
+      
+      if (!validData.success) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Dados de transação inválidos',
+          errors: validData.error.flatten()
+        });
+      }
+      
+      const transaction = validData.data;
+      
+      // Converter string de data para objeto Date
+      const transactionDate = new Date(transaction.date);
+      
+      // Registrar a transação
+      const result = await cashFlowManager.recordTransaction({
+        date: transactionDate,
+        amount: transaction.amount,
+        type: transaction.type as any,
+        description: transaction.description,
+        appointmentId: transaction.appointmentId
+      });
+      
+      res.status(201).json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      console.error('Erro ao registrar transação:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: `Erro ao registrar transação: ${error.message}`
+      });
+    }
+  }
+);
+
+/**
+ * Obter resumo financeiro (saldo total)
+ */
+router.get('/summary', 
+  requireRole([UserRole.ADMIN]),
+  async (req: Request, res: Response) => {
+    try {
+      const { startDate, endDate } = req.query;
+      
+      // Converter datas se fornecidas
+      const startDateObj = startDate ? new Date(startDate as string) : undefined;
+      const endDateObj = endDate ? new Date(endDate as string) : undefined;
+      
+      // Calcular o saldo
+      const balance = await cashFlowManager.calculateBalance(startDateObj, endDateObj);
+      
+      // Calcular totais por tipo de transação
+      const income = await getTotalByType('INCOME', startDateObj, endDateObj);
+      const expense = await getTotalByType('EXPENSE', startDateObj, endDateObj);
+      const productSales = await getTotalByType('PRODUCT_SALE', startDateObj, endDateObj);
+      
+      res.json({
+        success: true,
+        data: {
+          balance,
+          income,
+          expense,
+          productSales
         }
-      }
-      
-      // Contabilizar por categoria
-      const category = transaction.description ? transaction.description.split(' - ')[0] : 'Outros';
-      
-      if (!categories[category]) {
-        categories[category] = { income: 0, expense: 0, balance: 0 };
-      }
-      
-      if (transaction.type === cashFlowManager.TransactionType.INCOME || 
-          transaction.type === cashFlowManager.TransactionType.PRODUCT_SALE) {
-        categories[category].income += amount;
-      } else if (transaction.type === cashFlowManager.TransactionType.EXPENSE || 
-                transaction.type === cashFlowManager.TransactionType.REFUND) {
-        categories[category].expense += amount;
-      } else if (transaction.type === cashFlowManager.TransactionType.ADJUSTMENT) {
-        if (amount > 0) {
-          categories[category].income += amount;
-        } else {
-          categories[category].expense += Math.abs(amount);
-        }
-      }
-      
-      categories[category].balance = categories[category].income - categories[category].expense;
+      });
+    } catch (error: any) {
+      console.error('Erro ao calcular resumo financeiro:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: `Erro ao calcular resumo financeiro: ${error.message}`
+      });
     }
-    
-    const balance = totalIncome - totalExpense;
-    
-    // Preparar array de categorias
-    const categoriesArray = Object.entries(categories).map(([category, data]) => ({
-      category,
-      ...data
-    }));
-    
-    res.json({
-      totalIncome,
-      totalExpense,
-      balance,
-      income: totalIncome.toFixed(2),
-      expense: totalExpense.toFixed(2),
-      categories: categoriesArray,
-      period: {
-        start: startDate?.toISOString() || null,
-        end: endDate?.toISOString() || null
-      }
-    });
-  } catch (error: any) {
-    console.error('Erro ao gerar resumo financeiro:', error);
-    res.status(500).json({ message: `Erro ao gerar resumo financeiro: ${error.message}` });
   }
-});
+);
 
 /**
- * POST /api/cash-flow
- * Registra uma nova transação
+ * Sincronizar transações com agendamentos concluídos
+ * Esta rota verifica todos os agendamentos concluídos e registra transações
+ * financeiras para aqueles que ainda não possuem.
  */
-router.post('/', requireRole([UserRole.ADMIN]), async (req, res) => {
-  try {
-    const { date, appointmentId, amount, type, description } = req.body;
-    
-    if (!date || amount === undefined || !type) {
-      return res.status(400).json({ message: 'Data, valor e tipo são obrigatórios' });
+router.post('/sync-appointments', 
+  requireRole([UserRole.ADMIN]),
+  async (_req: Request, res: Response) => {
+    try {
+      const result = await cashFlowManager.validateAndFixTransactions();
+      
+      res.json({
+        success: true,
+        message: 'Sincronização de transações concluída com sucesso',
+        result
+      });
+    } catch (error: any) {
+      console.error('Erro ao sincronizar transações:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: `Erro ao sincronizar transações: ${error.message}`
+      });
     }
-    
-    // Converter data para objeto Date
-    const transactionDate = new Date(date);
-    
-    // Verificar se o tipo é válido
-    if (!Object.values(cashFlowManager.TransactionType).includes(type)) {
-      return res.status(400).json({ message: 'Tipo de transação inválido' });
-    }
-    
-    // Presumir que o valor vem em centavos do frontend
-    const transaction = await cashFlowManager.recordTransaction({
-      date: transactionDate,
-      appointmentId,
-      amount, // Será convertido para reais dentro da função
-      type: type as cashFlowManager.TransactionType,
-      description
-    });
-    
-    res.status(201).json(transaction);
-  } catch (error: any) {
-    console.error('Erro ao registrar transação:', error);
-    res.status(500).json({ message: `Erro ao registrar transação: ${error.message}` });
   }
-});
+);
+
+/**
+ * Função auxiliar para calcular o total por tipo de transação
+ */
+async function getTotalByType(type: string, startDate?: Date, endDate?: Date) {
+  try {
+    // Construir a consulta
+    let query = supabase
+      .from('cash_flow')
+      .select('amount')
+      .eq('type', type);
+    
+    if (startDate) {
+      query = query.gte('date', startDate.toISOString().split('T')[0]);
+    }
+    
+    if (endDate) {
+      query = query.lte('date', endDate.toISOString().split('T')[0]);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error(`Erro ao calcular total para o tipo ${type}:`, error);
+      throw new Error(`Falha ao calcular total: ${error.message}`);
+    }
+    
+    // Calcular o total
+    let total = 0;
+    
+    for (const transaction of data) {
+      total += parseFloat(transaction.amount);
+    }
+    
+    return total;
+  } catch (error) {
+    console.error(`Erro ao calcular total para o tipo ${type}:`, error);
+    throw error;
+  }
+}
 
 export default router;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DateRange } from "react-day-picker";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon, Download, FileText, Search } from "lucide-react";
+import { Calendar as CalendarIcon, Download, FileText, Search, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest } from "@/lib/queryClient";
@@ -632,6 +632,14 @@ interface FinancialSummary {
                     Gerar Relatório
                   </Button>
                 </div>
+                
+                {/* Adicionar um botão para sincronizar as transações com agendamentos concluídos */}
+                <div className="flex justify-end mt-2">
+                  <SyncTransactionsButton refetchData={() => {
+                    refetch();
+                    refetchSummary();
+                  }} />
+                </div>
               </div>
             </CardHeader>
             
@@ -783,5 +791,50 @@ interface FinancialSummary {
         </TabsContent>
       </Tabs>
     </AdminLayout>
+  );
+}
+
+// Componente para o botão de sincronização de transações
+function SyncTransactionsButton({ refetchData }: { refetchData: () => void }) {
+  const queryClient = useQueryClient();
+  
+  // Mutation para sincronizar transações
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('POST', '/api/admin/cash-flow/sync-appointments');
+    },
+    onSuccess: (data) => {
+      // Mostrar mensagem de sucesso
+      toast({
+        title: "Sincronização concluída",
+        description: "Os serviços concluídos foram sincronizados com o fluxo de caixa.",
+        variant: "default"
+      });
+      
+      // Atualizar dados
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/cash-flow'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/cash-flow/summary'] });
+      refetchData();
+    },
+    onError: (error: any) => {
+      console.error("Erro ao sincronizar transações:", error);
+      toast({
+        title: "Erro na sincronização",
+        description: "Não foi possível sincronizar os agendamentos. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => syncMutation.mutate()}
+      disabled={syncMutation.isPending}
+    >
+      <RefreshCw className="mr-2 h-4 w-4" />
+      {syncMutation.isPending ? 'Sincronizando...' : 'Sincronizar Agendamentos'}
+    </Button>
   );
 }
