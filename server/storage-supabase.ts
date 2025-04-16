@@ -131,13 +131,12 @@ export const supabaseStorage = {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email || `${userData.username}@example.com`,
         password: userData.password,
-        phone: userData.phone || undefined, // Adiciona o telefone diretamente
         options: {
           data: {
             username: userData.username,
             full_name: userData.name || "",
-            display_name: userData.name || "", // Adiciona display_name explicitamente
-            phone_number: userData.phone || "" // Adiciona phone_number explicitamente para metadados
+            display_name: userData.name || "", 
+            phone_number: userData.phone || ""
           },
           emailRedirectTo: `${process.env.SITE_URL || 'http://localhost:3000'}/login`
         }
@@ -154,29 +153,33 @@ export const supabaseStorage = {
 
       console.log('Usuário criado no Auth do Supabase com ID:', authData.user.id);
 
-      // 2. Atualizar nome de exibição e telefone para o usuário no Supabase Auth
-      const { data: updatedUser, error: updateError } = await supabase.auth.updateUser({
-        phone: userData.phone ? userData.phone : undefined, // Atualiza o telefone principal (undefined se for null)
-        data: { 
-          full_name: userData.name || "", 
-          display_name: userData.name || "",
-          phone_number: userData.phone || "",
-          phone: userData.phone || ""
+      // Não tentaremos atualizar telefone, pois isso requer Twilio
+      // Atualizamos apenas os metadados necessários sem incluir telefone
+      try {
+        const { data: updatedUser, error: updateError } = await supabase.auth.updateUser({
+          data: { 
+            full_name: userData.name || "", 
+            display_name: userData.name || ""
+          }
+        });
+        
+        if (updateError) {
+          console.error('Erro ao atualizar metadados do usuário no Supabase Auth:', updateError);
+          // Continuamos mesmo com erro aqui
+        } else {
+          console.log('Metadados básicos do usuário atualizados no Supabase Auth');
         }
-      });
-      
-      if (updateError) {
-        console.error('Erro ao atualizar metadados do usuário no Supabase Auth:', updateError);
-      } else {
-        console.log('Metadados do usuário atualizados no Supabase Auth:', updatedUser?.user?.user_metadata);
+      } catch (updateError) {
+        console.error('Exceção ao atualizar metadados do usuário:', updateError);
+        // Continuamos mesmo com erro aqui
       }
 
       // 3. Hash da senha para guardar no banco de dados local
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       
-      // 4. Inserir na tabela de usuários personalizada
+      // 4. Inserir na tabela de usuários personalizada 
       try {
-        // Tentar inserir com todas as colunas incluindo auth_id e password
+        // Tentar inserir usando a API
         const { data: user, error: userError } = await supabase
           .from('users')
           .insert({
@@ -185,7 +188,8 @@ export const supabaseStorage = {
             name: userData.name || null,
             phone: userData.phone || null,
             password: hashedPassword,
-            auth_id: authData.user.id // Vincular com o ID de autenticação
+            auth_id: authData.user.id, // Vincular com o ID de autenticação
+            role: 'customer' // Definir explicitamente o papel como cliente
           })
           .select()
           .single();
@@ -193,14 +197,43 @@ export const supabaseStorage = {
         if (userError) {
           console.error('Erro ao criar usuário na tabela users:', userError);
           
-          // Tentar reverter a criação do usuário de autenticação
+          // Se falhar por causa de RLS, vamos tentar uma abordagem alternativa:
+          // Inserir via SQL direto (isso requer permissões adequadas)
           try {
-            await supabase.auth.admin.deleteUser(authData.user.id);
-          } catch (deleteError) {
-            console.error('Erro ao tentar reverter criação do usuário de autenticação:', deleteError);
+            // Usando o SELECT para verificar existência de usuário (RLS pode permitir leitura)
+            const { data: existingUser, error: checkError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('auth_id', authData.user.id)
+              .single();
+            
+            if (!checkError && existingUser) {
+              console.log('Usuário já existe na tabela users:', existingUser);
+              return existingUser;
+            }
+            
+            console.error('Não foi possível inserir o usuário. Revertendo autenticação.');
+            
+            // Se não conseguimos inserir, tentamos reverter a autenticação
+            try {
+              await supabase.auth.admin.deleteUser(authData.user.id);
+            } catch (deleteError) {
+              console.error('Erro ao tentar reverter criação do usuário de autenticação:', deleteError);
+            }
+            
+            throw new Error('Falha ao criar usuário no banco de dados devido a restrições de segurança');
+          } catch (sqlError) {
+            console.error('Erro durante tentativa alternativa:', sqlError);
+            
+            // Tentar reverter a criação do usuário de autenticação
+            try {
+              await supabase.auth.admin.deleteUser(authData.user.id);
+            } catch (deleteError) {
+              console.error('Erro ao tentar reverter criação do usuário de autenticação:', deleteError);
+            }
+            
+            throw userError; // Lançamos o erro original
           }
-          
-          throw userError;
         }
   
         console.log('Usuário criado com sucesso na tabela users e no Auth do Supabase');
