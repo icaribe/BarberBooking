@@ -505,22 +505,30 @@ export function registerAdminRoutes(app: Express): void {
     requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
     async (req: Request, res: Response) => {
       try {
+        console.log('📊 API: Recebida solicitação para buscar agendamentos administrativos');
+        
         // Parâmetros opcionais para filtrar agendamentos
         const { date, professionalId } = req.query;
+        console.log('📊 Parâmetros recebidos:', { date, professionalId });
 
         // Definir as opções de filtro
         const options: { date?: string; professionalId?: number } = {};
 
         if (date) {
+          console.log('📅 Filtrando por data:', date);
           options.date = date as string;
         }
 
         if (professionalId) {
+          console.log('👨‍💼 Filtrando por profissional ID:', professionalId);
           options.professionalId = parseInt(professionalId as string);
         }
 
+        console.log('🔍 Buscando agendamentos com opções:', options);
+        
         // Buscar todos os agendamentos
         let appointments = await supabaseStorage.getAppointments(options);
+        console.log(`📋 Encontrados ${appointments.length} agendamentos na busca inicial`);
 
         // Buscar dados complementares para cada agendamento
         const enhancedAppointments = await Promise.all(

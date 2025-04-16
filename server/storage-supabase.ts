@@ -522,31 +522,38 @@ export const supabaseStorage = {
   // Agendamentos
   async getAppointments(options?: { userId?: number; professionalId?: number | undefined; date?: string }) {
     try {
+      console.log('⬇️ Buscando agendamentos com as opções:', options);
       let query = supabase.from('appointments').select('*');
       
       if (options) {
         if (options.userId) {
+          console.log('➡️ Filtrando por userId:', options.userId);
           query = query.eq('user_id', options.userId);
         }
         
         if (options.professionalId) {
+          console.log('➡️ Filtrando por professionalId:', options.professionalId);
           query = query.eq('professional_id', options.professionalId);
         }
         
         if (options.date) {
+          console.log('➡️ Filtrando por date:', options.date);
           query = query.eq('date', options.date);
         }
       }
-      
+
+      console.log('🔍 Executando consulta para buscar agendamentos...');
       const { data, error } = await query;
       
       if (error) {
-        console.error('Erro ao buscar agendamentos:', error);
+        console.error('❌ Erro ao buscar agendamentos:', error);
         return [];
       }
       
+      console.log(`✅ Encontrados ${data?.length || 0} agendamentos. Amostra:`, data?.slice(0, 2));
+      
       // Transformar os nomes dos campos para camelCase para o frontend
-      return (data || []).map(appointment => ({
+      const formattedAppointments = (data || []).map(appointment => ({
         id: appointment.id,
         userId: appointment.user_id,
         professionalId: appointment.professional_id,
@@ -557,6 +564,9 @@ export const supabaseStorage = {
         notes: appointment.notes,
         createdAt: appointment.created_at
       }));
+      
+      console.log(`🔄 Após transformação, ${formattedAppointments.length} agendamentos formatados.`);
+      return formattedAppointments;
     } catch (err) {
       console.error('Exceção ao buscar agendamentos:', err);
       return [];
