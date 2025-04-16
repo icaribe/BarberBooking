@@ -1,93 +1,210 @@
-# Integração com Supabase
+# Integração Supabase - Documentação
 
-Este documento detalha a integração da aplicação Los Barbeiros CBS com o Supabase para banco de dados, autenticação e armazenamento.
+Este documento descreve a integração do projeto com Supabase e os procedimentos para resolver problemas comuns.
 
-## Configuração Realizada
+## Configuração Inicial
 
-✅ **Variáveis de Ambiente**: Configuradas em `.env`
-✅ **Conexão com Banco de Dados**: Estabelecida com PostgreSQL do Supabase
-✅ **Autenticação**: Integração com Supabase Auth para login/registro
-✅ **Sincronização de Usuários**: Usuários sincronizados entre app e Supabase Auth
+### Variáveis de Ambiente
+Certifique-se de que as seguintes variáveis de ambiente estejam configuradas:
 
-## Estrutura de Arquivos de Integração
+```
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_ANON_KEY=sua-chave-anon
+SUPABASE_SERVICE_KEY=sua-chave-service
+USE_SUPABASE=TRUE
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-chave-anon
+```
 
-- `shared/supabase-client.ts`: Cliente Supabase centralizado (anônimo e admin)
-- `server/supabase.ts`: Utilizado nas operações de servidor que ignoram RLS
-- `server/storage-supabase.ts`: Implementação de storage usando Supabase
-- `server/auth.ts`: Integração de autenticação com Supabase
-- `scripts/`: Contém scripts para configuração, sincronização e verificação
+## Políticas de Segurança (RLS)
 
-## Scripts de Manutenção
+Por padrão, o Supabase utiliza Row Level Security (RLS) para proteger suas tabelas. Isso pode causar erros como:
 
-Os seguintes scripts estão disponíveis para gerenciar a integração:
+```
+new row violates row-level security policy for table "users"
+```
 
-1. **Verificação de Conexão**:
-   ```
-   npx tsx scripts/debug-supabase-connection.ts
-   ```
-   Verifica se a conexão com o Supabase está funcionando corretamente.
+### Opção 1: Aplicar Políticas RLS Adequadas (Recomendado)
 
-2. **Sincronização de Autenticação**:
-   ```
-   npx tsx scripts/sync-auth-with-supabase.ts
-   ```
-   Sincroniza usuários existentes com o sistema de autenticação do Supabase.
+Execute o seguinte SQL no Editor SQL do Supabase:
 
-3. **Configuração Completa**:
-   ```
-   npx tsx scripts/setup-supabase-complete.ts
-   ```
-   Executa todo o processo de configuração em uma única etapa.
+```sql
+-- Primeiro, garantir que RLS esteja ativado na tabela
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
-## Limitações e Considerações
+-- Remover políticas existentes para evitar conflitos
+DROP POLICY IF EXISTS "Usuários podem ver seus próprios dados" ON users;
+DROP POLICY IF EXISTS "Usuários podem inserir seus próprios dados" ON users;
+DROP POLICY IF EXISTS "Admins podem ver todos os dados" ON users;
+DROP POLICY IF EXISTS "Admins podem inserir dados" ON users;
+DROP POLICY IF EXISTS "Admins podem atualizar dados" ON users;
+DROP POLICY IF EXISTS "Admins podem deletar dados" ON users;
+DROP POLICY IF EXISTS "Service role pode fazer tudo" ON users;
+DROP POLICY IF EXISTS "Permitir inserção de novos usuários" ON users;
 
-- **Políticas de RLS (Row Level Security)**: Devido a limitações da API Supabase, as políticas de RLS precisam ser configuradas manualmente no painel de administração do Supabase.
-- **Função `exec` para SQL personalizado**: Não disponível via API, requer configuração manual.
+-- Política para permitir que qualquer usuário autenticado INSIRA novos usuários (necessário para registro)
+CREATE POLICY "Permitir inserção de novos usuários" ON users
+FOR INSERT
+TO authenticated
+WITH CHECK (true);
 
-## Configuração das Políticas RLS (Necessário Fazer Manualmente)
+-- Política para permitir que usuários VEJAM seus próprios dados
+CREATE POLICY "Usuários podem ver seus próprios dados" ON users
+FOR SELECT
+TO authenticated
+USING (auth.uid() = auth_id);
 
-Para configurar as políticas de Row Level Security (RLS), acesse o painel de administração do Supabase e configure as seguintes políticas para cada tabela:
+-- Política para permitir que usuários ATUALIZEM seus próprios dados
+CREATE POLICY "Usuários podem atualizar seus próprios dados" ON users
+FOR UPDATE
+TO authenticated
+USING (auth.uid() = auth_id)
+WITH CHECK (auth.uid() = auth_id);
 
-### Tabela `users`
-- Permitir que usuários leiam seus próprios dados (`auth.uid() = auth_id`)
-- Permitir que usuários atualizem seus próprios dados (`auth.uid() = auth_id`)
-- Permitir que admins gerenciem todos os usuários (`role = 'admin'`)
+-- Políticas para administradores terem acesso total
+CREATE POLICY "Admins podem ver todos os dados" ON users
+FOR SELECT
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM users
+    WHERE users.auth_id = auth.uid() AND users.role = 'admin'
+  )
+);
 
-### Tabela `appointments` (Agendamentos)
-- Permitir que usuários leiam seus próprios agendamentos
-- Permitir que profissionais vejam agendamentos com eles
-- Permitir que admins gerenciem todos os agendamentos
+CREATE POLICY "Admins podem inserir dados" ON users
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM users
+    WHERE users.auth_id = auth.uid() AND users.role = 'admin'
+  )
+);
 
-### (Outras tabelas seguem padrões similares)
+CREATE POLICY "Admins podem atualizar dados" ON users
+FOR UPDATE
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM users
+    WHERE users.auth_id = auth.uid() AND users.role = 'admin'
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM users
+    WHERE users.auth_id = auth.uid() AND users.role = 'admin'
+  )
+);
 
-## Sincronização de Autenticação
+CREATE POLICY "Admins podem deletar dados" ON users
+FOR DELETE
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM users
+    WHERE users.auth_id = auth.uid() AND users.role = 'admin'
+  )
+);
 
-A integração mantém a compatibilidade entre o sistema de autenticação atual (Passport.js) e o Supabase Auth:
+-- Política para permitir que a role de serviço tenha acesso completo
+CREATE POLICY "Service role pode fazer tudo" ON users
+FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);
+```
 
-1. Quando um usuário faz login, o sistema verifica primeiro no Supabase Auth
-2. Se falhar, tenta o sistema de autenticação local (fallback)
-3. Ao criar usuários, eles são criados tanto no banco local quanto no Supabase Auth
+### Opção 2: Desabilitar RLS Temporariamente (Apenas para ambiente de desenvolvimento)
 
-## Próximos Passos
+Execute o seguinte SQL no Editor SQL do Supabase:
 
-1. Configurar políticas de RLS manualmente no painel do Supabase
-2. Implementar transição completa para autenticação via Supabase (em andamento)
-3. Configurar storage para uploads e arquivos usando Supabase Storage
+```sql
+-- Desativar RLS na tabela de usuários
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+```
 
-## Troubleshooting
+## Funções RPC (Remote Procedure Calls)
 
-### Erro ao autenticar
-Se ocorrer erro de autenticação, verifique:
-- As chaves de API do Supabase estão corretas
-- O usuário existe no banco de dados do Supabase
-- O usuário foi sincronizado com o Supabase Auth
+Para casos onde precisamos contornar limitações de RLS, podemos criar funções RPC no Supabase:
 
-### Erro de conexão com o banco de dados
-- Verifique a configuração de DATABASE_URL e variáveis PGHOST/PGUSER
-- Verifique se o IP está liberado nas regras de acesso do Supabase
+```sql
+CREATE OR REPLACE FUNCTION create_user_direct(
+  username TEXT,
+  email TEXT,
+  role TEXT,
+  password_hash TEXT,
+  name TEXT DEFAULT NULL,
+  phone TEXT DEFAULT NULL,
+  auth_id UUID DEFAULT NULL
+) RETURNS JSONB
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  new_user_id INTEGER;
+  result JSONB;
+BEGIN
+  -- Inserir o usuário na tabela users
+  INSERT INTO users (username, email, name, phone, password, role, auth_id)
+  VALUES (username, email, name, phone, password_hash, role::user_role, auth_id)
+  RETURNING id INTO new_user_id;
+  
+  -- Buscar o usuário criado
+  SELECT jsonb_build_object(
+    'id', u.id,
+    'username', u.username,
+    'email', u.email,
+    'role', u.role,
+    'created_at', u.created_at
+  ) INTO result
+  FROM users u
+  WHERE u.id = new_user_id;
+  
+  RETURN result;
+END;
+$$;
+```
 
-## Recursos Oficiais do Supabase
+## Estrutura de Tabelas
 
-- [Documentação do Supabase](https://supabase.io/docs)
-- [Autenticação com Supabase](https://supabase.io/docs/guides/auth)
-- [Políticas RLS](https://supabase.io/docs/guides/auth/row-level-security)
+A tabela principal de usuários deve ter a seguinte estrutura:
+
+```sql
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE,
+  name TEXT,
+  phone TEXT,
+  password TEXT NOT NULL,
+  role user_role NOT NULL DEFAULT 'customer',
+  auth_id UUID UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+Certifique-se de que o tipo `user_role` esteja definido:
+
+```sql
+CREATE TYPE user_role AS ENUM ('admin', 'staff', 'customer');
+```
+
+## Solução de Problemas
+
+### Erro "missing Twilio account SID"
+
+Este erro ocorre quando tentamos atualizar o número de telefone no Auth do Supabase. Uma solução é armazenar o telefone apenas na tabela personalizada de usuários, sem tentar atualizar os metadados do telefone no Auth do Supabase.
+
+### Erro "new row violates row-level security policy for table"
+
+1. Verifique se as políticas RLS estão configuradas corretamente
+2. Use o cliente admin do Supabase que ignora RLS para operações administrativas
+3. Em último caso, desative o RLS temporariamente (apenas em desenvolvimento)
+
+### Erro "user not found" ao excluir usuário
+
+Este erro pode ocorrer quando tentamos excluir um usuário que já foi removido. Certifique-se de verificar se o usuário existe antes de tentar excluí-lo.

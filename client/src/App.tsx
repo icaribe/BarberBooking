@@ -43,6 +43,8 @@ function App() {
             {/* Client Routes */}
             <Route path="/" component={Home} />
             <Route path="/auth" component={AuthPage} />
+            <Route path="/login" component={AuthPage} />
+            <Route path="/register" component={AuthPage} />
             <ProtectedRoute path="/appointments" component={Appointments} />
             <ProtectedRoute path="/profile" component={Profile} />
             <ProtectedRoute path="/settings" component={Settings} />
