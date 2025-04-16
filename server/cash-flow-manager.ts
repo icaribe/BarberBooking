@@ -118,8 +118,8 @@ export async function recordTransaction(transaction: NewTransaction) {
 
 export async function recordAppointmentTransaction(appointmentId: number, services: any[], appointmentDate: Date) {
   try {
-    // Calcular valor total
-    const totalValue = services.reduce((sum, service) => sum + parseFloat(service.price || '0'), 0);
+    // Calcular valor total mantendo em centavos
+    const totalValue = services.reduce((sum, service) => sum + (parseInt(service.price) || 0), 0);
     
     // Criar descrição
     const serviceNames = services.map(s => s.name).join(', ');
