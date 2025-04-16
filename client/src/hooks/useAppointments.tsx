@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { apiRequest } from "../lib/queryClient";
-import { API_ENDPOINTS } from "../lib/constants";
+import { API_ENDPOINTS, APPOINTMENT_STATUS } from "../lib/constants";
 import { Appointment, AppointmentService } from "../lib/types";
 
 type AppointmentCreation = {
