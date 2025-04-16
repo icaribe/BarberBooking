@@ -1353,6 +1353,452 @@ export function registerAdminRoutes(app: Express): void {
   );
 
   /**
+   * Dashboard - Estatísticas e dados para análises
+   */
+
+  // Estatísticas gerais para o dashboard
+  adminRouter.get('/dashboard/stats',
+    requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
+    async (_req: Request, res: Response) => {
+      try {
+        // Buscar estatísticas de agendamentos usando Supabase diretamente
+        const { data: appointments, error: appointmentsError } = await supabase
+          .from('appointments')
+          .select('*');
+          
+        if (appointmentsError) {
+          console.error('Erro ao buscar agendamentos:', appointmentsError);
+          return res.status(500).json({ message: 'Erro ao buscar agendamentos' });
+        }
+        
+        // Contagem por status
+        const appointmentsCount = appointments.length;
+        const pendingAppointments = appointments.filter(a => a.status === 'pending').length;
+        const confirmedAppointments = appointments.filter(a => a.status === 'confirmed').length;
+        const completedAppointments = appointments.filter(a => a.status === 'completed').length;
+        const cancelledAppointments = appointments.filter(a => a.status === 'cancelled').length;
+        
+        // Buscar produtos
+        const { data: products, error: productsError } = await supabase
+          .from('products')
+          .select('*');
+          
+        if (productsError) {
+          console.error('Erro ao buscar produtos:', productsError);
+          return res.status(500).json({ message: 'Erro ao buscar produtos' });
+        }
+        
+        const productsCount = products.length;
+        const lowStockProducts = products.filter(p => p.stock_quantity <= 5).length;
+        
+        // Buscar profissionais
+        const { data: professionals, error: professionalsError } = await supabase
+          .from('professionals')
+          .select('*');
+          
+        if (professionalsError) {
+          console.error('Erro ao buscar profissionais:', professionalsError);
+          return res.status(500).json({ message: 'Erro ao buscar profissionais' });
+        }
+        
+        const professionalsCount = professionals.length;
+        
+        // Datas para estatísticas financeiras
+        const today = new Date();
+        const startOfDay = new Date(today);
+        startOfDay.setHours(0, 0, 0, 0);
+        
+        const endOfDay = new Date(today);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+        
+        // Faturamento diário
+        const { data: dailyTransactions, error: dailyError } = await supabase
+          .from('cash_flow')
+          .select('amount')
+          .eq('type', 'income')
+          .gte('date', startOfDay.toISOString())
+          .lte('date', endOfDay.toISOString());
+          
+        if (dailyError) {
+          console.error('Erro ao buscar faturamento diário:', dailyError);
+          return res.status(500).json({ message: 'Erro ao buscar faturamento diário' });
+        }
+        
+        const dailyRevenueAmount = dailyTransactions.reduce((sum, transaction) => 
+          sum + parseInt(transaction.amount || "0"), 0).toString();
+        
+        // Faturamento mensal
+        const { data: monthlyTransactions, error: monthlyError } = await supabase
+          .from('cash_flow')
+          .select('amount')
+          .eq('type', 'income')
+          .gte('date', startOfMonth.toISOString())
+          .lte('date', endOfMonth.toISOString());
+          
+        if (monthlyError) {
+          console.error('Erro ao buscar faturamento mensal:', monthlyError);
+          return res.status(500).json({ message: 'Erro ao buscar faturamento mensal' });
+        }
+        
+        const monthlyRevenueAmount = monthlyTransactions.reduce((sum, transaction) => 
+          sum + parseInt(transaction.amount || "0"), 0).toString();
+
+        // Montar objeto de estatísticas
+        const stats = {
+          appointments: {
+            total: appointmentsCount || 0,
+            pending: pendingAppointments || 0,
+            confirmed: confirmedAppointments || 0,
+            completed: completedAppointments || 0,
+            cancelled: cancelledAppointments || 0
+          },
+          products: {
+            total: productsCount || 0,
+            lowStock: lowStockProducts || 0
+          },
+          professionals: professionalsCount || 0,
+          finance: {
+            dailyRevenue: dailyRevenueAmount || '0',
+            monthlyRevenue: monthlyRevenueAmount || '0'
+          }
+        };
+
+        res.json(stats);
+      } catch (error) {
+        console.error('Erro ao buscar estatísticas do dashboard:', error);
+        res.status(500).json({ message: 'Erro ao buscar estatísticas do dashboard' });
+      }
+    }
+  );
+
+  // Buscar agendamentos para hoje
+  adminRouter.get('/dashboard/today-appointments',
+    requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
+    async (_req: Request, res: Response) => {
+      try {
+        const today = new Date();
+        const formattedDate = today.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+        
+        // Buscar agendamentos para hoje
+        const { data: appointments, error } = await supabase
+          .from('appointments')
+          .select(`
+            id,
+            date,
+            start_time,
+            status,
+            client_name,
+            professional_id,
+            professionals(name),
+            services
+          `)
+          .eq('date', formattedDate)
+          .order('start_time');
+        
+        if (error) {
+          console.error('Erro ao buscar agendamentos do dia:', error);
+          return res.status(500).json({ message: 'Erro ao buscar agendamentos do dia' });
+        }
+
+        // Processar os dados para incluir nome do profissional e serviços
+        const formattedAppointments = await Promise.all(appointments.map(async (appointment) => {
+          // Buscar nomes dos serviços
+          const serviceIds = appointment.services;
+          let serviceNames = [];
+
+          if (Array.isArray(serviceIds) && serviceIds.length > 0) {
+            const { data: services, error: servicesError } = await supabase
+              .from('services')
+              .select('name')
+              .in('id', serviceIds);
+            
+            if (!servicesError && services) {
+              serviceNames = services.map(service => service.name);
+            }
+          }
+
+          return {
+            id: appointment.id,
+            date: appointment.date,
+            start_time: appointment.start_time,
+            status: appointment.status,
+            client_name: appointment.client_name,
+            professional_id: appointment.professional_id,
+            professional_name: appointment.professionals?.name || 'Profissional não encontrado',
+            service_names: serviceNames
+          };
+        }));
+
+        res.json(formattedAppointments);
+      } catch (error) {
+        console.error('Erro ao buscar agendamentos do dia:', error);
+        res.status(500).json({ message: 'Erro ao buscar agendamentos do dia' });
+      }
+    }
+  );
+
+  // Dados para o gráfico de vendas semanais
+  adminRouter.get('/dashboard/sales-chart',
+    requireRole([UserRole.ADMIN]),
+    async (_req: Request, res: Response) => {
+      try {
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+        
+        // Calcular o início da semana (domingo)
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - dayOfWeek);
+        startOfWeek.setHours(0, 0, 0, 0);
+        
+        // Fim da semana (sábado)
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+        
+        // Buscar dados de vendas para cada dia da semana
+        const salesData = [];
+        
+        for (let i = 0; i < 7; i++) {
+          const day = new Date(startOfWeek);
+          day.setDate(startOfWeek.getDate() + i);
+          
+          const nextDay = new Date(day);
+          nextDay.setDate(day.getDate() + 1);
+          
+          // Buscar serviços vendidos neste dia
+          const { data: servicesSales, error: servicesError } = await supabase
+            .from('cash_flow')
+            .select('amount')
+            .eq('type', 'income')
+            .eq('category', 'service')
+            .gte('date', day.toISOString())
+            .lt('date', nextDay.toISOString());
+          
+          // Buscar produtos vendidos neste dia
+          const { data: productsSales, error: productsError } = await supabase
+            .from('cash_flow')
+            .select('amount')
+            .eq('type', 'income')
+            .eq('category', 'product')
+            .gte('date', day.toISOString())
+            .lt('date', nextDay.toISOString());
+          
+          if (servicesError || productsError) {
+            console.error('Erro ao buscar vendas:', servicesError || productsError);
+            continue;
+          }
+          
+          // Calcular totais
+          const servicosValue = servicesSales?.reduce((total, item) => total + parseInt(item.amount), 0) || 0;
+          const produtosValue = productsSales?.reduce((total, item) => total + parseInt(item.amount), 0) || 0;
+          
+          // Nome do dia em português
+          const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+          const name = dayNames[i];
+          
+          salesData.push({
+            name,
+            servicos: servicosValue,
+            produtos: produtosValue,
+            total: servicosValue + produtosValue
+          });
+        }
+        
+        res.json(salesData);
+      } catch (error) {
+        console.error('Erro ao buscar dados para o gráfico de vendas:', error);
+        res.status(500).json({ message: 'Erro ao buscar dados para o gráfico de vendas' });
+      }
+    }
+  );
+
+  // Vendas por categoria
+  adminRouter.get('/dashboard/sales-by-category',
+    requireRole([UserRole.ADMIN]),
+    async (_req: Request, res: Response) => {
+      try {
+        // Buscar as categorias de produtos
+        const { data: categories, error: categoriesError } = await supabase
+          .from('product_categories')
+          .select('id, name');
+        
+        if (categoriesError) {
+          console.error('Erro ao buscar categorias:', categoriesError);
+          return res.status(500).json({ message: 'Erro ao buscar categorias de produtos' });
+        }
+        
+        // Para cada categoria, buscar a soma das vendas
+        const result = await Promise.all(categories.map(async (category) => {
+          // Buscar produtos desta categoria
+          const { data: products, error: productsError } = await supabase
+            .from('products')
+            .select('id')
+            .eq('category_id', category.id);
+          
+          if (productsError) {
+            console.error(`Erro ao buscar produtos da categoria ${category.name}:`, productsError);
+            return { name: category.name, value: 0 };
+          }
+          
+          if (!products || products.length === 0) {
+            return { name: category.name, value: 0 };
+          }
+          
+          const productIds = products.map(p => p.id);
+          
+          // Buscar vendas destes produtos
+          const { data: sales, error: salesError } = await supabase
+            .from('cash_flow')
+            .select('amount')
+            .eq('type', 'income')
+            .eq('category', 'product')
+            .in('reference_id', productIds);
+          
+          if (salesError) {
+            console.error(`Erro ao buscar vendas da categoria ${category.name}:`, salesError);
+            return { name: category.name, value: 0 };
+          }
+          
+          // Calcular valor total
+          const value = sales?.reduce((total, item) => total + parseInt(item.amount), 0) || 0;
+          
+          return { name: category.name, value };
+        }));
+        
+        // Filtrar categorias com valor zero e ordenar por valor decrescente
+        const categorySalesData = result
+          .filter(item => item.value > 0)
+          .sort((a, b) => b.value - a.value);
+        
+        res.json(categorySalesData);
+      } catch (error) {
+        console.error('Erro ao buscar vendas por categoria:', error);
+        res.status(500).json({ message: 'Erro ao buscar vendas por categoria' });
+      }
+    }
+  );
+  
+  // Top serviços mais agendados
+  adminRouter.get('/dashboard/top-services',
+    requireRole([UserRole.ADMIN, UserRole.PROFESSIONAL]),
+    async (_req: Request, res: Response) => {
+      try {
+        // Buscar todos os agendamentos com status completed
+        const { data: appointments, error: appointmentsError } = await supabase
+          .from('appointments')
+          .select('services')
+          .eq('status', 'completed');
+        
+        if (appointmentsError) {
+          console.error('Erro ao buscar agendamentos:', appointmentsError);
+          return res.status(500).json({ message: 'Erro ao buscar agendamentos' });
+        }
+        
+        // Contar ocorrências de cada serviço
+        const serviceCount = {};
+        
+        appointments.forEach(appointment => {
+          if (Array.isArray(appointment.services)) {
+            appointment.services.forEach(serviceId => {
+              serviceCount[serviceId] = (serviceCount[serviceId] || 0) + 1;
+            });
+          }
+        });
+        
+        // Converter para array de { id, count }
+        const serviceCountArray = Object.entries(serviceCount).map(([id, count]) => ({
+          id: parseInt(id),
+          count
+        }));
+        
+        // Ordenar por contagem decrescente
+        serviceCountArray.sort((a, b) => b.count - a.count);
+        
+        // Pegar os top 5
+        const top5Services = serviceCountArray.slice(0, 5);
+        
+        // Buscar nomes dos serviços
+        const result = await Promise.all(top5Services.map(async (service) => {
+          const { data, error } = await supabase
+            .from('services')
+            .select('name')
+            .eq('id', service.id)
+            .single();
+          
+          if (error) {
+            console.error(`Erro ao buscar nome do serviço ${service.id}:`, error);
+            return { name: `Serviço ${service.id}`, value: service.count };
+          }
+          
+          return { name: data.name, value: service.count };
+        }));
+        
+        res.json(result);
+      } catch (error) {
+        console.error('Erro ao buscar top serviços:', error);
+        res.status(500).json({ message: 'Erro ao buscar top serviços' });
+      }
+    }
+  );
+  
+  // Desempenho dos profissionais
+  adminRouter.get('/dashboard/professional-performance',
+    requireRole([UserRole.ADMIN]),
+    async (_req: Request, res: Response) => {
+      try {
+        // Buscar todos os profissionais
+        const { data: professionals, error: professionalsError } = await supabase
+          .from('professionals')
+          .select('id, name');
+        
+        if (professionalsError) {
+          console.error('Erro ao buscar profissionais:', professionalsError);
+          return res.status(500).json({ message: 'Erro ao buscar profissionais' });
+        }
+        
+        // Para cada profissional, buscar agendamentos completados e cancelados
+        const result = await Promise.all(professionals.map(async (professional) => {
+          // Agendamentos completados
+          const { data: completed, error: completedError } = await supabase
+            .from('appointments')
+            .select('id')
+            .eq('professional_id', professional.id)
+            .eq('status', 'completed');
+          
+          // Agendamentos cancelados
+          const { data: cancelled, error: cancelledError } = await supabase
+            .from('appointments')
+            .select('id')
+            .eq('professional_id', professional.id)
+            .eq('status', 'cancelled');
+          
+          if (completedError || cancelledError) {
+            console.error(`Erro ao buscar agendamentos do profissional ${professional.name}:`, completedError || cancelledError);
+            return { name: professional.name, completados: 0, cancelados: 0 };
+          }
+          
+          return {
+            name: professional.name,
+            completados: completed?.length || 0,
+            cancelados: cancelled?.length || 0
+          };
+        }));
+        
+        // Ordenar por número de atendimentos completados (decrescente)
+        result.sort((a, b) => b.completados - a.completados);
+        
+        res.json(result);
+      } catch (error) {
+        console.error('Erro ao buscar desempenho dos profissionais:', error);
+        res.status(500).json({ message: 'Erro ao buscar desempenho dos profissionais' });
+      }
+    }
+  );
+
+  /**
    * Inicialização do sistema administrativo - para o primeiro usuário
    * Esta rota não requer autenticação para permitir a configuração inicial
    */

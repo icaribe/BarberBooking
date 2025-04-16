@@ -85,7 +85,7 @@ interface ProfessionalPerformanceData {
 }
 
 // Tipagem para o formatter do Tooltip
-type TooltipFormatter = (value: any, name?: any, props?: any) => [string, string];
+type TooltipFormatter = (value: number, name?: string, props?: any) => string;
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
