@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { apiRequest } from "../lib/queryClient";
 import { API_ENDPOINTS } from "../lib/constants";
 import { Appointment, AppointmentService } from "../lib/types";
@@ -29,7 +30,7 @@ export const useAppointments = (userId?: number, professionalId?: number, date?:
 
   // Fetch appointments based on filters
   const { 
-    data: appointments = [], 
+    data: rawAppointments = [], 
     isLoading,
     error
   } = useQuery<Appointment[]>({ 
@@ -40,6 +41,23 @@ export const useAppointments = (userId?: number, professionalId?: number, date?:
     refetchOnMount: true, // Refazer a consulta sempre que o componente montar
     refetchOnWindowFocus: true // Refazer a consulta quando o usuário focar na janela
   });
+  
+  // Normalizar os status dos agendamentos para garantir consistência
+  // Uma vez que o banco armazena em minúsculas e a aplicação usa constantes
+  const appointments = useMemo(() => {
+    return rawAppointments.map(appointment => {
+      // Garantir que temos um valor de status válido
+      const rawStatus = appointment.status?.toLowerCase() || 'scheduled';
+      
+      // Log para debug
+      console.log(`Normalizando status do agendamento #${appointment.id}: ${appointment.status} -> ${rawStatus}`);
+      
+      return {
+        ...appointment,
+        status: rawStatus
+      };
+    });
+  }, [rawAppointments]);
 
   // Create a new appointment
   const { mutateAsync: createAppointment, isPending: isCreating } = useMutation({
