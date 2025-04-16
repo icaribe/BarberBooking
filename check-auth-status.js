@@ -3,117 +3,240 @@
  * para diagnosticar problemas de acesso às APIs
  */
 
-const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+import 'dotenv/config';
+import fetch from 'node-fetch';
 
-// Verificar se as variáveis de ambiente estão definidas
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-  console.error('Erro: Variáveis de ambiente SUPABASE_URL e/ou SUPABASE_ANON_KEY não definidas.');
-  console.error('Certifique-se de que as variáveis de ambiente estão configuradas no arquivo .env');
-  process.exit(1);
-}
-
-// Criar cliente Supabase
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+const baseUrl = 'http://localhost:5000'; // URL da API local
 
 async function checkAuthStatus() {
-  console.log('Verificando status de autenticação no Supabase...');
-  console.log('URL do Supabase:', process.env.SUPABASE_URL);
-  
   try {
-    // Verificar usuário atual (se houver)
-    const { data: { user }, error } = await supabase.auth.getUser();
+    console.log('🔍 Verificando status da autenticação no servidor...');
     
-    if (error) {
-      console.error('Erro ao verificar usuário atual:', error.message);
-      return;
+    // 1. Verificar endpoint de usuário atual (sem autenticação)
+    console.log('\n👤 Testando endpoint /api/user sem autenticação...');
+    
+    try {
+      const userResponse = await fetch(`${baseUrl}/api/user`, {
+        credentials: 'include'
+      });
+      
+      console.log(`Status: ${userResponse.status} ${userResponse.statusText}`);
+      
+      if (userResponse.status === 401) {
+        console.log('✅ Comportamento esperado: o endpoint retorna 401 quando não autenticado.');
+      } else if (userResponse.ok) {
+        console.log('⚠️ Comportamento inesperado: o endpoint retornou 200 sem autenticação.');
+        const userData = await userResponse.json();
+        console.log('Dados retornados:', userData);
+      } else {
+        console.log('⚠️ Resposta inesperada do endpoint.');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao acessar endpoint de usuário:', error);
     }
     
-    if (user) {
-      console.log('✅ Usuário autenticado:');
-      console.log(`- ID de autenticação: ${user.id}`);
-      console.log(`- Email: ${user.email}`);
-      console.log(`- Criado em: ${user.created_at ? new Date(user.created_at).toLocaleString() : 'N/A'}`);
+    // 2. Testar endpoint público de serviços
+    console.log('\n📋 Testando endpoint público /api/services...');
+    
+    try {
+      const servicesResponse = await fetch(`${baseUrl}/api/services`);
       
-      // Verificar sessão
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log(`Status: ${servicesResponse.status} ${servicesResponse.statusText}`);
       
-      if (sessionError) {
-        console.error('Erro ao verificar sessão:', sessionError.message);
-      } else if (session) {
-        console.log('✅ Sessão ativa:');
-        console.log(`- Expira em: ${new Date(session.expires_at * 1000).toLocaleString()}`);
+      if (servicesResponse.ok) {
+        const services = await servicesResponse.json();
+        console.log(`✅ Endpoints públicos funcionando. Retornados ${services.length} serviços.`);
+      } else {
+        console.log('❌ Falha ao acessar endpoint público.');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao acessar endpoint de serviços:', error);
+    }
+    
+    // 3. Verificar endpoint administrativo sem autenticação
+    console.log('\n🔒 Testando endpoint administrativo sem autenticação...');
+    
+    try {
+      const adminResponse = await fetch(`${baseUrl}/api/admin/appointments`);
+      
+      console.log(`Status: ${adminResponse.status} ${adminResponse.statusText}`);
+      
+      if (adminResponse.status === 401) {
+        console.log('✅ Comportamento esperado: o endpoint administrativo retorna 401 quando não autenticado.');
+        const errorText = await adminResponse.text();
+        console.log('Mensagem:', errorText);
+      } else {
+        console.log('⚠️ Comportamento inesperado do endpoint administrativo.');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao acessar endpoint administrativo:', error);
+    }
+    
+    // 4. Realizar login de teste com credenciais fixas para debug
+    console.log('\n🔑 Realizando login de teste para verificar autenticação...');
+    
+    // Usar credenciais fixas para teste
+    const testUsername = 'admin';
+    const testPassword = 'admin';
+    
+    console.log(`Tentando login com usuário: ${testUsername} (senha: ${testPassword})`);
+    
+    // Tentar autenticar localmente no aplicativo
+    try {
+      console.log('\n📡 Testando API de login local...');
+      const loginResponse = await fetch(`${baseUrl}/api/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: testUser.username,
+          password: 'admin' // Senha padrão para teste (admin)
+        }),
+        credentials: 'include',
+      });
+      
+      console.log(`Status: ${loginResponse.status} ${loginResponse.statusText}`);
+      
+      if (loginResponse.ok) {
+        const userData = await loginResponse.json();
+        console.log('✅ Login bem-sucedido!');
+        console.log('Dados retornados:', userData);
         
-        // Testar acesso à API de agendamentos
-        console.log('\nTestando acesso à API de agendamentos...');
-        
-        const { data: appointments, error: appointmentsError } = await supabase
-          .from('appointments')
-          .select('*')
-          .limit(5);
-        
-        if (appointmentsError) {
-          console.error('❌ Erro ao acessar agendamentos:', appointmentsError.message);
+        // Obter cookies da resposta
+        const cookies = loginResponse.headers.raw()['set-cookie'];
+        if (cookies && cookies.length > 0) {
+          console.log('✅ Cookies de sessão definidos:');
+          cookies.forEach(cookie => {
+            console.log(`- ${cookie.split(';')[0]}`);
+          });
           
-          if (appointmentsError.message.includes('permission denied')) {
-            console.log('\n🔑 SOLUÇÃO: O usuário autenticado não tem permissão para acessar a tabela appointments.');
-            console.log('Verifique as políticas RLS (Row Level Security) no Supabase para esta tabela.');
+          // Testar API protegida com os cookies
+          console.log('\n🔒 Testando API protegida com cookies de sessão...');
+          
+          // Extrair connect.sid do cookie
+          const sessionCookie = cookies.find(c => c.includes('connect.sid='));
+          
+          if (sessionCookie) {
+            const apiResponse = await fetch(`${baseUrl}/api/admin/appointments`, {
+              headers: {
+                'Cookie': sessionCookie
+              },
+              credentials: 'include',
+            });
+            
+            console.log(`Status da API protegida: ${apiResponse.status} ${apiResponse.statusText}`);
+            
+            if (apiResponse.ok) {
+              console.log('✅ Acesso à API protegida bem-sucedido!');
+              const data = await apiResponse.json();
+              console.log(`Retornados ${data.length} agendamentos.`);
+            } else {
+              console.log('❌ Falha ao acessar API protegida.');
+              try {
+                const errorText = await apiResponse.text();
+                console.log('Resposta de erro:', errorText);
+              } catch (e) {
+                console.log('Não foi possível ler resposta de erro.');
+              }
+            }
+          } else {
+            console.log('⚠️ Nenhum cookie de sessão encontrado na resposta.');
           }
         } else {
-          console.log(`✅ Acesso concedido! Encontrados ${appointments.length} agendamentos.`);
-          if (appointments.length > 0) {
-            console.log('\nExemplo de agendamento:');
-            console.log(appointments[0]);
-          }
+          console.log('⚠️ Nenhum cookie retornado na resposta de login.');
         }
       } else {
-        console.log('❌ Nenhuma sessão ativa encontrada.');
+        console.log('❌ Falha no login com o usuário de teste.');
+        try {
+          const errorText = await loginResponse.text();
+          console.log('Resposta de erro:', errorText);
+        } catch (e) {
+          console.log('Não foi possível ler resposta de erro.');
+        }
       }
-    } else {
-      console.log('❌ Nenhum usuário autenticado.');
-      
-      // Criar usuário test para teste (apenas se necessário)
-      console.log('\nDeseja criar um usuário de teste para diagnosticar problemas de autenticação?');
-      console.log('Execute o seguinte comando se desejar:');
-      console.log('node -e "require(\'./check-auth-status.js\').createTestUser()"');
+    } catch (error) {
+      console.error('❌ Erro ao testar login:', error);
     }
+    
   } catch (error) {
-    console.error('Erro geral:', error);
+    console.error('❌ Erro geral:', error);
   }
 }
 
-// Função para criar um usuário de teste, caso seja necessário
+// Função para criar um usuário de teste se necessário
 async function createTestUser() {
-  const testEmail = `test_${Date.now()}@example.com`;
-  const testPassword = 'Test123456!';
-  
-  console.log(`Criando usuário de teste com email: ${testEmail}`);
-  
   try {
-    const { data, error } = await supabase.auth.signUp({
-      email: testEmail,
-      password: testPassword
+    console.log('\n🆕 Criando usuário de teste para verificação...');
+    
+    // 1. Verificar se já existe um usuário admin
+    const { data: existingAdmins, error: checkError } = await supabase
+      .from('users')
+      .select('id, username, email')
+      .eq('role', 'admin')
+      .limit(1);
+    
+    if (checkError) {
+      console.error('❌ Erro ao verificar usuários admin existentes:', checkError.message);
+      return;
+    }
+    
+    if (existingAdmins && existingAdmins.length > 0) {
+      console.log('✅ Usuário admin existente encontrado:', existingAdmins[0].username);
+      return;
+    }
+    
+    // 2. Criar usuário no Supabase Auth
+    console.log('Criando usuário no Supabase Auth...');
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email: 'admin@example.com',
+      password: 'admin123',
+      email_confirm: true
     });
     
-    if (error) {
-      console.error('Erro ao criar usuário de teste:', error.message);
+    if (authError) {
+      console.error('❌ Erro ao criar usuário no Auth:', authError.message);
+      return;
+    }
+    
+    if (!authUser || !authUser.user) {
+      console.error('❌ Falha ao criar usuário no Auth. Nenhum dado retornado.');
+      return;
+    }
+    
+    console.log('✅ Usuário criado no Auth:', authUser.user.id);
+    
+    // 3. Criar usuário na tabela de usuários da aplicação
+    console.log('Criando registro na tabela de usuários...');
+    const { data: appUser, error: appError } = await supabase
+      .from('users')
+      .insert([{
+        auth_id: authUser.user.id,
+        username: 'admin',
+        password: 'admin123', // Deve ser hash na produção
+        email: 'admin@example.com',
+        name: 'Administrador',
+        role: 'admin'
+      }])
+      .select();
+    
+    if (appError) {
+      console.error('❌ Erro ao criar usuário na aplicação:', appError.message);
       return;
     }
     
     console.log('✅ Usuário de teste criado com sucesso!');
-    console.log('- Email:', testEmail);
-    console.log('- Senha:', testPassword);
-    console.log('\nFaça login com estas credenciais para testar a autenticação.');
+    console.log('Detalhes:', appUser?.[0]);
+    
   } catch (error) {
-    console.error('Erro geral ao criar usuário de teste:', error);
+    console.error('❌ Erro ao criar usuário de teste:', error);
   }
 }
 
-// Executar verificação
-checkAuthStatus();
-
-// Exportar a função createTestUser para uso externo
-module.exports = { createTestUser };
+// Executar a verificação de autenticação
+(async function() {
+  await checkAuthStatus();
+  
+  // Descomentar para criar um usuário de teste se necessário
+  // await createTestUser();
+})();
