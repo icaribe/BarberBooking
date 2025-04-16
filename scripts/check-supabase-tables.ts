@@ -1,104 +1,83 @@
-import supabase from '../server/supabase';
 import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
 
-// Carregar variáveis de ambiente do arquivo .env
+// Carregar variáveis de ambiente
 dotenv.config();
 
-/**
- * Script para verificar as tabelas existentes no Supabase
- * e mostrar informações sobre sua estrutura.
- */
-async function checkTables() {
+// Configurações do Supabase
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || '';
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Erro: SUPABASE_URL e SUPABASE_SERVICE_KEY são necessários no arquivo .env');
+  process.exit(1);
+}
+
+// Criar cliente do Supabase
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+async function checkSupabaseTables() {
+  console.log('\n🔍 Verificando tabelas existentes no Supabase...\n');
+
   try {
-    console.log('Verificando tabelas no Supabase...');
-    
-    // Vamos tentar listar as principais tabelas que sabemos que existem
+    // Lista de tabelas esperadas com base no schema
     const expectedTables = [
-      'users',
-      'service_categories',
-      'services',
-      'professionals',
-      'schedules',
-      'appointments',
-      'appointment_services',
-      'product_categories',
-      'products',
-      'loyalty_rewards'
+      'users', 'service_categories', 'services', 'professionals',
+      'schedules', 'appointments', 'appointment_services',
+      'product_categories', 'products', 'loyalty_rewards',
+      'loyalty_history', 'cash_flow', 'professional_services'
     ];
     
-    const tables: {tablename: string}[] = [];
+    console.log('📋 Verificando acesso às tabelas:');
     
-    for (const tableName of expectedTables) {
+    for (const table of expectedTables) {
       try {
-        const { count, error } = await supabase
-          .from(tableName)
-          .select('*', { count: 'exact', head: true });
+        const { data, error } = await supabase
+          .from(table)
+          .select('*', { head: true, count: 'exact' });
         
-        if (!error) {
-          tables.push({ tablename: tableName });
-          console.log(`✓ Tabela '${tableName}' encontrada. Registros: ${count || 0}`);
+        if (error) {
+          console.log(`❌ Tabela ${table}: Não encontrada ou sem acesso (${error.message})`);
         } else {
-          console.log(`✗ Tabela '${tableName}' não está acessível: ${error.message}`);
+          console.log(`✅ Tabela ${table}: Acessível`);
         }
-      } catch (e) {
-        console.log(`✗ Erro ao acessar tabela ${tableName}: ${(e as Error).message}`);
+      } catch (err) {
+        console.log(`❌ Tabela ${table}: Erro ao verificar (${err})`);
       }
     }
     
-    if (tables.length === 0) {
-      console.log('\nNão foram encontradas tabelas acessíveis no schema public.');
-      return;
-    }
+    // Tentar obter uma lista completa das tabelas usando query SQL bruta
+    console.log('\n📋 Tentando obter lista completa de tabelas com query SQL:');
     
-    console.log(`\nForam encontradas ${tables.length} tabelas acessíveis no schema public:`);
-    const tableNames = tables.map(t => t.tablename);
+    const { data, error } = await supabase.rpc('check_tables');
     
-    // Para cada tabela, buscar informações sobre sua estrutura
-    console.log('\nDetalhes das tabelas:');
-    
-    for (const tableName of tableNames) {
-      try {
-        // Ler uma linha da tabela para examinar a estrutura
-        const { data: sampleRow, error: sampleError } = await supabase
-          .from(tableName)
-          .select('*')
-          .limit(1)
-          .single();
+    if (error) {
+      console.log(`❌ Não foi possível obter lista de tabelas via RPC: ${error.message}`);
+      
+      // Método alternativo: usar a query SQL direta
+      const { data: queryResult, error: queryError } = await supabase
+        .from('_information_schema_tables')
+        .select('table_name')
+        .eq('table_schema', 'public');
         
-        if (sampleError) {
-          console.log(`- Tabela ${tableName}: Não foi possível ler dados`);
-          continue;
-        }
-        
-        console.log(`\n📋 Tabela: ${tableName}`);
-        
-        // Mostrar as colunas da tabela
-        if (sampleRow) {
-          const columns = Object.keys(sampleRow);
-          console.log(`  Colunas (${columns.length}): ${columns.join(', ')}`);
-        }
-        
-        // Contar registros na tabela
-        const { count, error: countError } = await supabase
-          .from(tableName)
-          .select('*', { count: 'exact', head: true });
-        
-        if (!countError) {
-          console.log(`  Total de registros: ${count || 0}`);
-        }
-        
-      } catch (tableError) {
-        console.error(`  Erro ao ler estrutura da tabela ${tableName}:`, tableError);
+      if (queryError) {
+        console.log(`❌ Não foi possível consultar lista de tabelas: ${queryError.message}`);
+      } else if (queryResult) {
+        console.log('✅ Tabelas encontradas via consulta direta:');
+        queryResult.forEach((row, idx) => {
+          console.log(`   ${idx + 1}. ${row.table_name}`);
+        });
       }
+    } else if (data) {
+      console.log('✅ Tabelas encontradas via RPC:');
+      data.forEach((row, idx) => {
+        console.log(`   ${idx + 1}. ${row.table_name}`);
+      });
     }
-    
-    console.log('\n✅ Verificação de tabelas concluída!');
     
   } catch (error) {
     console.error('❌ Erro ao verificar tabelas:', error);
-    process.exit(1);
   }
 }
 
-// Executar a verificação
-checkTables().catch(console.error);
+checkSupabaseTables();
