@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
@@ -9,9 +10,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export default defineConfig({
-  server: {
-    host: '0.0.0.0',
-  },
   plugins: [
     react(),
     runtimeErrorOverlay(),
@@ -37,7 +35,7 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     strictPort: true,
-    allowedHosts: ["*.spock.replit.dev"],
+    allowedHosts: ["*.replit.dev", "*.repl.co"],
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
