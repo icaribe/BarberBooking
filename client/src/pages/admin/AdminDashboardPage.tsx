@@ -181,7 +181,7 @@ export default function AdminDashboardPage() {
   
   // Formatar valor monetário com R$
   const currencyFormatter: TooltipFormatter = (value) => {
-    return `R$ ${(value/100).toFixed(2)}`;
+    return `R$ ${(Number(value)/100).toFixed(2)}`;
   };
   
   // Dados padrão caso ainda não tenham sido carregados
