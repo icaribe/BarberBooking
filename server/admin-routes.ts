@@ -16,6 +16,8 @@ import { supabaseStorage } from './storage-supabase';
 import * as cashFlowManager from './cash-flow-manager';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { createClient } from '@supabase/supabase-js';
+import cashFlowRoutes from './routes/cash-flow-routes';
+import reportRoutes from './routes/report-routes';
 
 // Criar cliente Supabase para consultas diretas
 const supabase = createClient(
@@ -1832,6 +1834,32 @@ export function registerAdminRoutes(app: Express): void {
     }
   );
 
+  // Registrar rotas do fluxo de caixa
+  adminRouter.use('/cash-flow', cashFlowRoutes);
+  
+  // Rotas de relatórios serão adicionadas aqui mais tarde
+  
+  // Rota para sincronizar manualmente transações com agendamentos concluídos
+  adminRouter.post('/sync-transactions', 
+    requireRole([UserRole.ADMIN]),
+    async (_req: Request, res: Response) => {
+      try {
+        const result = await cashFlowManager.validateAndFixTransactions();
+        res.json({
+          success: true,
+          message: 'Sincronização de transações concluída com sucesso',
+          result
+        });
+      } catch (error: any) {
+        console.error('Erro ao sincronizar transações:', error);
+        res.status(500).json({ 
+          success: false, 
+          message: `Erro ao sincronizar transações: ${error.message}`
+        });
+      }
+    }
+  );
+  
   // Montar as rotas na aplicação principal
   app.use('/api/admin', adminRouter);
   console.log("[Admin Routes] Rotas administrativas registradas com sucesso.");
