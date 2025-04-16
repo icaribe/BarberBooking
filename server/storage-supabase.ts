@@ -1,5 +1,6 @@
 
 import supabase from './supabase';
+import { supabaseAdmin } from './supabase-admin-client';
 import { db } from './db';
 import * as schema from '@shared/schema';
 import bcrypt from 'bcrypt';
@@ -177,10 +178,12 @@ export const supabaseStorage = {
       // 3. Hash da senha para guardar no banco de dados local
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       
-      // 4. Inserir na tabela de usuários personalizada 
+      // 4. Inserir na tabela de usuários personalizada - Usando supabaseAdmin que ignora RLS
       try {
-        // Tentar inserir usando a API
-        const { data: user, error: userError } = await supabase
+        console.log('Tentando inserir usuário usando cliente admin que ignora RLS...');
+        
+        // Usar o cliente admin que ignora políticas RLS
+        const { data: user, error: userError } = await supabaseAdmin
           .from('users')
           .insert({
             username: userData.username,
@@ -195,13 +198,49 @@ export const supabaseStorage = {
           .single();
   
         if (userError) {
-          console.error('Erro ao criar usuário na tabela users:', userError);
+          console.error('Erro ao criar usuário na tabela users (mesmo com cliente admin):', userError);
           
-          // Se falhar por causa de RLS, vamos tentar uma abordagem alternativa:
-          // Inserir via SQL direto (isso requer permissões adequadas)
+          // Tentar uma terceira abordagem usando RPC
           try {
-            // Usando o SELECT para verificar existência de usuário (RLS pode permitir leitura)
-            const { data: existingUser, error: checkError } = await supabase
+            console.log('Tentando criar usuário usando função RPC...');
+            
+            // Usar RPC para tentar criar usuário (se a função existir no Supabase)
+            try {
+              const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('create_user_direct', {
+                username: userData.username,
+                email: userData.email,
+                name: userData.name || null,
+                phone: userData.phone || null,
+                password_hash: hashedPassword,
+                auth_id: authData.user.id,
+                role: 'customer'
+              });
+              
+              if (rpcError) {
+                console.error('Erro ao criar usuário via RPC:', rpcError);
+                // Continuar para o fallback abaixo
+              } else {
+                console.log('Usuário criado com sucesso via RPC:', rpcResult);
+                
+                // Buscar o usuário recém-criado
+                const { data: newUser, error: fetchError } = await supabaseAdmin
+                  .from('users')
+                  .select('*')
+                  .eq('auth_id', authData.user.id)
+                  .single();
+                
+                if (!fetchError && newUser) {
+                  console.log('Usuário recuperado após criação via RPC');
+                  return newUser;
+                }
+              }
+            } catch (rpcError) {
+              console.error('Exceção ao chamar RPC:', rpcError);
+              // Continuar para o fallback
+            }
+            
+            // Verificar se o usuário já existe de alguma forma
+            const { data: existingUser, error: checkError } = await supabaseAdmin
               .from('users')
               .select('*')
               .eq('auth_id', authData.user.id)
@@ -211,28 +250,36 @@ export const supabaseStorage = {
               console.log('Usuário já existe na tabela users:', existingUser);
               return existingUser;
             }
-            
-            console.error('Não foi possível inserir o usuário. Revertendo autenticação.');
+          
+            console.error('Todas as tentativas falharam. Revertendo autenticação.');
             
             // Se não conseguimos inserir, tentamos reverter a autenticação
             try {
-              await supabase.auth.admin.deleteUser(authData.user.id);
+              await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
             } catch (deleteError) {
               console.error('Erro ao tentar reverter criação do usuário de autenticação:', deleteError);
             }
             
-            throw new Error('Falha ao criar usuário no banco de dados devido a restrições de segurança');
-          } catch (sqlError) {
-            console.error('Erro durante tentativa alternativa:', sqlError);
+            // Mensagem de erro detalhada para ajudar no diagnóstico
+            const errorMessage = 
+              'Falha ao criar usuário no banco de dados.\n' +
+              'Por favor, verifique:\n' +
+              '1. Se RLS está desativado para a tabela users\n' +
+              '2. Se a função RPC "create_user_direct" foi criada\n' +
+              '3. Se as chaves de API do Supabase estão corretas';
+            
+            throw new Error(errorMessage);
+          } catch (fallbackError) {
+            console.error('Erro durante tentativas alternativas:', fallbackError);
             
             // Tentar reverter a criação do usuário de autenticação
             try {
-              await supabase.auth.admin.deleteUser(authData.user.id);
+              await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
             } catch (deleteError) {
               console.error('Erro ao tentar reverter criação do usuário de autenticação:', deleteError);
             }
             
-            throw userError; // Lançamos o erro original
+            throw userError; // Lançamos o erro original para manter consistência
           }
         }
   

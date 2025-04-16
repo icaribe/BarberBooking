@@ -1,29 +1,14 @@
-Gerando comandos SQL para desabilitar RLS temporariamente...
+-- Script para desabilitar temporariamente Row Level Security (RLS) para testes
+-- ATENÇÃO: Use apenas em ambiente de desenvolvimento!
 
--- Execute estes comandos no Console SQL do Supabase:
--- 1. Desabilitar RLS temporariamente
-ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.service_categories DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.services DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.professionals DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.schedules DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.appointments DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.appointment_services DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.product_categories DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.products DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.loyalty_rewards DISABLE ROW LEVEL SECURITY;
+-- Desativar RLS na tabela de usuários
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
 
--- 2. Após importar os dados, habilite o RLS novamente:
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.service_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.professionals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.schedules ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.appointment_services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.product_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.loyalty_rewards ENABLE ROW LEVEL SECURITY;
+-- Confirmar que RLS está desativado
+SELECT relname, relrowsecurity 
+FROM pg_class 
+WHERE relname = 'users';
+-- relrowsecurity = false significa que RLS está desativado
 
--- 3. Configure as políticas para cada tabela
--- Consulte o arquivo rls-commands.sql para as políticas completas
+-- OPCIONAL: Para reativar o RLS quando terminar os testes
+-- ALTER TABLE users ENABLE ROW LEVEL SECURITY;
