@@ -1,114 +1,80 @@
 /**
- * Gerenciador de Fluxo de Caixa
+ * Gerenciador de fluxo de caixa
  * 
- * Este módulo centraliza todas as operações relacionadas ao fluxo de caixa,
- * permitindo o registro e consulta de transações financeiras.
+ * Este módulo é responsável por gerenciar todas as operações 
+ * relacionadas ao fluxo de caixa, incluindo:
+ * 
+ * - Registro de novas transações
+ * - Sincronização automática de agendamentos com transações financeiras
+ * - Geração de resumos financeiros
+ * - Validação e correção de dados inconsistentes
  */
 
 import supabase from './supabase';
+import { TransactionType } from '../shared/schema';
 
-// Tipos de transação
-export enum TransactionType {
-  INCOME = 'INCOME',         // Entrada de dinheiro (ex: pagamento de serviço)
-  EXPENSE = 'EXPENSE',       // Saída de dinheiro (ex: pagamento de fornecedor)
-  REFUND = 'REFUND',         // Devolução de dinheiro ao cliente
-  ADJUSTMENT = 'ADJUSTMENT', // Ajuste manual no caixa
-  PRODUCT_SALE = 'PRODUCT_SALE' // Venda de produto
-}
-
-// Interface para criação de uma transação
-export interface CreateTransaction {
-  date: Date;
-  appointmentId?: number;
-  amount: number;
-  type: TransactionType;
-  description?: string;
-}
-
-// Interface para consulta de transações
-export interface TransactionFilter {
+// Interface para filtros de busca de transações
+interface TransactionFilters {
   startDate?: Date;
   endDate?: Date;
   type?: TransactionType;
+  category?: string;
   appointmentId?: number;
 }
 
-/**
- * Registra uma transação no fluxo de caixa
- */
-export async function recordTransaction(transaction: CreateTransaction) {
-  try {
-    console.log(`\n==== Registrando transação financeira ====`);
-    console.log(`Tipo: ${transaction.type}`);
-    console.log(`Valor (centavos): ${transaction.amount}`);
-    console.log(`Valor (reais): R$ ${(transaction.amount/100).toFixed(2)}`);
-    console.log(`Agendamento ID: ${transaction.appointmentId || 'N/A'}`);
-    console.log(`Data: ${transaction.date}`);
-
-    // Não converter para reais, manter em centavos
-    const amountInCents = transaction.amount;
-
-    const { data, error } = await supabase
-      .from('cash_flow')
-      .insert({
-        date: transaction.date.toISOString().split('T')[0],
-        appointment_id: transaction.appointmentId,
-        amount: amountInCents,
-        type: transaction.type,
-        description: transaction.description
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Erro ao registrar transação:', error);
-      throw new Error(`Falha ao registrar transação: ${error.message}`);
-    }
-
-    console.log('Transação registrada com sucesso:', data.id);
-    return data;
-  } catch (error) {
-    console.error('Erro ao processar transação:', error);
-    throw error;
-  }
+// Interface para criação de novas transações
+interface NewTransaction {
+  date: Date;
+  amount: number;
+  type: TransactionType;
+  description: string;
+  appointmentId?: number;
+  category?: string;
 }
 
 /**
- * Busca transações com base nos filtros fornecidos
+ * Busca transações com filtros opcionais
  */
-export async function getTransactions(filter: TransactionFilter) {
+export async function getTransactions(filters: TransactionFilters = {}) {
   try {
-    console.log('Buscando transações com filtros:', filter);
-
+    console.log('Buscando transações com filtros:', JSON.stringify(filters));
+    
+    // Iniciar a consulta base
     let query = supabase
       .from('cash_flow')
-      .select('*');
-
-    if (filter.startDate) {
-      query = query.gte('date', filter.startDate.toISOString().split('T')[0]);
+      .select('*')
+      .order('date', { ascending: false });
+    
+    // Aplicar filtros se existirem
+    if (filters.startDate) {
+      query = query.gte('date', filters.startDate.toISOString().split('T')[0]);
     }
-
-    if (filter.endDate) {
-      query = query.lte('date', filter.endDate.toISOString().split('T')[0]);
+    
+    if (filters.endDate) {
+      query = query.lte('date', filters.endDate.toISOString().split('T')[0]);
     }
-
-    if (filter.type) {
-      query = query.eq('type', filter.type);
+    
+    if (filters.type) {
+      query = query.eq('type', filters.type);
     }
-
-    if (filter.appointmentId) {
-      query = query.eq('appointment_id', filter.appointmentId);
+    
+    if (filters.category) {
+      query = query.eq('category', filters.category);
     }
-
-    const { data, error } = await query.order('date', { ascending: false });
-
+    
+    if (filters.appointmentId) {
+      query = query.eq('appointment_id', filters.appointmentId);
+    }
+    
+    // Executar a consulta
+    const { data, error } = await query;
+    
     if (error) {
       console.error('Erro ao buscar transações:', error);
-      throw new Error(`Falha ao buscar transações: ${error.message}`);
+      throw error;
     }
-
-    console.log(`${data.length} transações encontradas`);
-    return data;
+    
+    return data || [];
   } catch (error) {
     console.error('Erro ao buscar transações:', error);
     throw error;
@@ -116,47 +82,70 @@ export async function getTransactions(filter: TransactionFilter) {
 }
 
 /**
- * Calcula o saldo total do caixa em um período
+ * Registra uma nova transação financeira
  */
-export async function calculateBalance(startDate?: Date, endDate?: Date) {
+export async function recordTransaction(transaction: NewTransaction) {
   try {
-    console.log(`Calculando saldo no período: ${startDate?.toISOString().split('T')[0] || 'início'} até ${endDate?.toISOString().split('T')[0] || 'hoje'}`);
-
-    // Construir a consulta
-    let query = supabase
+    console.log('Registrando nova transação:', JSON.stringify(transaction));
+    
+    // Formatação de data para o formato PostgreSQL
+    const formattedDate = transaction.date.toISOString().split('T')[0];
+    
+    // Preparar dados para inserção
+    const insertData = {
+      date: formattedDate,
+      amount: transaction.amount.toString(), // Armazenado como string para evitar problemas de precisão
+      type: transaction.type,
+      description: transaction.description,
+      appointment_id: transaction.appointmentId || null,
+      category: transaction.category || 'other'
+    };
+    
+    // Inserir no banco
+    const { data, error } = await supabase
       .from('cash_flow')
-      .select('*');
-
-    if (startDate) {
-      query = query.gte('date', startDate.toISOString().split('T')[0]);
-    }
-
-    if (endDate) {
-      query = query.lte('date', endDate.toISOString().split('T')[0]);
-    }
-
-    const { data, error } = await query;
-
+      .insert(insertData)
+      .select()
+      .single();
+    
     if (error) {
-      console.error('Erro ao calcular saldo:', error);
-      throw new Error(`Falha ao calcular saldo: ${error.message}`);
+      console.error('Erro ao registrar transação:', error);
+      throw error;
     }
+    
+    console.log('Transação registrada com sucesso:', data);
+    return data;
+  } catch (error) {
+    console.error('Erro ao registrar transação:', error);
+    throw error;
+  }
+}
 
-    // Calcular o saldo
+/**
+ * Calcula o saldo financeiro com base em filtros opcionais
+ */
+export async function calculateBalance(startDate?: Date, endDate?: Date): Promise<number> {
+  try {
+    // Buscar todas as transações no período especificado
+    const transactions = await getTransactions({
+      startDate,
+      endDate
+    });
+    
     let balance = 0;
-
-    for (const transaction of data) {
-      if (transaction.type === TransactionType.INCOME || transaction.type === TransactionType.PRODUCT_SALE) {
-        balance += parseFloat(transaction.amount);
-      } else if (transaction.type === TransactionType.EXPENSE || transaction.type === TransactionType.REFUND) {
-        balance -= parseFloat(transaction.amount);
-      } else if (transaction.type === TransactionType.ADJUSTMENT) {
-        // Para ajustes, o valor pode ser positivo ou negativo
-        balance += parseFloat(transaction.amount);
+    
+    // Calcular saldo
+    for (const transaction of transactions) {
+      const amount = parseFloat(transaction.amount);
+      
+      // Receitas aumentam o saldo, despesas diminuem
+      if (transaction.type === 'INCOME' || transaction.type === 'PRODUCT_SALE') {
+        balance += amount;
+      } else if (transaction.type === 'EXPENSE' || transaction.type === 'REFUND') {
+        balance -= amount;
       }
     }
-
-    console.log(`Saldo calculado: R$ ${balance.toFixed(2)}`);
+    
     return balance;
   } catch (error) {
     console.error('Erro ao calcular saldo:', error);
@@ -165,299 +154,274 @@ export async function calculateBalance(startDate?: Date, endDate?: Date) {
 }
 
 /**
- * Registra automaticamente uma transação de entrada quando um agendamento é marcado como concluído
+ * Função que sincroniza automaticamente os agendamentos concluídos com o fluxo de caixa
+ * Verifica todos os agendamentos marcados como 'completed' e cria transações financeiras
+ * para os que ainda não possuem uma transação associada
  */
-export async function recordAppointmentTransaction(appointmentId: number, serviceDetails: {name: string, price: number}[], date: Date) {
-  try {
-    console.log(`Registrando transação para agendamento #${appointmentId}`);
-
-    // Calcular o valor total dos serviços (os preços já estão em centavos no banco)
-    let totalAmount = 0;
-    let processedServices = [];
-    
-    for (const service of serviceDetails) {
-      if (!service) {
-        console.error('Serviço inválido encontrado no cálculo');
-        continue;
-      }
-      
-      if (typeof service.price !== 'number') {
-        console.error(`Preço inválido para serviço ${service.name}: ${service.price}`);
-        continue;
-      }
-      
-      // Verificar e garantir que o preço está em centavos
-      let servicePrice = service.price;
-      
-      // Se o preço for muito baixo (< 100 centavos), pode estar em reais em vez de centavos
-      if (servicePrice > 0 && servicePrice < 100) {
-        console.warn(`Valor suspeito para ${service.name}: ${servicePrice} (< 100 centavos)`);
-        console.warn(`Parece que o valor está em reais em vez de centavos. Corrigindo...`);
-        // Multiplicar por 100 para converter de reais para centavos
-        servicePrice = Math.round(servicePrice * 100);
-        console.warn(`Valor corrigido: ${servicePrice} centavos (R$ ${(servicePrice/100).toFixed(2)})`);
-      }
-      
-      totalAmount += servicePrice;
-      processedServices.push({
-        name: service.name,
-        price: servicePrice,
-        priceFormatted: `R$ ${(servicePrice/100).toFixed(2)}`
-      });
-      console.log(`Processando serviço ${service.name}: R$ ${(servicePrice/100).toFixed(2)}`);
-    }
-
-    console.log('\nResumo do cálculo:');
-    console.log('Serviços processados:', processedServices.length);
-    for (const svc of processedServices) {
-      console.log(`- ${svc.name}: ${svc.priceFormatted}`);
-    }
-    console.log(`Valor total calculado: R$ ${(totalAmount/100).toFixed(2)}`);
-
-    // Não usar totalValue do appointment pois pode estar desatualizado
-    if (totalAmount === 0) {
-      console.log('ALERTA: Nenhum valor de serviço encontrado para o agendamento');
-      return null; // Retorna null se não houver valor
-    }
-
-    // Verificar se já existe transação para este agendamento
-    const { data: existingTransactions, error: checkError } = await supabase
-      .from('cash_flow')
-      .select('id')
-      .eq('appointment_id', appointmentId)
-      .eq('type', TransactionType.INCOME);
-
-    if (checkError) {
-      console.error('Erro ao verificar transações existentes:', checkError);
-      throw new Error(`Falha ao verificar transações existentes: ${checkError.message}`);
-    }
-
-    if (existingTransactions && existingTransactions.length > 0) {
-      console.log(`Transação já existente para o agendamento #${appointmentId}, ignorando.`);
-      return existingTransactions[0]; // Retornar a transação existente em vez de null
-    }
-
-    // Registrar a transação
-    return await recordTransaction({
-      date: date || new Date(),
-      appointmentId,
-      amount: totalAmount,
-      type: TransactionType.INCOME,
-      description: `Pagamento de serviço - Agendamento #${appointmentId}`
-    });
-  } catch (error) {
-    console.error('Erro ao registrar transação de agendamento:', error);
-    throw error;
-  }
-}
-
-/**
- * Função para compatibilidade com código existente
- * Esta função existe para manter compatibilidade com código que usa o formato antigo
- */
-export async function recordAppointmentIncome(
-  appointmentId: number, 
-  appointmentDate: string, 
-  amountInReais: number
-): Promise<{ success: boolean; data?: any; error?: string }> {
-  try {
-    // Converter a data de string para objeto Date
-    const date = new Date(appointmentDate);
-
-    // Converter o valor de reais para centavos
-    const amountInCents = Math.round(amountInReais * 100);
-
-    // Registrar a transação usando a função principal
-    const result = await recordAppointmentTransaction(
-      appointmentId,
-      [{name: "Unknown Service", price: amountInCents}], //Added a dummy service detail for compatibility.
-      date
-    );
-
-    if (result) {
-      return { 
-        success: true, 
-        data: result 
-      };
-    } else {
-      return { 
-        success: false, 
-        error: 'Transação já existente ou não foi possível registrar' 
-      };
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    console.error('Erro em recordAppointmentIncome:', errorMessage);
-    return { 
-      success: false, 
-      error: errorMessage 
-    };
-  }
-}
-
-/**
- * Remove uma transação associada a um agendamento quando este é desmarcado como concluído
- * @param appointmentId ID do agendamento
- * @returns A transação removida ou null se não encontrada
- */
-export async function removeAppointmentTransaction(appointmentId: number) {
-  try {
-    console.log(`Removendo transação financeira para agendamento #${appointmentId}`);
-
-    // Verificar se existe transação para este agendamento
-    const { data: existingTransactions, error: checkError } = await supabase
-      .from('cash_flow')
-      .select('*')
-      .eq('appointment_id', appointmentId)
-      .eq('type', TransactionType.INCOME);
-
-    if (checkError) {
-      console.error('Erro ao verificar transações existentes:', checkError);
-      throw new Error(`Falha ao verificar transações existentes: ${checkError.message}`);
-    }
-
-    if (!existingTransactions || existingTransactions.length === 0) {
-      console.log(`Nenhuma transação encontrada para o agendamento #${appointmentId}, nada a remover.`);
-      return null;
-    }
-
-    console.log(`Encontrada(s) ${existingTransactions.length} transação(ões) para remover do agendamento #${appointmentId}`);
-
-    // Capturar o ID da transação a ser removida
-    const transactionId = existingTransactions[0].id;
-
-    // Remover a transação
-    const { data, error } = await supabase
-      .from('cash_flow')
-      .delete()
-      .eq('id', transactionId)
-      .select();
-
-    if (error) {
-      console.error(`Erro ao remover transação #${transactionId}:`, error);
-      throw new Error(`Falha ao remover transação: ${error.message}`);
-    }
-
-    console.log(`Transação #${transactionId} removida com sucesso para o agendamento #${appointmentId}`);
-    return data ? data[0] : null;
-  } catch (error) {
-    console.error('Erro ao remover transação de agendamento:', error);
-    throw error;
-  }
-}
-
 export async function validateAndFixTransactions() {
   try {
-    console.log('Iniciando validação de transações financeiras...');
+    console.log('Iniciando sincronização de transações com agendamentos concluídos...');
     
-    // Buscar todos os agendamentos concluídos (com status "completed" - minúsculo)
-    // Como notamos que existem inconsistências nos status, vamos buscar tanto 'completed' quanto 'COMPLETED'
-    console.log('Buscando agendamentos com status "completed" ou "COMPLETED"...');
+    // Status das operações
+    const result = {
+      total_appointments: 0,
+      appointments_with_transactions: 0,
+      new_transactions_created: 0,
+      errors: 0,
+      error_details: [] as any[]
+    };
     
-    // Primeiro buscar com "completed" minúsculo
-    const { data: appointmentsLower, error: appErrorLower } = await supabase
+    // 1. Buscar todos os agendamentos com status "completed"
+    const { data: completedAppointments, error: appointmentsError } = await supabase
       .from('appointments')
       .select('*')
       .eq('status', 'completed');
     
-    if (appErrorLower) throw appErrorLower;
-    
-    // Depois buscar com "COMPLETED" maiúsculo
-    const { data: appointmentsUpper, error: appErrorUpper } = await supabase
-      .from('appointments')
-      .select('*')
-      .eq('status', 'COMPLETED');
-    
-    if (appErrorUpper) throw appErrorUpper;
-    
-    // Combinar os resultados
-    const appointments = [
-      ...(appointmentsLower || []),
-      ...(appointmentsUpper || [])
-    ];
-
-
-    console.log(`Encontrados ${appointments?.length || 0} agendamentos com status 'completed'`);
-
-    if (!appointments || appointments.length === 0) {
-      console.log('Nenhum agendamento concluído encontrado para processar');
-      return;
+    if (appointmentsError) {
+      throw new Error(`Erro ao buscar agendamentos concluídos: ${appointmentsError.message}`);
     }
-
-    for (const appointment of appointments) {
-      console.log(`\nProcessando agendamento #${appointment.id} (${appointment.date})`);
-      
-      // Verificar se já existe transação
-      const { data: transactions } = await supabase
-        .from('cash_flow')
-        .select('*')
-        .eq('appointment_id', appointment.id)
-        .eq('type', 'INCOME');
-
-      if (!transactions || transactions.length === 0) {
-        console.log(`Nenhuma transação encontrada para agendamento #${appointment.id} - criando nova transação...`);
+    
+    if (!completedAppointments || completedAppointments.length === 0) {
+      console.log('Nenhum agendamento concluído encontrado');
+      return { ...result, message: 'Nenhum agendamento concluído encontrado' };
+    }
+    
+    result.total_appointments = completedAppointments.length;
+    console.log(`Encontrados ${completedAppointments.length} agendamentos concluídos`);
+    
+    // 2. Para cada agendamento, verificar se existe uma transação correspondente
+    for (const appointment of completedAppointments) {
+      try {
+        // Verificar se já existe uma transação para este agendamento
+        const { data: existingTransactions, error: txError } = await supabase
+          .from('cash_flow')
+          .select('*')
+          .eq('appointment_id', appointment.id);
         
-        // Buscar serviços do agendamento
+        if (txError) {
+          throw new Error(`Erro ao verificar transações para o agendamento #${appointment.id}: ${txError.message}`);
+        }
+        
+        // Se já existir uma transação, pular
+        if (existingTransactions && existingTransactions.length > 0) {
+          result.appointments_with_transactions++;
+          continue;
+        }
+        
+        // 3. Buscar serviços associados ao agendamento
         const { data: appointmentServices, error: servicesError } = await supabase
           .from('appointment_services')
           .select('*')
           .eq('appointment_id', appointment.id);
-          
+        
         if (servicesError) {
-          console.error(`Erro ao buscar serviços para agendamento #${appointment.id}:`, servicesError);
-          continue; // Passar para o próximo agendamento
+          throw new Error(`Erro ao buscar serviços do agendamento #${appointment.id}: ${servicesError.message}`);
         }
         
-        console.log(`Encontrados ${appointmentServices?.length || 0} serviços para o agendamento #${appointment.id}`);
-        
-        // Se não houver serviços, não podemos prosseguir (não temos valor total na tabela)
         if (!appointmentServices || appointmentServices.length === 0) {
-          console.log(`Agendamento #${appointment.id} não possui serviços definidos - pulando`);
+          console.warn(`Agendamento #${appointment.id} não tem serviços registrados, pulando`);
           continue;
         }
         
-        // Buscar detalhes de cada serviço
-        const serviceDetails = [];
-        for (const as of appointmentServices) {
+        // 4. Calcular valor total dos serviços
+        let totalValue = 0;
+        
+        for (const appointmentService of appointmentServices) {
+          // Buscar detalhes do serviço para obter o preço
           const { data: service, error: serviceError } = await supabase
             .from('services')
-            .select('*')
-            .eq('id', as.service_id)
+            .select('price')
+            .eq('id', appointmentService.service_id)
             .single();
-            
-          if (serviceError || !service) {
-            console.error(`Erro ao buscar serviço ID ${as.service_id}:`, serviceError || 'Serviço não encontrado');
+          
+          if (serviceError) {
+            console.warn(`Erro ao buscar detalhes do serviço #${appointmentService.service_id}: ${serviceError.message}`);
             continue;
           }
           
-          serviceDetails.push({
-            id: service.id,
-            name: service.name,
-            price: service.price
-          });
-          
-          console.log(`Serviço ${service.name}: R$ ${(service.price/100).toFixed(2)}`);
+          if (service && service.price) {
+            totalValue += service.price;
+          }
         }
         
-        if (serviceDetails.length > 0) {
-          console.log(`Registrando transação para agendamento #${appointment.id} com ${serviceDetails.length} serviços`);
-          await recordAppointmentTransaction(
-            appointment.id,
-            serviceDetails,
-            new Date(appointment.date)
-          );
+        // 5. Criar transação financeira para o agendamento
+        if (totalValue > 0) {
+          // Definir uma data para a transação - usar a data do agendamento ou a data de conclusão
+          let transactionDate = new Date(appointment.date);
+          
+          // Se houver completed_at, usar essa data em vez da data do agendamento
+          if (appointment.completed_at) {
+            transactionDate = new Date(appointment.completed_at);
+          }
+          
+          // Registrar nova transação
+          const transactionData = {
+            date: transactionDate,
+            amount: totalValue,
+            type: 'INCOME' as TransactionType,
+            description: `Serviço concluído - Agendamento #${appointment.id}`,
+            appointmentId: appointment.id,
+            category: 'service'
+          };
+          
+          await recordTransaction(transactionData);
+          result.new_transactions_created++;
+          
+          console.log(`Criada transação para agendamento #${appointment.id} no valor de R$${totalValue}`);
         } else {
-          console.log(`Não foi possível determinar o valor do agendamento #${appointment.id} - pulando`);
+          console.warn(`Agendamento #${appointment.id} tem valor total 0, não será criada transação`);
         }
-      } else {
-        console.log(`Transação já existe para agendamento #${appointment.id} - ignorando`);
+      } catch (error: any) {
+        console.error(`Erro ao processar agendamento #${appointment.id}:`, error);
+        result.errors++;
+        result.error_details.push({
+          appointment_id: appointment.id,
+          error: error.message
+        });
       }
     }
     
-    console.log('\nValidação e correção concluídas');
-    return true;
+    console.log('Sincronização concluída!', result);
+    return result;
+  } catch (error: any) {
+    console.error('Erro ao sincronizar transações:', error);
+    throw new Error(`Falha na sincronização de transações: ${error.message}`);
+  }
+}
+
+/**
+ * Verifica se um agendamento já possui uma transação associada
+ */
+export async function checkAppointmentHasTransaction(appointmentId: number): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('cash_flow')
+      .select('id')
+      .eq('appointment_id', appointmentId);
+    
+    if (error) {
+      console.error(`Erro ao verificar transação para o agendamento #${appointmentId}:`, error);
+      throw error;
+    }
+    
+    return (data && data.length > 0);
   } catch (error) {
-    console.error('Erro na validação:', error);
+    console.error(`Erro ao verificar transação para o agendamento #${appointmentId}:`, error);
     throw error;
+  }
+}
+
+/**
+ * Hook para ser chamado quando um agendamento é marcado como concluído
+ * Cria automaticamente uma transação de receita no fluxo de caixa
+ */
+export async function appointmentCompletedHook(appointmentId: number): Promise<void> {
+  try {
+    console.log(`Processando conclusão do agendamento #${appointmentId}...`);
+    
+    // 1. Verificar se já existe uma transação para este agendamento
+    const hasTransaction = await checkAppointmentHasTransaction(appointmentId);
+    
+    if (hasTransaction) {
+      console.log(`Agendamento #${appointmentId} já possui transação, ignorando`);
+      return;
+    }
+    
+    // 2. Buscar detalhes do agendamento
+    const { data: appointment, error: appointmentError } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('id', appointmentId)
+      .single();
+    
+    if (appointmentError || !appointment) {
+      throw new Error(`Erro ao buscar agendamento #${appointmentId}: ${appointmentError?.message || 'Agendamento não encontrado'}`);
+    }
+    
+    // 3. Verificar se o status é realmente "completed"
+    if (appointment.status !== 'completed') {
+      console.log(`Agendamento #${appointmentId} não está com status "completed" (atual: ${appointment.status}), ignorando`);
+      return;
+    }
+    
+    // 4. Buscar serviços do agendamento
+    const { data: appointmentServices, error: servicesError } = await supabase
+      .from('appointment_services')
+      .select('*')
+      .eq('appointment_id', appointmentId);
+    
+    if (servicesError) {
+      throw new Error(`Erro ao buscar serviços do agendamento #${appointmentId}: ${servicesError.message}`);
+    }
+    
+    if (!appointmentServices || appointmentServices.length === 0) {
+      console.warn(`Agendamento #${appointmentId} não tem serviços registrados, pulando`);
+      return;
+    }
+    
+    // 5. Calcular valor total do agendamento
+    let totalValue = 0;
+    
+    for (const appointmentService of appointmentServices) {
+      // Buscar detalhes do serviço (incluindo preço)
+      const { data: service, error: serviceError } = await supabase
+        .from('services')
+        .select('*')
+        .eq('id', appointmentService.service_id)
+        .single();
+      
+      if (serviceError) {
+        console.warn(`Erro ao buscar detalhes do serviço #${appointmentService.service_id}: ${serviceError.message}`);
+        continue;
+      }
+      
+      if (service && service.price) {
+        totalValue += service.price;
+      }
+    }
+    
+    // 6. Verificar se há valor para registrar
+    if (totalValue <= 0) {
+      console.warn(`Agendamento #${appointmentId} tem valor total 0, não será criada transação`);
+      return;
+    }
+    
+    // 7. Definir data da transação
+    let transactionDate = new Date(appointment.date);
+    
+    // Se houver completed_at, usar essa data em vez da data do agendamento
+    if (appointment.completed_at) {
+      transactionDate = new Date(appointment.completed_at);
+    } else {
+      // Se não houver completed_at, definir como data atual
+      transactionDate = new Date();
+      
+      // Também atualizar o campo completed_at no agendamento
+      const { error: updateError } = await supabase
+        .from('appointments')
+        .update({ completed_at: transactionDate.toISOString() })
+        .eq('id', appointmentId);
+      
+      if (updateError) {
+        console.warn(`Erro ao atualizar campo completed_at do agendamento #${appointmentId}: ${updateError.message}`);
+      }
+    }
+    
+    // 8. Registrar transação financeira
+    const transactionData = {
+      date: transactionDate,
+      amount: totalValue,
+      type: 'INCOME' as TransactionType,
+      description: `Serviço concluído - Agendamento #${appointmentId}`,
+      appointmentId: appointmentId,
+      category: 'service'
+    };
+    
+    await recordTransaction(transactionData);
+    
+    console.log(`Transação criada com sucesso para o agendamento #${appointmentId} no valor de R$${totalValue}`);
+  } catch (error: any) {
+    console.error(`Erro ao processar conclusão do agendamento #${appointmentId}:`, error);
+    throw new Error(`Falha ao processar conclusão do agendamento: ${error.message}`);
   }
 }
