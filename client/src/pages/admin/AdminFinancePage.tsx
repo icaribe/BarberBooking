@@ -17,11 +17,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon, Search } from "lucide-react";
+import { Calendar as CalendarIcon, Download, FileText, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
+// Importações para os gráficos
+import { 
+  BarChart, Bar, LineChart, Line, PieChart, Pie, 
+  XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
+  Legend, ResponsiveContainer, Cell, TooltipProps 
+} from 'recharts';
 
 // Definir o schema de validação para transações
 const transactionSchema = z.object({
@@ -570,38 +576,209 @@ interface FinancialSummary {
         
         <TabsContent value="relatorios">
           <Card>
-            <CardHeader>
-              <CardTitle>Relatórios Financeiros</CardTitle>
-              <CardDescription>
-                Visualize o desempenho financeiro do seu negócio
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Relatórios Financeiros</CardTitle>
+                <CardDescription>
+                  Visualize o desempenho financeiro do seu negócio
+                </CardDescription>
+              </div>
+              
+              <div className="flex space-x-2">
+                <div className="flex items-center space-x-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="date"
+                        variant={"outline"}
+                        className={cn(
+                          "w-[280px] justify-start text-left font-normal",
+                          !dateRange && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} -{" "}
+                              {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+                            </>
+                          ) : (
+                            format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                          )
+                        ) : (
+                          <span>Selecione um período</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={handleDateRangeChange}
+                        numberOfMonths={2}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.open('/api/admin/reports/financial?format=pdf', '_blank')}
+                    className="ml-2"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Gerar Relatório
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Transações por Categoria</CardTitle>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-lg">Receita Total</CardTitle>
                   </CardHeader>
-                  <CardContent className="h-80 flex items-center justify-center">
-                    <div className="text-center text-muted-foreground">
-                      Gráfico de transações por categoria será exibido aqui
+                  <CardContent className="pb-3 pt-0">
+                    <div className="text-2xl font-bold text-green-600">
+                      R$ {summary ? Number(summary.totalIncome).toFixed(2).replace('.', ',') : '0,00'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      No período selecionado
                     </div>
                   </CardContent>
                 </Card>
                 
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Fluxo de Caixa Mensal</CardTitle>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-lg">Despesas</CardTitle>
                   </CardHeader>
-                  <CardContent className="h-80 flex items-center justify-center">
-                    <div className="text-center text-muted-foreground">
-                      Gráfico de fluxo de caixa mensal será exibido aqui
+                  <CardContent className="pb-3 pt-0">
+                    <div className="text-2xl font-bold text-red-600">
+                      R$ {summary ? Number(summary.totalExpense).toFixed(2).replace('.', ',') : '0,00'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      No período selecionado
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-lg">Lucro</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3 pt-0">
+                    <div className="text-2xl font-bold">
+                      R$ {summary ? Number(summary.balance).toFixed(2).replace('.', ',') : '0,00'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      No período selecionado
                     </div>
                   </CardContent>
                 </Card>
               </div>
+            
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Transações por Categoria</CardTitle>
+                  </CardHeader>
+                  <CardContent className="h-80">
+                    {isLoadingSummary ? (
+                      <div className="h-full flex items-center justify-center">
+                        <Skeleton className="h-64 w-full" />
+                      </div>
+                    ) : summary && summary.categories && summary.categories.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={summary.categories.map(cat => ({
+                              name: categoryLabels[cat.category] || cat.category,
+                              value: cat.income
+                            }))}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={80}
+                            dataKey="value"
+                            label={({ name, percent }) => 
+                              percent > 0.05 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''
+                            }
+                          >
+                            {summary.categories.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={[
+                                  '#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe',
+                                  '#00C49F', '#FFBB28', '#FF8042', '#a4de6c'
+                                ][index % 9]} 
+                              />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip 
+                            formatter={(value: any) => `R$ ${Number(value).toFixed(2)}`} 
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <p className="text-muted-foreground">Nenhum dado disponível para o período selecionado</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Fluxo de Caixa</CardTitle>
+                  </CardHeader>
+                  <CardContent className="h-80">
+                    {isLoading ? (
+                      <div className="h-full flex items-center justify-center">
+                        <Skeleton className="h-64 w-full" />
+                      </div>
+                    ) : transactions && transactions.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={[
+                            { name: 'Entradas', valor: summary?.totalIncome || 0, fill: '#10b981' },
+                            { name: 'Saídas', valor: summary?.totalExpense || 0, fill: '#ef4444' },
+                            { name: 'Saldo', valor: summary?.balance || 0, fill: '#3b82f6' }
+                          ]}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <RechartsTooltip 
+                            formatter={(value: any) => `R$ ${Number(value).toFixed(2)}`}
+                          />
+                          <Bar dataKey="valor" fill="#8884d8" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <p className="text-muted-foreground">Nenhum dado disponível para o período selecionado</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </CardContent>
+            
+            <CardFooter>
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => window.open('/api/admin/reports/financial?format=excel', '_blank')}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Exportar Dados
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
