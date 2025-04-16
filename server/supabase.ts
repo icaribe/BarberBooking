@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../shared/supabase-client';
+import { supabaseAdmin } from './supabase-admin-client';
 import dotenv from 'dotenv';
 
 // Carregar variáveis de ambiente do arquivo .env
@@ -19,23 +19,5 @@ if (!supabaseUrl || !supabaseKey) {
 
 // Utiliza o cliente Supabase com permissões administrativas
 const supabase = supabaseAdmin;
-
-// Testar conexão
-async function testConnection() {
-  try {
-    const { data, error } = await supabase.from('users').select('count').limit(1);
-    if (error) {
-      console.error('❌ Erro na conexão:', error.message);
-      return false;
-    }
-    console.log('✅ Conexão Supabase estabelecida com sucesso');
-    return true;
-  } catch (err) {
-    console.error('❌ Erro ao testar conexão:', err);
-    return false;
-  }
-}
-
-testConnection();
 
 export default supabase;
