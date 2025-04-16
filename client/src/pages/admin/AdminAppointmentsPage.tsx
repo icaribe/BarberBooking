@@ -370,7 +370,7 @@ export default function AdminAppointmentsPage() {
           return {
             ...appointment,
             status: newStatus,
-            notes: data.notes
+            notes: data.notes || null // Garantir que será string | null, não undefined
           };
         }
         return appointment;
@@ -508,16 +508,19 @@ export default function AdminAppointmentsPage() {
   const getStatusIcon = (status: string) => {
     // Normalizar o status para minúsculo
     const normalizedStatus = status.toLowerCase();
+    
+    // Log para depuração
+    console.log("getStatusIcon para status:", status, "normalizado para:", normalizedStatus);
+    
     switch (normalizedStatus) {
-      case "CONFIRMED":
+      case "confirmed":
         return <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">Confirmado</Badge>;
-      case "CANCELLED":
+      case "cancelled":
         return <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100">Cancelado</Badge>;
-      case "COMPLETED":
+      case "completed":
         return <Badge variant="outline" className="bg-blue-100 text-blue-800 hover:bg-blue-100">Concluído</Badge>;
-      case "PENDING":
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pendente</Badge>;
-      case "SCHEDULED": // Adicionar suporte ao status "scheduled" vindo do backend
+      case "pending":
+      case "scheduled": // Adicionar suporte ao status "scheduled" vindo do backend
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pendente</Badge>;
       default:
         console.log("Status não reconhecido após normalização:", status);
@@ -529,18 +532,14 @@ export default function AdminAppointmentsPage() {
     // Mapear os status do backend para os status do frontend
     let mappedStatus = appointment.status?.trim().toLowerCase() || "";
 
-    // Mapeamento de status antigos para novos (minúsculo para maiúsculo)
+    // Mapeamento do status 'scheduled' para 'pending' para compatibilidade
     if (mappedStatus === "scheduled") mappedStatus = "pending";
-    if (mappedStatus === "completed") mappedStatus = "completed";
-    if (mappedStatus === "cancelled") mappedStatus = "cancelled";
-
-    // Normalizar para maiúsculo
-    const normalizedStatus = mappedStatus.toUpperCase();
 
     // Log para debug
-    console.log("getStatusActions para appointment:", appointment.id, "status original:", appointment.status, "mapeado para:", normalizedStatus);
+    console.log("getStatusActions para appointment:", appointment.id, "status original:", appointment.status, "mapeado para:", mappedStatus);
 
-    if (normalizedStatus === "PENDING" || normalizedStatus === "SCHEDULED") {
+    // Verificar se o status é pendente ou agendado
+    if (mappedStatus === "pending" || mappedStatus === "scheduled") {
       return (
         <div className="flex space-x-1">
           <Button 
@@ -550,7 +549,7 @@ export default function AdminAppointmentsPage() {
             onClick={() => {
               setSelectedAppointment(appointment);
               form.reset({
-                status: "CONFIRMED",
+                status: "CONFIRMED", // Mantemos em maiúsculo para o formulário
                 notes: appointment.notes || "",
               });
               setIsUpdateDialogOpen(true);
@@ -566,7 +565,7 @@ export default function AdminAppointmentsPage() {
             onClick={() => {
               setSelectedAppointment(appointment);
               form.reset({
-                status: "CANCELLED",
+                status: "CANCELLED", // Mantemos em maiúsculo para o formulário
                 notes: appointment.notes || "",
               });
               setIsUpdateDialogOpen(true);
