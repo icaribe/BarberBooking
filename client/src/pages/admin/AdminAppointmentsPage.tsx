@@ -110,14 +110,37 @@ export default function AdminAppointmentsPage() {
   });
 
   // Buscar agendamentos
-  const { data: appointments, isLoading: appointmentsLoading } = useQuery<EnhancedAppointment[]>({
+  const { data: appointments, isLoading: appointmentsLoading, error: appointmentsError } = useQuery<EnhancedAppointment[]>({
     queryKey: ['/api/admin/appointments'],
-    staleTime: 60000 // 1 minuto
+    staleTime: 60000, // 1 minuto
+    retry: 3,
+    retryDelay: 1000
   });
+  
+  // Log detalhado do resultado da query
+  useEffect(() => {
+    if (appointments) {
+      console.log(`✅ Agendamentos carregados com sucesso: ${appointments.length} registros encontrados`);
+      if (appointments.length > 0) {
+        // Log dos primeiros 2 agendamentos para debug
+        console.log('Amostra de agendamentos:', appointments.slice(0, 2));
+      } else {
+        console.log('Nenhum agendamento encontrado.');
+      }
+    }
+  }, [appointments]);
+
+  // Log de erro detalhado
+  useEffect(() => {
+    if (appointmentsError) {
+      console.error('Detalhes do erro ao buscar agendamentos:', appointmentsError);
+    }
+  }, [appointmentsError]);
 
   // Atualizar o estado local quando os dados são carregados
   useEffect(() => {
     if (appointments) {
+      console.log(`Atualizando estado local com ${appointments.length} agendamentos`);
       setAppointmentsState(appointments);
     }
   }, [appointments]);
