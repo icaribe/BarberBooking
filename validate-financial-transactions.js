@@ -7,197 +7,162 @@
  * 3. Se não existir, cria a transação automaticamente com base nos serviços do agendamento
  */
 
-import supabase from './server/supabase.ts';
-import dotenv from 'dotenv';
+import 'dotenv/config';
+import { createClient } from '@supabase/supabase-js';
 
-// Carregar variáveis de ambiente
-dotenv.config();
+// Conexão com o Supabase
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
-// Tipo de transação
-const TransactionType = {
-  INCOME: 'INCOME'
-};
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Credenciais do Supabase não configuradas no .env');
+  process.exit(1);
+}
 
-// Formatar moeda
-const formatCurrency = (valueInCents) => `R$ ${(valueInCents/100).toFixed(2)}`;
+const supabase = createClient(supabaseUrl, supabaseKey);
+console.log('Conexão com Supabase inicializada.');
 
 async function validateFinancialTransactions() {
+  console.log('\n=== VALIDANDO E CORRIGINDO TRANSAÇÕES FINANCEIRAS ===');
+  
   try {
-    console.log('Iniciando validação de transações financeiras...');
+    console.log('\nBuscando agendamentos concluídos...');
     
-    // Buscar todos os agendamentos concluídos (com status "completed" - minúsculo)
-    // Como existem inconsistências nos status, vamos buscar tanto 'completed' quanto 'COMPLETED'
-    console.log('\nAnalisando registros da tabela cash_flow do Supabase:');
+    // 1. Buscar todos os agendamentos com status "completed"
+    const { data: completedAppointments, error: appointmentError } = await supabase
+      .from('appointments')
+      .select(`
+        id,
+        date,
+        status,
+        appointment_services (
+          service_id,
+          services (
+            id,
+            name,
+            price
+          )
+        )
+      `)
+      .eq('status', 'completed');
     
-    // Buscar valores por mês
-    const today = new Date();
-    const currentMonth = today.getMonth() + 1; // Janeiro é 0
-    const currentYear = today.getFullYear();
+    if (appointmentError) {
+      throw new Error(`Erro ao buscar agendamentos: ${appointmentError.message}`);
+    }
     
-    const startOfMonth = new Date(currentYear, currentMonth - 1, 1).toISOString().split('T')[0];
-    const endOfMonth = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0];
+    console.log(`Encontrados ${completedAppointments.length} agendamentos concluídos`);
     
-    console.log(`Período: ${startOfMonth} a ${endOfMonth}`);
-    
-    // Buscar transações do mês atual
-    const { data: transactions, error: txError } = await supabase
-      .from('cash_flow')
-      .select('*')
-      .gte('date', startOfMonth)
-      .lte('date', endOfMonth);
-      
-    if (txError) {
-      console.error('Erro ao buscar transações:', txError);
+    if (completedAppointments.length === 0) {
+      console.log('Nenhum agendamento concluído para processar.');
       return;
     }
     
-    console.log(`\nEncontradas ${transactions?.length || 0} transações neste mês`);
+    // Estatísticas
+    let appointmentsWithTransactions = 0;
+    let appointmentsWithoutTransactions = 0;
+    let transactionsCreated = 0;
     
-    // Agrupar transações por dia e calcular totais
-    const dailyTotals = {};
-    
-    transactions?.forEach(tx => {
-      const day = tx.date;
+    // 2. Para cada agendamento, verificar se existe transação correspondente
+    for (const appointment of completedAppointments) {
+      process.stdout.write(`\nAgendamento #${appointment.id} (${new Date(appointment.date).toLocaleDateString()}): `);
       
-      if (!dailyTotals[day]) {
-        dailyTotals[day] = {
-          income: 0,
-          expense: 0,
-          count: 0,
-          transactions: []
-        };
+      // Verificar se já existe transação
+      const { data: existingTransactions, error: transactionError } = await supabase
+        .from('cash_flow')
+        .select('id, amount')
+        .eq('appointment_id', appointment.id);
+      
+      if (transactionError) {
+        console.error(`\nErro ao verificar transações: ${transactionError.message}`);
+        continue;
       }
       
-      dailyTotals[day].count++;
-      dailyTotals[day].transactions.push({
-        id: tx.id,
-        type: tx.type,
-        amount: tx.amount,
-        formatted: formatCurrency(tx.amount),
-        description: tx.description,
-        appointmentId: tx.appointment_id
-      });
-      
-      // Somar com base no tipo de transação
-      if (tx.type === 'INCOME' || tx.type === 'PRODUCT_SALE') {
-        dailyTotals[day].income += parseFloat(tx.amount);
-      } else if (tx.type === 'EXPENSE' || tx.type === 'REFUND') {
-        dailyTotals[day].expense += parseFloat(tx.amount);
+      if (existingTransactions && existingTransactions.length > 0) {
+        console.log(`✓ Já possui transação #${existingTransactions[0].id}`);
+        appointmentsWithTransactions++;
+        continue;
       }
-    });
-    
-    // Exibir totais por dia
-    console.log('\n=== RESUMO FINANCEIRO POR DIA ===');
-    
-    let monthlyTotal = 0;
-    
-    Object.keys(dailyTotals).sort().forEach(day => {
-      const daily = dailyTotals[day];
-      const dayTotal = daily.income - daily.expense;
-      monthlyTotal += dayTotal;
       
-      console.log(`\nDia ${day}: ${formatCurrency(dayTotal)} (${daily.count} transações)`);
+      // Se não tem transação, criar uma
+      console.log('✗ Sem transação');
+      appointmentsWithoutTransactions++;
       
-      // Detalhar transações do dia
-      daily.transactions.forEach(tx => {
-        console.log(`- ${tx.type}: ${tx.formatted} (${tx.description?.substring(0, 50) || 'Sem descrição'})`);
-      });
-    });
-    
-    console.log(`\n=== TOTAL DO MÊS: ${formatCurrency(monthlyTotal)} ===`);
-    
-    // Verificar se há valores estranhos (muito baixos)
-    const suspiciousTransactions = transactions?.filter(tx => tx.amount > 0 && tx.amount < 100) || [];
-    
-    if (suspiciousTransactions.length > 0) {
-      console.log('\n\n!!! ATENÇÃO: TRANSAÇÕES SUSPEITAS (VALORES MUITO BAIXOS) !!!');
-      suspiciousTransactions.forEach(tx => {
-        console.log(`ID: ${tx.id}, Valor: ${formatCurrency(tx.amount)}, Data: ${tx.date}, Desc: ${tx.description}`);
-      });
+      // Verificar se tem serviços
+      if (!appointment.appointment_services || appointment.appointment_services.length === 0) {
+        console.log(`  - Sem serviços associados`);
+        continue;
+      }
       
-      // Investigar essas transações suspeitas
-      console.log('\nInvestigando transações suspeitas:');
+      // Calcular valor total dos serviços
+      let totalValue = 0;
+      const serviceNames = [];
       
-      for (const tx of suspiciousTransactions) {
-        console.log(`\n--- Análise de transação ID: ${tx.id} ---`);
-        console.log(`Valor: ${formatCurrency(tx.amount)}, Data: ${tx.date}`);
-        console.log(`Descrição: ${tx.description}`);
-        
-        if (tx.appointment_id) {
-          console.log(`Vinculada ao agendamento ID: ${tx.appointment_id}`);
-          
-          // Buscar detalhes do agendamento
-          const { data: appointment, error: apptError } = await supabase
-            .from('appointments')
-            .select('*')
-            .eq('id', tx.appointment_id)
-            .single();
-          
-          if (apptError) {
-            console.log(`Erro ao buscar agendamento: ${apptError.message}`);
-            continue;
-          }
-          
-          console.log(`Agendamento de ${appointment.date} para client ID: ${appointment.user_id}, status: ${appointment.status}`);
-          
-          // Buscar serviços do agendamento
-          const { data: appointmentServices, error: asError } = await supabase
-            .from('appointment_services')
-            .select('*')
-            .eq('appointment_id', tx.appointment_id);
-          
-          if (asError) {
-            console.log(`Erro ao buscar serviços: ${asError.message}`);
-            continue;
-          }
-          
-          console.log(`Serviços encontrados: ${appointmentServices.length}`);
-          
-          // Buscar detalhes de cada serviço
-          let serviceTotal = 0;
-          
-          for (const as of appointmentServices) {
-            const { data: service, error: svcError } = await supabase
-              .from('services')
-              .select('*')
-              .eq('id', as.service_id)
-              .single();
-            
-            if (svcError) {
-              console.log(`Erro ao buscar serviço ${as.service_id}: ${svcError.message}`);
-              continue;
-            }
-            
-            console.log(`- ${service.name}: ${formatCurrency(service.price)}`);
-            serviceTotal += service.price;
-          }
-          
-          console.log(`\nValor total dos serviços: ${formatCurrency(serviceTotal)}`);
-          console.log(`Valor registrado na transação: ${formatCurrency(tx.amount)}`);
-          console.log(`Diferença: ${formatCurrency(serviceTotal - tx.amount)}`);
-          
-          if (Math.abs(serviceTotal - tx.amount) > 10) {
-            console.log('PROBLEMA ENCONTRADO: Valores não correspondem!');
+      for (const service of appointment.appointment_services) {
+        if (service.services && service.services.price) {
+          const price = parseFloat(service.services.price);
+          if (!isNaN(price)) {
+            totalValue += price;
+            serviceNames.push(service.services.name);
           }
         }
       }
+      
+      if (totalValue === 0) {
+        console.log(`  - Valor total zero, não será criada transação`);
+        continue;
+      }
+      
+      console.log(`  - Serviços: ${serviceNames.join(', ')}`);
+      console.log(`  - Valor total: R$ ${totalValue.toFixed(2)}`);
+      
+      // Criar a transação
+      const { data: newTransaction, error: createError } = await supabase
+        .from('cash_flow')
+        .insert({
+          date: new Date(appointment.date).toISOString().split('T')[0],
+          amount: totalValue.toString(),
+          type: 'income',
+          description: `Serviços: ${serviceNames.join(', ')}`,
+          appointment_id: appointment.id,
+          category: 'service',
+          created_by_id: 1 // ID padrão do admin
+        })
+        .select()
+        .single();
+      
+      if (createError) {
+        console.error(`  - Erro ao criar transação: ${createError.message}`);
+        continue;
+      }
+      
+      console.log(`  - ✓ Transação #${newTransaction.id} criada com sucesso!`);
+      transactionsCreated++;
     }
     
-    console.log('\nValidação concluída.');
-    return true;
+    // 3. Resumo final
+    console.log('\n=== RESUMO DA SINCRONIZAÇÃO ===');
+    console.log(`Agendamentos concluídos encontrados: ${completedAppointments.length}`);
+    console.log(`Agendamentos já com transações: ${appointmentsWithTransactions}`);
+    console.log(`Agendamentos sem transações: ${appointmentsWithoutTransactions}`);
+    console.log(`Novas transações criadas: ${transactionsCreated}`);
+    
+    if (transactionsCreated > 0) {
+      console.log('\n✓ Sincronização concluída com sucesso!');
+      console.log('  Foram criadas novas transações para agendamentos concluídos.');
+    } else if (appointmentsWithoutTransactions === 0) {
+      console.log('\n✓ Todos os agendamentos concluídos já possuem transações associadas.');
+    } else {
+      console.log('\n⚠️ Não foi possível criar transações para alguns agendamentos.');
+    }
+    
   } catch (error) {
-    console.error('Erro na validação:', error);
-    throw error;
+    console.error('Erro durante a validação e sincronização:', error);
   }
 }
 
-// Executar o script
+// Executar a validação e sincronização
 validateFinancialTransactions()
-  .then(() => {
-    console.log('\nScript finalizado com sucesso.');
-    process.exit(0);
-  })
-  .catch(error => {
-    console.error('\nErro durante a execução do script:', error);
-    process.exit(1);
+  .catch(console.error)
+  .finally(() => {
+    console.log('\nProcesso finalizado.');
   });
