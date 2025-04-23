@@ -61,7 +61,12 @@ export async function getTransactions(filters: TransactionFilters = {}) {
     }
 
     if (filters.type) {
-      query = query.eq('type', filters.type);
+      // Converter 'income' para 'INCOME' e 'expense' para 'EXPENSE'
+      let dbType = filters.type;
+      if (filters.type === 'income') dbType = 'INCOME';
+      if (filters.type === 'expense') dbType = 'EXPENSE';
+      
+      query = query.eq('type', dbType);
     }
 
     if (filters.category) {
