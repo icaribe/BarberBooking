@@ -95,8 +95,7 @@ export async function recordTransaction(transaction: NewTransaction) {
       type: transaction.type,
       description: transaction.description,
       appointment_id: transaction.appointmentId || null,
-      category: transaction.category || 'service',
-      created_by_id: 1 // Padrão para admin do sistema, pode ser substituído por usuário autenticado quando disponível
+      category: transaction.category || 'service'
     };
 
     const { data, error } = await supabase

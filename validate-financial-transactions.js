@@ -124,8 +124,7 @@ async function validateFinancialTransactions() {
           type: 'income',
           description: `Serviços: ${serviceNames.join(', ')}`,
           appointment_id: appointment.id,
-          category: 'service',
-          created_by_id: 1 // ID padrão do admin
+          category: 'service'
         })
         .select()
         .single();
