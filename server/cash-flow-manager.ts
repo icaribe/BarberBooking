@@ -10,6 +10,9 @@
  * - Validação e correção de dados inconsistentes
  */
 
+// Usar cliente REST em vez de conexão direta com PostgreSQL
+// para evitar erros de DNS/conectividade
+import supabaseRest from './supabase-rest-client';
 import supabase from './supabase';
 import { transactionTypeEnum } from '../shared/schema';
 
@@ -47,17 +50,19 @@ interface NewTransaction {
  */
 export async function getTransactions(filters: TransactionFilters = {}) {
   try {
-    let query = supabase
-      .from('cash_flow')
-      .select('*')
-      .order('date', { ascending: false });
-
+    console.log('Buscando transações com filtros:', JSON.stringify(filters));
+    
+    // Construir os filtros para a API REST
+    const restFilters: Record<string, any> = {};
+    
     if (filters.startDate) {
-      query = query.gte('date', filters.startDate.toISOString().split('T')[0]);
+      const startDateStr = filters.startDate.toISOString().split('T')[0];
+      restFilters['date=gte'] = startDateStr;
     }
 
     if (filters.endDate) {
-      query = query.lte('date', filters.endDate.toISOString().split('T')[0]);
+      const endDateStr = filters.endDate.toISOString().split('T')[0];
+      restFilters['date=lte'] = endDateStr;
     }
 
     if (filters.type) {
@@ -66,39 +71,104 @@ export async function getTransactions(filters: TransactionFilters = {}) {
       if (filters.type === 'income') dbType = 'INCOME';
       if (filters.type === 'expense') dbType = 'EXPENSE';
       
-      query = query.eq('type', dbType);
+      restFilters['type=eq'] = dbType;
     }
 
     if (filters.category) {
-      query = query.eq('category', filters.category);
+      restFilters['category=eq'] = filters.category;
     }
 
     if (filters.appointmentId) {
-      query = query.eq('appointment_id', filters.appointmentId);
+      restFilters['appointment_id=eq'] = filters.appointmentId;
     }
-
-    const { data, error } = await query;
-
-    if (error) throw error;
     
-    // Converter os tipos de transação do banco de dados para o formato esperado pelo frontend
-    const formattedData = (data || []).map(transaction => {
-      const formattedTransaction = { ...transaction };
+    // Adicionar parâmetro de ordenação
+    restFilters['order'] = 'date.desc';
+
+    // Tentar primeiro com o cliente REST (mais confiável em ambientes com restrições de DNS)
+    try {
+      console.log('Tentando obter transações via API REST');
+      const { data, error } = await supabaseRest.select('cash_flow', '*', restFilters);
       
-      // Converter INCOME para income e EXPENSE para expense
-      if (transaction.type === 'INCOME') {
-        formattedTransaction.type = 'income';
-      } else if (transaction.type === 'EXPENSE') {
-        formattedTransaction.type = 'expense';
+      if (error) {
+        console.error('Erro ao buscar transações via REST:', error);
+        throw error;
       }
       
-      return formattedTransaction;
-    });
-    
-    return formattedData;
-  } catch (error) {
-    console.error('Erro ao buscar transações:', error);
-    throw error;
+      console.log(`Encontradas ${data?.length || 0} transações via API REST`);
+      
+      // Converter os tipos de transação do banco de dados para o formato esperado pelo frontend
+      const formattedData = (data || []).map(transaction => {
+        const formattedTransaction = { ...transaction };
+        
+        // Converter INCOME para income e EXPENSE para expense
+        if (transaction.type === 'INCOME') {
+          formattedTransaction.type = 'income';
+        } else if (transaction.type === 'EXPENSE') {
+          formattedTransaction.type = 'expense';
+        }
+        
+        return formattedTransaction;
+      });
+      
+      return formattedData;
+    } catch (restError) {
+      // Se falhar com API REST, tentar com o cliente padrão
+      console.warn('Falha ao buscar transações via REST, tentando método alternativo:', restError);
+      
+      let query = supabase
+        .from('cash_flow')
+        .select('*')
+        .order('date', { ascending: false });
+  
+      if (filters.startDate) {
+        query = query.gte('date', filters.startDate.toISOString().split('T')[0]);
+      }
+  
+      if (filters.endDate) {
+        query = query.lte('date', filters.endDate.toISOString().split('T')[0]);
+      }
+  
+      if (filters.type) {
+        // Converter 'income' para 'INCOME' e 'expense' para 'EXPENSE'
+        let dbType = filters.type;
+        if (filters.type === 'income') dbType = 'INCOME';
+        if (filters.type === 'expense') dbType = 'EXPENSE';
+        
+        query = query.eq('type', dbType);
+      }
+  
+      if (filters.category) {
+        query = query.eq('category', filters.category);
+      }
+  
+      if (filters.appointmentId) {
+        query = query.eq('appointment_id', filters.appointmentId);
+      }
+  
+      const { data, error } = await query;
+  
+      if (error) throw error;
+      
+      // Converter os tipos de transação do banco de dados para o formato esperado pelo frontend
+      const formattedData = (data || []).map(transaction => {
+        const formattedTransaction = { ...transaction };
+        
+        // Converter INCOME para income e EXPENSE para expense
+        if (transaction.type === 'INCOME') {
+          formattedTransaction.type = 'income';
+        } else if (transaction.type === 'EXPENSE') {
+          formattedTransaction.type = 'expense';
+        }
+        
+        return formattedTransaction;
+      });
+      
+      return formattedData;
+    }
+  } catch (error: any) {
+    console.error('Erro ao buscar transações:', error.message);
+    return []; // Retornar array vazio em vez de lançar erro para evitar quebrar a interface
   }
 }
 
@@ -107,6 +177,7 @@ export async function getTransactions(filters: TransactionFilters = {}) {
  */
 export async function recordTransaction(transaction: NewTransaction) {
   try {
+    console.log('Registrando nova transação:', JSON.stringify(transaction));
     const formattedDate = transaction.date.toISOString().split('T')[0];
 
     const insertData = {
@@ -117,17 +188,37 @@ export async function recordTransaction(transaction: NewTransaction) {
       appointment_id: transaction.appointmentId || null,
       category: transaction.category || 'service'
     };
+    
+    console.log('Dados formatados para inserção:', JSON.stringify(insertData));
 
-    const { data, error } = await supabase
-      .from('cash_flow')
-      .insert(insertData)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Erro ao registrar transação:', error);
+    // Tentar primeiro com cliente REST (mais confiável em ambientes com restrições de DNS)
+    try {
+      console.log('Tentando inserir transação via API REST');
+      const { data, error } = await supabaseRest.insert('cash_flow', insertData);
+      
+      if (error) {
+        console.error('Erro ao inserir transação via REST:', error);
+        throw error;
+      }
+      
+      console.log('Transação registrada com sucesso via API REST:', JSON.stringify(data));
+      return data;
+    } catch (restError) {
+      // Se falhar com API REST, tentar com o cliente padrão
+      console.warn('Falha ao inserir transação via REST, tentando método alternativo:', restError);
+      
+      const { data, error } = await supabase
+        .from('cash_flow')
+        .insert(insertData)
+        .select()
+        .single();
+    
+      if (error) throw error;
+      console.log('Transação inserida com sucesso via cliente padrão');
+      return data;
+    }
+  } catch (error: any) {
+    console.error('Erro ao registrar transação:', error.message);
     throw error;
   }
 }
