@@ -11,7 +11,10 @@
  */
 
 import supabase from './supabase';
-import { TransactionType } from '../shared/schema';
+import { transactionTypeEnum } from '../shared/schema';
+
+// Definir tipos para o enum de transações
+export type TransactionType = 'income' | 'expense' | 'INCOME' | 'EXPENSE' | 'PRODUCT_SALE' | 'REFUND';
 
 // Estrutura para representar um serviço em um agendamento
 interface AppointmentService {
@@ -24,7 +27,7 @@ interface AppointmentService {
 interface TransactionFilters {
   startDate?: Date;
   endDate?: Date;
-  type?: TransactionType;
+  type?: string;
   category?: string;
   appointmentId?: number;
 }
@@ -33,7 +36,7 @@ interface TransactionFilters {
 interface NewTransaction {
   date: Date;
   amount: number;
-  type: TransactionType;
+  type: string;
   description: string;
   appointmentId?: number;
   category?: string;
@@ -92,7 +95,8 @@ export async function recordTransaction(transaction: NewTransaction) {
       type: transaction.type,
       description: transaction.description,
       appointment_id: transaction.appointmentId || null,
-      category: transaction.category || 'service'
+      category: transaction.category || 'service',
+      created_by_id: 1 // Padrão para admin do sistema, pode ser substituído por usuário autenticado quando disponível
     };
 
     const { data, error } = await supabase
