@@ -34,11 +34,18 @@ router.get('/',
       const startDateObj = startDate ? new Date(startDate as string) : undefined;
       const endDateObj = endDate ? new Date(endDate as string) : undefined;
       
+      // Buscar as transações com os filtros fornecidos
       const transactions = await cashFlowManager.getTransactions({
         startDate: startDateObj,
         endDate: endDateObj,
         type: type as any
       });
+      
+      // Log para diagnóstico
+      console.log(`Encontradas ${transactions.length} transações. Filtros: startDate=${startDate}, endDate=${endDate}, type=${type}`);
+      if (transactions.length > 0) {
+        console.log(`Exemplo de transação: tipo=${transactions[0].type}, valor=${transactions[0].amount}, data=${transactions[0].date}`);
+      }
       
       res.json(transactions);
     } catch (error: any) {
@@ -118,14 +125,26 @@ router.get('/summary',
       const expense = await getTotalByType('EXPENSE', startDateObj, endDateObj);
       const productSales = await getTotalByType('PRODUCT_SALE', startDateObj, endDateObj);
       
+      // Calcular os totais para formato do frontend
+      const totalIncome = income + productSales;
+      const totalExpense = expense;
+      
+      console.log('Resumo financeiro calculado:');
+      console.log(`- Total de entradas (INCOME + PRODUCT_SALE): R$ ${totalIncome.toFixed(2)}`);
+      console.log(`- Total de saídas (EXPENSE): R$ ${totalExpense.toFixed(2)}`);
+      console.log(`- Saldo final: R$ ${balance.toFixed(2)}`);
+      
+      // Responder com o formato esperado pelo frontend
       res.json({
-        success: true,
-        data: {
-          balance,
-          income,
-          expense,
-          productSales
-        }
+        totalIncome,
+        totalExpense,
+        balance,
+        // Dados adicionais para debug e retrocompatibilidade
+        categories: [
+          { category: 'service', income: income, expense: 0, balance: income },
+          { category: 'product', income: productSales, expense: 0, balance: productSales },
+          { category: 'expense', income: 0, expense: expense, balance: -expense }
+        ]
       });
     } catch (error: any) {
       console.error('Erro ao calcular resumo financeiro:', error);

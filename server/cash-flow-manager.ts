@@ -80,7 +80,22 @@ export async function getTransactions(filters: TransactionFilters = {}) {
     const { data, error } = await query;
 
     if (error) throw error;
-    return data || [];
+    
+    // Converter os tipos de transação do banco de dados para o formato esperado pelo frontend
+    const formattedData = (data || []).map(transaction => {
+      const formattedTransaction = { ...transaction };
+      
+      // Converter INCOME para income e EXPENSE para expense
+      if (transaction.type === 'INCOME') {
+        formattedTransaction.type = 'income';
+      } else if (transaction.type === 'EXPENSE') {
+        formattedTransaction.type = 'expense';
+      }
+      
+      return formattedTransaction;
+    });
+    
+    return formattedData;
   } catch (error) {
     console.error('Erro ao buscar transações:', error);
     throw error;
@@ -122,14 +137,30 @@ export async function recordTransaction(transaction: NewTransaction) {
  */
 export async function calculateBalance(startDate?: Date, endDate?: Date): Promise<number> {
   try {
-    const transactions = await getTransactions({ startDate, endDate });
+    // Obter transações diretamente do banco para garantir que os tipos originais estejam presentes
+    let query = supabase
+      .from('cash_flow')
+      .select('*');
+      
+    if (startDate) {
+      query = query.gte('date', startDate.toISOString().split('T')[0]);
+    }
+
+    if (endDate) {
+      query = query.lte('date', endDate.toISOString().split('T')[0]);
+    }
+    
+    const { data: transactions, error } = await query;
+    
+    if (error) throw error;
+    
     let balance = 0;
 
-    for (const transaction of transactions) {
+    for (const transaction of transactions || []) {
       const amount = parseFloat(transaction.amount);
-      if (transaction.type === 'INCOME' || transaction.type === 'PRODUCT_SALE') {
+      if (transaction.type === 'INCOME' || transaction.type === 'PRODUCT_SALE' || transaction.type === 'income') {
         balance += amount;
-      } else if (transaction.type === 'EXPENSE' || transaction.type === 'REFUND') {
+      } else if (transaction.type === 'EXPENSE' || transaction.type === 'REFUND' || transaction.type === 'expense') {
         balance -= amount;
       }
     }
