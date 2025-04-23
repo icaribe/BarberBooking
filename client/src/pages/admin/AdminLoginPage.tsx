@@ -133,7 +133,7 @@ export default function AdminLoginPage() {
                   />
                 </CardContent>
                 
-                <CardFooter className="flex flex-col">
+                <CardFooter className="flex flex-col space-y-4">
                   <Button 
                     type="submit" 
                     className="w-full" 
@@ -148,6 +148,20 @@ export default function AdminLoginPage() {
                       "Entrar"
                     )}
                   </Button>
+                  
+                  {/* Botão para auxiliar no desenvolvimento */}
+                  {debugMode && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs"
+                      onClick={fillAdminCredentials}
+                    >
+                      <Key className="h-3 w-3 mr-1" />
+                      Preencher credenciais Admin
+                    </Button>
+                  )}
                 </CardFooter>
               </form>
             </Form>
