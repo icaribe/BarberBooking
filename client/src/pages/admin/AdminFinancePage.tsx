@@ -66,7 +66,7 @@ export default function AdminFinancePage() {
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     to: new Date()
   });
-  
+
   // Handler para DateRange que lida com null/undefined
   const handleDateRangeChange = (range: DateRange | undefined) => {
     if (range && range.from) {
@@ -74,7 +74,7 @@ export default function AdminFinancePage() {
         from: range.from,
         to: range.to || range.from
       });
-      
+
       // Forçar atualização imediata dos dados quando o período é alterado
       setTimeout(() => {
         console.log('Período alterado. Atualizando dados financeiros...');
@@ -159,16 +159,17 @@ interface FinancialSummary {
     try {
       const formattedData = {
         ...values,
-        amount: parseFloat(values.amount).toString(), // Garante que o valor está em formato numérico
+        amount: Math.round(parseFloat(values.amount) * 100), // Converter para centavos
+        date: format(values.date, 'yyyy-MM-dd')
       };
-      
+
       await apiRequest('POST', '/api/admin/cash-flow', formattedData);
-      
+
       toast({
         title: "Transação registrada",
         description: `A transação foi registrada com sucesso.`
       });
-      
+
       // Limpar formulário e recarregar todos os dados
       form.reset({
         type: "income",
@@ -177,11 +178,11 @@ interface FinancialSummary {
         description: "",
         date: new Date()
       });
-      
+
       // Recarregar tanto as transações quanto o resumo financeiro
       refetch();
       refetchSummary();
-      
+
       // Log para depuração
       console.log('Solicitando atualização do resumo financeiro após registrar nova transação');
     } catch (error) {
@@ -202,7 +203,7 @@ interface FinancialSummary {
           <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="registrar">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="md:col-span-2">
@@ -212,7 +213,7 @@ interface FinancialSummary {
                   Registre entradas e saídas do seu caixa
                 </CardDescription>
               </CardHeader>
-              
+
               <CardContent>
                 <FormProvider {...form}>
                   <Form {...form}>
@@ -242,7 +243,7 @@ interface FinancialSummary {
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={form.control}
                           name="category"
@@ -275,7 +276,7 @@ interface FinancialSummary {
                           )}
                         />
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -290,7 +291,7 @@ interface FinancialSummary {
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={form.control}
                           name="date"
@@ -335,7 +336,7 @@ interface FinancialSummary {
                           )}
                         />
                       </div>
-                      
+
                       <FormField
                         control={form.control}
                         name="description"
@@ -349,7 +350,7 @@ interface FinancialSummary {
                           </FormItem>
                         )}
                       />
-                      
+
                       <Button type="submit" className="w-full md:w-auto">
                         Registrar Transação
                       </Button>
@@ -358,7 +359,7 @@ interface FinancialSummary {
                 </FormProvider>
               </CardContent>
             </Card>
-            
+
             <div className="space-y-6">
               <Card className="bg-primary/5">
                 <CardHeader>
@@ -367,7 +368,7 @@ interface FinancialSummary {
                     Resumo financeiro do mês atual
                   </CardDescription>
                 </CardHeader>
-                
+
                 <CardContent>
                   {isLoadingSummary ? (
                     <div className="space-y-4">
@@ -414,12 +415,12 @@ interface FinancialSummary {
                   )}
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle>Dicas</CardTitle>
                 </CardHeader>
-                
+
                 <CardContent>
                   <div className="space-y-4 text-sm">
                     <p>✓ Registre todas as transações para manter seu fluxo de caixa atualizado</p>
@@ -431,7 +432,7 @@ interface FinancialSummary {
             </div>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="historico">
           <Card>
             <CardHeader>
@@ -440,7 +441,7 @@ interface FinancialSummary {
                 Visualize e filtre seu histórico financeiro
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent>
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-4 items-end">
@@ -483,13 +484,13 @@ interface FinancialSummary {
                       </PopoverContent>
                     </Popover>
                   </div>
-                  
+
                   <Button variant="outline" onClick={() => refetch()}>
                     <Search className="mr-2 h-4 w-4" />
                     Filtrar
                   </Button>
                 </div>
-                
+
                 <div className="rounded-md border">
                   <table className="min-w-full divide-y divide-border">
                     <thead>
@@ -573,7 +574,7 @@ interface FinancialSummary {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="relatorios">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -583,7 +584,7 @@ interface FinancialSummary {
                   Visualize o desempenho financeiro do seu negócio
                 </CardDescription>
               </div>
-              
+
               <div className="flex space-x-2">
                 <div className="flex items-center space-x-2">
                   <Popover>
@@ -622,7 +623,7 @@ interface FinancialSummary {
                       />
                     </PopoverContent>
                   </Popover>
-                  
+
                   <Button 
                     variant="outline"
                     onClick={() => window.open('/api/admin/reports/financial?format=pdf', '_blank')}
@@ -632,7 +633,7 @@ interface FinancialSummary {
                     Gerar Relatório
                   </Button>
                 </div>
-                
+
                 {/* Adicionar um botão para sincronizar as transações com agendamentos concluídos */}
                 <div className="flex justify-end mt-2">
                   <SyncTransactionsButton refetchData={() => {
@@ -642,7 +643,7 @@ interface FinancialSummary {
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <Card>
@@ -658,7 +659,7 @@ interface FinancialSummary {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="py-3">
                     <CardTitle className="text-lg">Despesas</CardTitle>
@@ -672,7 +673,7 @@ interface FinancialSummary {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="py-3">
                     <CardTitle className="text-lg">Lucro</CardTitle>
@@ -687,7 +688,7 @@ interface FinancialSummary {
                   </CardContent>
                 </Card>
               </div>
-            
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
@@ -738,7 +739,7 @@ interface FinancialSummary {
                     )}
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Fluxo de Caixa</CardTitle>
@@ -776,7 +777,7 @@ interface FinancialSummary {
                 </Card>
               </div>
             </CardContent>
-            
+
             <CardFooter>
               <Button 
                 variant="outline" 
@@ -797,7 +798,7 @@ interface FinancialSummary {
 // Componente para o botão de sincronização de transações
 function SyncTransactionsButton({ refetchData }: { refetchData: () => void }) {
   const queryClient = useQueryClient();
-  
+
   // Mutation para sincronizar transações
   const syncMutation = useMutation({
     mutationFn: async () => {
@@ -810,7 +811,7 @@ function SyncTransactionsButton({ refetchData }: { refetchData: () => void }) {
         description: "Os serviços concluídos foram sincronizados com o fluxo de caixa.",
         variant: "default"
       });
-      
+
       // Atualizar dados
       queryClient.invalidateQueries({ queryKey: ['/api/admin/cash-flow'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/cash-flow/summary'] });
@@ -825,7 +826,7 @@ function SyncTransactionsButton({ refetchData }: { refetchData: () => void }) {
       });
     }
   });
-  
+
   return (
     <Button
       variant="outline"
