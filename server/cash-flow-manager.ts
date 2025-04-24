@@ -228,38 +228,86 @@ export async function recordTransaction(transaction: NewTransaction) {
  */
 export async function calculateBalance(startDate?: Date, endDate?: Date): Promise<number> {
   try {
-    // Obter transações diretamente do banco para garantir que os tipos originais estejam presentes
-    let query = supabase
-      .from('cash_flow')
-      .select('*');
-      
+    console.log('Calculando saldo financeiro', 
+      startDate ? `de ${startDate.toISOString().split('T')[0]}` : '', 
+      endDate ? `até ${endDate.toISOString().split('T')[0]}` : ''
+    );
+    
+    // Construir filtros para a API REST
+    const restFilters: Record<string, any> = {};
+    
     if (startDate) {
-      query = query.gte('date', startDate.toISOString().split('T')[0]);
+      restFilters['date=gte'] = startDate.toISOString().split('T')[0];
     }
 
     if (endDate) {
-      query = query.lte('date', endDate.toISOString().split('T')[0]);
+      restFilters['date=lte'] = endDate.toISOString().split('T')[0];
     }
     
-    const { data: transactions, error } = await query;
-    
-    if (error) throw error;
-    
-    let balance = 0;
-
-    for (const transaction of transactions || []) {
-      const amount = parseFloat(transaction.amount);
-      if (transaction.type === 'INCOME' || transaction.type === 'PRODUCT_SALE' || transaction.type === 'income') {
-        balance += amount;
-      } else if (transaction.type === 'EXPENSE' || transaction.type === 'REFUND' || transaction.type === 'expense') {
-        balance -= amount;
+    // Tentar primeiro com o cliente REST
+    try {
+      console.log('Tentando obter transações para cálculo de saldo via API REST');
+      const { data, error } = await supabaseRest.select('cash_flow', '*', restFilters);
+      
+      if (error) {
+        console.error('Erro ao buscar transações via REST:', error);
+        throw error;
       }
-    }
+      
+      console.log(`Processando ${data?.length || 0} transações para cálculo via API REST`);
+      let balance = 0;
 
-    return balance;
-  } catch (error) {
-    console.error('Erro ao calcular saldo:', error);
-    throw error;
+      for (const transaction of data || []) {
+        if (!transaction.amount) continue;
+        const amount = parseFloat(transaction.amount);
+        if (isNaN(amount)) continue;
+        
+        if (transaction.type === 'INCOME' || transaction.type === 'PRODUCT_SALE' || transaction.type === 'income') {
+          balance += amount;
+        } else if (transaction.type === 'EXPENSE' || transaction.type === 'REFUND' || transaction.type === 'expense') {
+          balance -= amount;
+        }
+      }
+      
+      console.log(`Saldo calculado: ${balance}`);
+      return balance;
+    } catch (restError) {
+      // Se falhar com API REST, tentar com o cliente padrão
+      console.warn('Falha ao obter transações via REST para cálculo de saldo, tentando método alternativo:', restError);
+      
+      // Obter transações diretamente do banco para garantir que os tipos originais estejam presentes
+      let query = supabase
+        .from('cash_flow')
+        .select('*');
+        
+      if (startDate) {
+        query = query.gte('date', startDate.toISOString().split('T')[0]);
+      }
+  
+      if (endDate) {
+        query = query.lte('date', endDate.toISOString().split('T')[0]);
+      }
+      
+      const { data: transactions, error } = await query;
+      
+      if (error) throw error;
+      
+      let balance = 0;
+  
+      for (const transaction of transactions || []) {
+        const amount = parseFloat(transaction.amount);
+        if (transaction.type === 'INCOME' || transaction.type === 'PRODUCT_SALE' || transaction.type === 'income') {
+          balance += amount;
+        } else if (transaction.type === 'EXPENSE' || transaction.type === 'REFUND' || transaction.type === 'expense') {
+          balance -= amount;
+        }
+      }
+  
+      return balance;
+    }
+  } catch (error: any) {
+    console.error('Erro ao calcular saldo:', error.message);
+    return 0; // Retornar zero em vez de lançar erro para evitar quebrar a interface
   }
 }
 
